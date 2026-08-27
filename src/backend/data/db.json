@@ -1,0 +1,44 @@
+{
+  "nguoiDung": {
+    "id": "u1",
+    "hoTen": "Nguyễn Đức Mạnh",
+    "email": "ducmanh@shopai.vn",
+    "dienThoai": "+84 912 345 678",
+    "tinhThanh": "Hà Nội",
+    "emailDaXacMinh": true,
+    "anhDaiDien": null,
+    "cheDoAI": "Phân tích (ưu tiên dữ liệu)",
+    "soNgayLuuTru": 30,
+    "ghiNhoNguCanh": true,
+    "matKhauHash": "scrypt$6a02980418f308062bf355d84bcef664$7aa0ac229776309af46bdc0d66988296ae13f108b20c4e560f7fb1e29d960aee748bb6a0cd6e285bcfc03bad4a19beea1ca4092c52f85775ade5b9e4348c94ea",
+    "capNhatLuc": "2026-08-27T09:18:55.936Z"
+  },
+  "diaChi": [
+    {
+      "id": "a1",
+      "nguoiDungId": "u1",
+      "hoTen": "Nguyễn Đức Mạnh",
+      "dienThoai": "0912345678",
+      "tinhThanh": "Hà Nội",
+      "quanHuyen": "Cầu Giấy",
+      "phuongXa": "Dịch Vọng Hậu",
+      "diaChiCuThe": "Số 8, ngõ 20 Trần Thái Tông",
+      "loai": "Nhà riêng",
+      "macDinh": true,
+      "taoLuc": "2026-08-27T09:15:36.609Z"
+    },
+    {
+      "id": "a2",
+      "nguoiDungId": "u1",
+      "hoTen": "Nguyễn Đức Mạnh",
+      "dienThoai": "0987654321",
+      "tinhThanh": "Hà Nội",
+      "quanHuyen": "Ba Đình",
+      "phuongXa": "Ngọc Khánh",
+      "diaChiCuThe": "Tầng 12, tòa Daeha, 360 Kim Mã",
+      "loai": "Văn phòng",
+      "macDinh": false,
+      "taoLuc": "2026-08-27T09:15:36.610Z"
+    }
+  ]
+}

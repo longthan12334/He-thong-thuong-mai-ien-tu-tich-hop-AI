@@ -1,0 +1,297 @@
+TAP version 13
+# Subtest: HTTMDTTHA-48 · Hồ sơ cá nhân
+    # Subtest: GET /api/profile trả về hồ sơ đầy đủ
+    ok 1 - GET /api/profile trả về hồ sơ đầy đủ
+      ---
+      duration_ms: 11.887324
+      type: 'test'
+      ...
+    # Subtest: GET /api/profile không bao giờ lộ hash mật khẩu
+    ok 2 - GET /api/profile không bao giờ lộ hash mật khẩu
+      ---
+      duration_ms: 8.470672
+      type: 'test'
+      ...
+    # Subtest: Thiếu token thì bị chặn 401
+    ok 3 - Thiếu token thì bị chặn 401
+      ---
+      duration_ms: 6.882333
+      type: 'test'
+      ...
+    # Subtest: PUT /api/profile cập nhật được thông tin và cấu hình AI
+    ok 4 - PUT /api/profile cập nhật được thông tin và cấu hình AI
+      ---
+      duration_ms: 21.001142
+      type: 'test'
+      ...
+    # Subtest: Dữ liệu thay đổi được lưu bền, đọc lại vẫn đúng
+    ok 5 - Dữ liệu thay đổi được lưu bền, đọc lại vẫn đúng
+      ---
+      duration_ms: 2.577516
+      type: 'test'
+      ...
+    # Subtest: Email sai định dạng bị từ chối 422 kèm lỗi từng trường
+    ok 6 - Email sai định dạng bị từ chối 422 kèm lỗi từng trường
+      ---
+      duration_ms: 9.259404
+      type: 'test'
+      ...
+    # Subtest: Họ tên quá ngắn và điện thoại thiếu số đều báo lỗi
+    ok 7 - Họ tên quá ngắn và điện thoại thiếu số đều báo lỗi
+      ---
+      duration_ms: 2.671994
+      type: 'test'
+      ...
+    # Subtest: soNgayLuuTru ngoài khoảng 1–365 bị chặn
+    ok 8 - soNgayLuuTru ngoài khoảng 1–365 bị chặn
+      ---
+      duration_ms: 12.02511
+      type: 'test'
+      ...
+    # Subtest: Đổi email làm mất trạng thái đã xác minh
+    ok 9 - Đổi email làm mất trạng thái đã xác minh
+      ---
+      duration_ms: 95.123883
+      type: 'test'
+      ...
+    # Subtest: Phương thức không hỗ trợ trả 405
+    ok 10 - Phương thức không hỗ trợ trả 405
+      ---
+      duration_ms: 4.323691
+      type: 'test'
+      ...
+    1..10
+ok 1 - HTTMDTTHA-48 · Hồ sơ cá nhân
+  ---
+  duration_ms: 339.442584
+  type: 'suite'
+  ...
+# Subtest: HTTMDTTHA-48 · Đổi mật khẩu
+    # Subtest: Sai mật khẩu hiện tại bị từ chối 401
+    ok 1 - Sai mật khẩu hiện tại bị từ chối 401
+      ---
+      duration_ms: 91.282205
+      type: 'test'
+      ...
+    # Subtest: Mật khẩu mới dưới 8 ký tự bị chặn
+    ok 2 - Mật khẩu mới dưới 8 ký tự bị chặn
+      ---
+      duration_ms: 5.396676
+      type: 'test'
+      ...
+    # Subtest: Hai lần nhập không khớp bị chặn
+    ok 3 - Hai lần nhập không khớp bị chặn
+      ---
+      duration_ms: 5.530122
+      type: 'test'
+      ...
+    # Subtest: Đổi mật khẩu thành công và trả về độ mạnh 0–3
+    ok 4 - Đổi mật khẩu thành công và trả về độ mạnh 0–3
+      ---
+      duration_ms: 225.230989
+      type: 'test'
+      ...
+    # Subtest: Mật khẩu mới có hiệu lực ngay, mật khẩu cũ hết dùng được
+    ok 5 - Mật khẩu mới có hiệu lực ngay, mật khẩu cũ hết dùng được
+      ---
+      duration_ms: 206.517668
+      type: 'test'
+      ...
+    # Subtest: Không cho đặt lại đúng mật khẩu đang dùng
+    ok 6 - Không cho đặt lại đúng mật khẩu đang dùng
+      ---
+      duration_ms: 135.377456
+      type: 'test'
+      ...
+    # Subtest: Hash lưu trong kho không phải văn bản thuần
+    ok 7 - Hash lưu trong kho không phải văn bản thuần
+      ---
+      duration_ms: 0.530701
+      type: 'test'
+      ...
+    1..7
+ok 2 - HTTMDTTHA-48 · Đổi mật khẩu
+  ---
+  duration_ms: 670.432926
+  type: 'suite'
+  ...
+# Subtest: HTTMDTTHA-49 · Ảnh đại diện
+    # Subtest: POST ảnh PNG hợp lệ trả về đường dẫn công khai
+    ok 1 - POST ảnh PNG hợp lệ trả về đường dẫn công khai
+      ---
+      duration_ms: 7.830148
+      type: 'test'
+      ...
+    # Subtest: Tệp thật sự được ghi xuống đĩa
+    ok 2 - Tệp thật sự được ghi xuống đĩa
+      ---
+      duration_ms: 10.053895
+      type: 'test'
+      ...
+    # Subtest: Ảnh tải về được qua HTTP với đúng content-type
+    ok 3 - Ảnh tải về được qua HTTP với đúng content-type
+      ---
+      duration_ms: 4.547821
+      type: 'test'
+      ...
+    # Subtest: Tải ảnh mới sẽ xóa ảnh cũ, không để rác trên đĩa
+    ok 4 - Tải ảnh mới sẽ xóa ảnh cũ, không để rác trên đĩa
+      ---
+      duration_ms: 4.742099
+      type: 'test'
+      ...
+    # Subtest: Chuỗi không phải data URL bị từ chối 422
+    ok 5 - Chuỗi không phải data URL bị từ chối 422
+      ---
+      duration_ms: 1.916087
+      type: 'test'
+      ...
+    # Subtest: Định dạng ngoài PNG/JPG/WEBP bị từ chối 415
+    ok 6 - Định dạng ngoài PNG/JPG/WEBP bị từ chối 415
+      ---
+      duration_ms: 2.473001
+      type: 'test'
+      ...
+    # Subtest: Khai mime là PNG nhưng nội dung không phải ảnh thì bị chặn
+    ok 7 - Khai mime là PNG nhưng nội dung không phải ảnh thì bị chặn
+      ---
+      duration_ms: 2.667604
+      type: 'test'
+      ...
+    # Subtest: DELETE gỡ ảnh đại diện thành công
+    ok 8 - DELETE gỡ ảnh đại diện thành công
+      ---
+      duration_ms: 4.150725
+      type: 'test'
+      ...
+    # Subtest: DELETE khi chưa có ảnh trả 404
+    ok 9 - DELETE khi chưa có ảnh trả 404
+      ---
+      duration_ms: 1.483768
+      type: 'test'
+      ...
+    1..9
+ok 3 - HTTMDTTHA-49 · Ảnh đại diện
+  ---
+  duration_ms: 40.54175
+  type: 'suite'
+  ...
+# Subtest: HTTMDTTHA-50 · Sổ địa chỉ
+    # Subtest: GET trả về danh sách mẫu, mặc định đứng đầu
+    ok 1 - GET trả về danh sách mẫu, mặc định đứng đầu
+      ---
+      duration_ms: 56.403099
+      type: 'test'
+      ...
+    # Subtest: POST thêm địa chỉ mới thành công
+    ok 2 - POST thêm địa chỉ mới thành công
+      ---
+      duration_ms: 6.519398
+      type: 'test'
+      ...
+    # Subtest: Thiếu trường bắt buộc bị chặn 422
+    ok 3 - Thiếu trường bắt buộc bị chặn 422
+      ---
+      duration_ms: 4.452179
+      type: 'test'
+      ...
+    # Subtest: PUT sửa được địa chỉ đã có
+    ok 4 - PUT sửa được địa chỉ đã có
+      ---
+      duration_ms: 15.411757
+      type: 'test'
+      ...
+    # Subtest: Sửa địa chỉ không tồn tại trả 404
+    ok 5 - Sửa địa chỉ không tồn tại trả 404
+      ---
+      duration_ms: 5.157335
+      type: 'test'
+      ...
+    # Subtest: Đặt mặc định chỉ giữ đúng một địa chỉ mặc định
+    ok 6 - Đặt mặc định chỉ giữ đúng một địa chỉ mặc định
+      ---
+      duration_ms: 5.465332
+      type: 'test'
+      ...
+    # Subtest: Xóa địa chỉ mặc định thì địa chỉ khác được nâng lên thay thế
+    ok 7 - Xóa địa chỉ mặc định thì địa chỉ khác được nâng lên thay thế
+      ---
+      duration_ms: 8.599687
+      type: 'test'
+      ...
+    # Subtest: Xóa địa chỉ không tồn tại trả 404
+    ok 8 - Xóa địa chỉ không tồn tại trả 404
+      ---
+      duration_ms: 2.13923
+      type: 'test'
+      ...
+    # Subtest: Chặn vượt quá 10 địa chỉ mỗi tài khoản
+    ok 9 - Chặn vượt quá 10 địa chỉ mỗi tài khoản
+      ---
+      duration_ms: 114.974864
+      type: 'test'
+      ...
+    # Subtest: Địa chỉ đầu tiên tự động trở thành mặc định
+    ok 10 - Địa chỉ đầu tiên tự động trở thành mặc định
+      ---
+      duration_ms: 57.741324
+      type: 'test'
+      ...
+    # Subtest: Sổ địa chỉ cũng yêu cầu token
+    ok 11 - Sổ địa chỉ cũng yêu cầu token
+      ---
+      duration_ms: 8.414089
+      type: 'test'
+      ...
+    1..11
+ok 4 - HTTMDTTHA-50 · Sổ địa chỉ
+  ---
+  duration_ms: 286.459489
+  type: 'suite'
+  ...
+# Subtest: HTTMDTTHA-52 · 53 · Giao diện
+    # Subtest: GET / trả về index.html
+    ok 1 - GET / trả về index.html
+      ---
+      duration_ms: 9.004486
+      type: 'test'
+      ...
+    # Subtest: style.css và app.js được phục vụ đúng kiểu MIME
+    ok 2 - style.css và app.js được phục vụ đúng kiểu MIME
+      ---
+      duration_ms: 5.163524
+      type: 'test'
+      ...
+    # Subtest: Chặn path traversal ra ngoài thư mục frontend
+    ok 3 - Chặn path traversal ra ngoài thư mục frontend
+      ---
+      duration_ms: 2.644209
+      type: 'test'
+      ...
+    # Subtest: Endpoint API không tồn tại trả 404 dạng JSON
+    ok 4 - Endpoint API không tồn tại trả 404 dạng JSON
+      ---
+      duration_ms: 1.485974
+      type: 'test'
+      ...
+    # Subtest: /api/health báo đúng thuật toán băm đang dùng
+    ok 5 - /api/health báo đúng thuật toán băm đang dùng
+      ---
+      duration_ms: 3.084609
+      type: 'test'
+      ...
+    1..5
+ok 5 - HTTMDTTHA-52 · 53 · Giao diện
+  ---
+  duration_ms: 21.756489
+  type: 'suite'
+  ...
+1..5
+# tests 42
+# suites 5
+# pass 42
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1464.768397
