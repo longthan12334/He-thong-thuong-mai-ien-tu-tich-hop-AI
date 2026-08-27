@@ -1,0 +1,6 @@
+node_modules/
+src/backend/data/db.json
+src/backend/uploads/*
+!src/backend/uploads/.gitkeep
+ket-qua/test-output.txt
+.DS_Store

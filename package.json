@@ -1,0 +1,19 @@
+{
+  "name": "shopai-ho-so-ca-nhan",
+  "version": "1.0.0",
+  "description": "ShopAI — Hồ sơ cá nhân, ảnh đại diện và sổ địa chỉ nhận hàng (HTTMDTTHA-48/49/50/52/53)",
+  "main": "src/backend/server.js",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node src/backend/server.js",
+    "dev": "node --watch src/backend/server.js",
+    "test": "node test/test-api.js",
+    "reset": "node -e \"require('./src/backend/lib/store').datLai();console.log('Đã đặt lại dữ liệu mẫu.')\""
+  },
+  "optionalDependencies": {
+    "bcryptjs": "^2.4.3"
+  },
+  "keywords": ["shopai", "ho-so", "avatar", "dia-chi", "nodejs"],
+  "license": "MIT"
+}
