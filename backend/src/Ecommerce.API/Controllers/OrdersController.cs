@@ -1,6 +1,8 @@
+using System.Security.Claims;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Ecommerce.Common.Enums;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.API.Controllers;
@@ -40,11 +42,20 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] CreateOrderDto request)
     {
-        var result = await _orderService.CreateOrderAsync(request);
+        int? userId = null;
+        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+        if (int.TryParse(sub, out var id))
+            userId = id;
+
+        var result = await _orderService.CreateOrderAsync(request, userId);
         return CreatedAtAction(nameof(GetOrderById), new { id = result.Id }, result);
     }
 
     [HttpPatch("{id:int}/status")]
+    [Authorize(Roles = "Seller,Admin")]
     public async Task<ActionResult<OrderDto>> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto request)
     {
         var result = await _orderService.UpdateOrderStatusAsync(id, request);

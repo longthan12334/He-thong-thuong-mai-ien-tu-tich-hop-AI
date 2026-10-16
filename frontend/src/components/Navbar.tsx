@@ -3,26 +3,30 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut } from 'lucide-react';
+import { LogOut, ShoppingBag, Store, LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/hooks/useCart';
 import { SELLER_NAV_LINKS } from '@/lib/constants';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, token, isLoading, logout } = useAuth();
+  const { user, token, logout } = useAuth();
+  const { totalQty, setIsCartOpen } = useCart();
 
-  // Không hiển thị Navbar trên trang login hoặc khi chưa xác thực xong
-  if (pathname === '/login' || (!isLoading && !token)) {
+  // Ẩn thanh Navbar riêng ở trang login để giữ layout tập trung
+  if (pathname === '/login') {
     return null;
   }
 
-  const displayName = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || 'Seller';
+  const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+  const displayName = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || 'Khách Mua Sắm';
   const initial = displayName.charAt(0).toUpperCase();
 
   return (
-    <header className="navbar">
-      <div className="nav-container">
-        <div className="logo">
+    <header className="navbar sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200">
+      <div className="nav-container max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo */}
+        <div className="logo flex items-center">
           <Link
             href="/"
             style={{
@@ -33,108 +37,114 @@ export default function Navbar() {
               gap: '8px',
             }}
           >
-            <span className="logo-text">
-              Aethelgard <span className="accent-text">Shopping Mall</span>
+            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200">
+              A
+            </div>
+            <span className="logo-text font-bold text-lg text-slate-900 tracking-tight">
+              Aethelgard <span className="accent-text text-purple-600">Mall</span>
             </span>
           </Link>
         </div>
 
-        {/* 5 MENU CHÍNH CỦA PHÂN HỆ SELLER */}
-        <nav className="nav-links">
-          {SELLER_NAV_LINKS.map((item) => {
-            const isActive = pathname === item.href;
-            return (
+        {/* Menu Điều hướng */}
+        <nav className="nav-links flex items-center gap-1 md:gap-3">
+          <Link
+            href="/"
+            className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+              pathname === '/' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            Cửa Hàng
+          </Link>
+
+          {/* Nếu là tài khoản Seller hoặc Admin: hiển thị thêm các tab quản lý */}
+          {token && isSeller && (
+            <>
               <Link
-                key={item.name}
-                href={item.href}
-                className={`nav-link ${isActive ? 'active' : ''}`}
+                href="/inventory"
+                className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  pathname === '/inventory' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
               >
-                {item.name}
+                Tồn Kho
               </Link>
-            );
-          })}
+              <Link
+                href="/orders"
+                className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  pathname === '/orders' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Đơn Hàng
+              </Link>
+              <Link
+                href="/income-statistics"
+                className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  pathname === '/income-statistics' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Doanh Thu
+              </Link>
+              <Link
+                href="/shop-profile"
+                className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                  pathname === '/shop-profile' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                Hồ Sơ Shop
+              </Link>
+            </>
+          )}
         </nav>
 
-        <div
-          className="nav-actions"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            minWidth: '180px',
-            justifyContent: 'flex-end',
-          }}
-        >
-          {user ? (
-            <>
+        {/* Khối Actions: Nút Giỏ hàng & Đăng nhập / User info */}
+        <div className="nav-actions flex items-center gap-3">
+          {/* Nút Giỏ Hàng Mua Sắm (Dùng chung cho cả Khách và Seller) */}
+          <button
+            type="button"
+            onClick={() => setIsCartOpen(true)}
+            className="relative p-2.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-700 transition-all flex items-center justify-center cursor-pointer"
+            title="Mở giỏ hàng mua sắm"
+          >
+            <ShoppingBag className="w-5 h-5 text-slate-700" />
+            {totalQty > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+                {totalQty}
+              </span>
+            )}
+          </button>
+
+          {token && user ? (
+            <div className="flex items-center gap-2">
               <div
-                title={`Tài khoản: ${displayName}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '4px 12px 4px 6px',
-                  background: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
-                  borderRadius: '9999px',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#0F172A',
-                }}
+                title={`Đang đăng nhập: ${displayName} (${user.role})`}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs font-bold text-slate-800"
               >
-                <div
-                  className="user-avatar"
-                  style={{
-                    width: '28px',
-                    height: '28px',
-                    fontSize: '0.8rem',
-                    lineHeight: '28px',
-                  }}
-                >
+                <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">
                   {initial}
                 </div>
-                <span
-                  style={{
-                    maxWidth: '140px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {displayName}
+                <span className="max-w-[120px] truncate">{displayName}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-semibold">
+                  {user.role}
                 </span>
               </div>
 
               <button
                 onClick={logout}
                 title="Đăng xuất"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #E2E8F0',
-                  background: '#FFFFFF',
-                  color: '#EF4444',
-                  fontSize: '0.78rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-all cursor-pointer"
                 type="button"
               >
-                <LogOut style={{ width: 14, height: 14 }} />
-                <span>Đăng xuất</span>
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Đăng xuất</span>
               </button>
-            </>
+            </div>
           ) : (
             <Link
               href="/login"
-              className="user-avatar"
-              title="Đăng nhập"
-              style={{ textDecoration: 'none', color: '#fff' }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md shadow-purple-200 transition-all"
             >
-              A
+              <LogIn className="w-4 h-4" />
+              <span>Đăng Nhập</span>
             </Link>
           )}
         </div>

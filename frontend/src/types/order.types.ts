@@ -55,3 +55,19 @@ export interface UpdateOrderStatus {
   status: number;
   location?: string;
 }
+
+export interface CreateOrderItemRequest {
+  productId: number;
+  specs?: string;
+  quantity: number;
+}
+
+export interface CreateOrderRequest {
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  shippingAddress: string;
+  paymentMethod: string;
+  items: CreateOrderItemRequest[];
+}
+

@@ -1,5 +1,6 @@
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Ecommerce.API.Controllers;
@@ -23,6 +24,7 @@ public class InventoryController : ControllerBase
     }
 
     [HttpPost("restock")]
+    [Authorize(Roles = "Seller,Admin")]
     public async Task<IActionResult> Restock([FromBody] RestockRequestDto request)
     {
         var success = await _inventoryService.RestockProductAsync(request);
