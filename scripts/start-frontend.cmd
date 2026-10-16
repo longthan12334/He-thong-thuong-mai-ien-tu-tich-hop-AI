@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title [2/2] Frontend Next.js - Port 3000
+title [2/2] Frontend Next.js - Port 3001
 color 0B
 
 :: Chuyen thu muc den frontend
@@ -22,7 +22,7 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo [*] Dang khoi dong Web Portal tai: http://localhost:3000
+echo [*] Dang khoi dong Web Portal tai: http://localhost:3001
 echo.
 echo [Chu y]: Giu nguyen cua so nay de Frontend hoat dong.
 echo.
