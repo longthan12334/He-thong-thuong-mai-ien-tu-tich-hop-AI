@@ -6,6 +6,8 @@ import type { Product } from '@/types';
 import { productService } from '@/services/product.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { useCart } from '@/hooks/useCart';
+
 import {
   SellerProductCard,
   SellerDrawer,
@@ -28,13 +30,24 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('newest');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 12;
 
-  // Cart & Modals
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  // Global Cart & Modals
+  const {
+    cart,
+    totalQty: totalCartQty,
+    totalAmount: totalCartAmount,
+    removeFromCart,
+    clearCart,
+    isCartOpen,
+    setIsCartOpen,
+    isCheckoutOpen,
+    setIsCheckoutOpen,
+  } = useCart();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerProduct, setDrawerProduct] = useState<Product | null>(fallbackProducts[0] || null);
+
 
   const sellerTitle = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '';
 
@@ -46,7 +59,7 @@ export default function HomePage() {
     productService
       .getProducts({
         sellerId: sellerId && sellerId > 0 ? sellerId : undefined,
-        pageSize: 100,
+        pageSize: 200,
       })
       .then((res) => {
         if (isMounted && res && res.items && res.items.length > 0) {
@@ -106,6 +119,42 @@ export default function HomePage() {
     return list;
   }, [products, categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
 
+  // Reset về trang 1 khi thay đổi bộ lọc hoặc tìm kiếm
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
+
+  // Phân trang
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
+
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredProducts.slice(start, start + itemsPerPage);
+  }, [filteredProducts, currentPage, itemsPerPage]);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages && newPage !== currentPage) {
+      setCurrentPage(newPage);
+      scrollToCatalog();
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
+
   const openSellerDrawer = (p: Product) => {
     setDrawerProduct(p);
     setIsDrawerOpen(true);
@@ -115,13 +164,6 @@ export default function HomePage() {
     setIsDrawerOpen(false);
   };
 
-  const removeFromCart = (id: number) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== id));
-  };
-
-  const totalCartQty = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const totalCartAmount = cart.reduce((sum, item) => sum + item.product.basePrice * item.quantity, 0);
-
   const resetFilters = () => {
     setCategoryFilter('');
     setQuickFilterType('');
@@ -129,6 +171,7 @@ export default function HomePage() {
     setMaxPrice('');
     setSortOrder('newest');
     setSearchTerm('');
+    setCurrentPage(1);
   };
 
   const scrollToCatalog = () => {
@@ -176,37 +219,90 @@ export default function HomePage() {
                     : 'Danh Sách Sản Phẩm Aethelgard Mall'}
                 </h2>
                 <span id="results-count" className="results-tag">
-                  Hiển thị {filteredProducts.length} sản phẩm
+                  Hiển thị {filteredProducts.length} sản phẩm (Trang {currentPage}/{totalPages})
                 </span>
               </div>
             </div>
 
             <div id="product-grid" className="product-grid">
-              {filteredProducts.map((p) => (
-                <SellerProductCard
-                  key={p.id}
-                  product={p}
-                  onClick={openSellerDrawer}
-                />
-              ))}
+              {paginatedProducts.length > 0 ? (
+                paginatedProducts.map((p) => (
+                  <SellerProductCard
+                    key={p.id}
+                    product={p}
+                    onClick={openSellerDrawer}
+                  />
+                ))
+              ) : (
+                <div className="col-span-full py-16 text-center text-slate-500">
+                  <p className="text-base font-semibold">Không tìm thấy sản phẩm phù hợp với bộ lọc.</p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="mt-3 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold hover:bg-purple-200 transition-all cursor-pointer"
+                  >
+                    Xóa tất cả bộ lọc
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Pagination Controls */}
-            <div className="pagination-bar">
-              <button className="pagination-btn pagination-prev" type="button">
-                &larr; Previous
-              </button>
-              <div className="pagination-numbers">
-                <span className="page-num active">1</span>
-                <span className="page-num">2</span>
-                <span className="page-num">3</span>
-                <span className="page-dots">...</span>
-                <span className="page-num">10</span>
+            {totalPages > 1 && (
+              <div className="pagination-bar">
+                <button
+                  className="pagination-btn pagination-prev"
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  style={{
+                    opacity: currentPage <= 1 ? 0.35 : 1,
+                    cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  &larr; Previous
+                </button>
+
+                <div className="pagination-numbers">
+                  {getPageNumbers().map((pageItem, idx) => {
+                    if (pageItem === '...') {
+                      return (
+                        <span key={`dots-${idx}`} className="page-dots">
+                          ...
+                        </span>
+                      );
+                    }
+                    const pageNum = Number(pageItem);
+                    const isActive = pageNum === currentPage;
+                    return (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`page-num ${isActive ? 'active' : ''}`}
+                        aria-label={`Trang ${pageNum}`}
+                        style={{ border: 'none', outline: 'none' }}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  className="pagination-btn pagination-next"
+                  type="button"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  style={{
+                    opacity: currentPage >= totalPages ? 0.35 : 1,
+                    cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Next &rarr;
+                </button>
               </div>
-              <button className="pagination-btn pagination-next" type="button">
-                Next &rarr;
-              </button>
-            </div>
+            )}
           </section>
         </main>
       </section>
@@ -260,7 +356,7 @@ export default function HomePage() {
         totalAmount={totalCartAmount}
         onClose={() => setIsCartOpen(false)}
         onRemoveItem={removeFromCart}
-        onClearCart={() => setCart([])}
+        onClearCart={clearCart}
         onProceedCheckout={() => {
           if (cart.length === 0) {
             showToast('Giỏ hàng trống!');
@@ -273,12 +369,16 @@ export default function HomePage() {
 
       <CheckoutModal
         isOpen={isCheckoutOpen}
+        cart={cart}
         totalAmount={totalCartAmount}
         onClose={() => setIsCheckoutOpen(false)}
-        onSuccess={() => {
-          showToast('Đặt hàng thành công! Cảm ơn bạn đã mua sắm tại Aethelgard Mall.');
-          setCart([]);
+        onSuccess={(orderCode) => {
+          showToast(`Đặt hàng thành công! Mã đơn hàng của bạn: ${orderCode}`);
+          clearCart();
           setIsCheckoutOpen(false);
+        }}
+        onError={(err) => {
+          showToast(err);
         }}
       />
 
