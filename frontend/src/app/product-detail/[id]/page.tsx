@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { productService } from '@/services/product.service';
+import { useCart } from '@/hooks/useCart';
+
 
 interface ProductData {
   id: string;
@@ -103,6 +106,8 @@ export default function ProductDetailPage() {
   };
   const [prod, setProd] = useState<ProductData>(initialProd);
 
+  const { addToCart, setIsCartOpen } = useCart();
+
   const [activeImage, setActiveImage] = useState(prod.images[0].src);
   const [activeColor, setActiveColor] = useState(prod.colors[0].name);
   const [activeSize, setActiveSize] = useState(prod.sizes[1] || prod.sizes[0]);
@@ -116,12 +121,9 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (idStr) {
-      fetch(`http://localhost:5000/api/products/${idStr}`)
-        .then((res) => {
-          if (!res.ok) throw new Error('Network error');
-          return res.json();
-        })
-        .then((p) => {
+      productService
+        .getProductById(Number(idStr))
+        .then((p: any) => {
           if (p && p.name) {
             const rawGallery = p.galleryUrls && p.galleryUrls.length > 0 ? p.galleryUrls : [p.imageUrl || '/img/products/sample-velora.jpg'];
             const imgs = rawGallery.map((src: string, i: number) => ({
@@ -185,12 +187,39 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    addToCart(
+      {
+        id: Number(prod.id),
+        name: prod.title,
+        basePrice: parseInt(prod.priceCurrent.replace(/\D/g, ''), 10) || 0,
+        imageUrl: prod.images[0]?.src || '/img/products/adidas-samba.jpg',
+        categoryName: prod.category,
+        sku: `SKU-${prod.id}`,
+        stockQuantity: 50,
+      } as any,
+      qty,
+      `${activeColor}, Size ${activeSize}`
+    );
     showToast(`Đã thêm ${qty}x ${prod.title} (${activeColor}, Size ${activeSize}) vào giỏ hàng!`);
   };
 
   const handleBuyNow = () => {
-    showToast(`Đang chuyển đến cổng thanh toán cho size ${activeSize}...`);
+    addToCart(
+      {
+        id: Number(prod.id),
+        name: prod.title,
+        basePrice: parseInt(prod.priceCurrent.replace(/\D/g, ''), 10) || 0,
+        imageUrl: prod.images[0]?.src || '/img/products/adidas-samba.jpg',
+        categoryName: prod.category,
+        sku: `SKU-${prod.id}`,
+        stockQuantity: 50,
+      } as any,
+      qty,
+      `${activeColor}, Size ${activeSize}`
+    );
+    setIsCartOpen(true);
   };
+
 
   const formatTimer = () => {
     const h = String(timeLeft.hours).padStart(2, '0');

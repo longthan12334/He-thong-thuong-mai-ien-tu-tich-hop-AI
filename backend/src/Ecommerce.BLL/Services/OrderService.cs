@@ -72,11 +72,38 @@ public class OrderService : IOrderService
 
         foreach (var item in request.Items)
         {
-            var product = await _unitOfWork.Products.GetByIdAsync(item.ProductId);
+            var product = await _unitOfWork.Products.Query()
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
             if (product == null)
                 throw new NotFoundException("Sản phẩm trong giỏ", item.ProductId);
 
-            var itemSubtotal = product.BasePrice * item.Quantity;
+            // 1. Kiểm tra tồn kho sản phẩm cha - Chặn bán khống (Overselling)
+            if (product.StockQuantity < item.Quantity)
+            {
+                throw new BadRequestException($"Sản phẩm '{product.Name}' chỉ còn {product.StockQuantity} sản phẩm trong kho, không đủ đáp ứng số lượng yêu cầu ({item.Quantity}).");
+            }
+
+            // 2. Kiểm tra và trừ tồn kho biến thể (nếu có Specs cụ thể)
+            if (product.Variants != null && product.Variants.Any() && !string.IsNullOrWhiteSpace(item.Specs))
+            {
+                var matchedVariant = product.Variants.FirstOrDefault(v =>
+                    item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
+
+                if (matchedVariant != null)
+                {
+                    if (matchedVariant.StockQuantity < item.Quantity)
+                    {
+                        throw new BadRequestException($"Phiên bản '{item.Specs}' của sản phẩm '{product.Name}' chỉ còn {matchedVariant.StockQuantity} sản phẩm trong kho.");
+                    }
+                    matchedVariant.StockQuantity -= item.Quantity;
+                }
+            }
+
+            var itemPrice = product.BasePrice;
+            var itemSubtotal = itemPrice * item.Quantity;
             subtotal += itemSubtotal;
 
             orderItems.Add(new OrderItem
@@ -85,21 +112,19 @@ public class OrderService : IOrderService
                 ProductName = product.Name,
                 Specs = item.Specs,
                 ImageUrl = product.ImageUrl,
-                Price = product.BasePrice,
+                Price = itemPrice,
                 Quantity = item.Quantity,
                 Subtotal = itemSubtotal
             });
 
-            // Giảm tồn kho
-            if (product.StockQuantity >= item.Quantity)
-            {
-                product.StockQuantity -= item.Quantity;
-                if (product.StockQuantity == 0)
-                    product.StockStatus = StockStatus.OutOfStock;
-                else if (product.StockQuantity <= 10)
-                    product.StockStatus = StockStatus.LowStock;
-                _unitOfWork.Products.Update(product);
-            }
+            // 3. Giảm tồn kho sản phẩm cha & cập nhật trạng thái kho
+            product.StockQuantity -= item.Quantity;
+            if (product.StockQuantity == 0)
+                product.StockStatus = StockStatus.OutOfStock;
+            else if (product.StockQuantity <= 10)
+                product.StockStatus = StockStatus.LowStock;
+
+            _unitOfWork.Products.Update(product);
         }
 
         var shippingCharge = subtotal > 10000000 ? 0 : 50000;
