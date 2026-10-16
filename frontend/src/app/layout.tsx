@@ -11,6 +11,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { CartProvider } from '@/contexts/CartContext';
 
 export const metadata: Metadata = {
   title: 'Aethelgard Shopping Mall — AI Powered Luxury Fashion',
@@ -35,12 +36,15 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col bg-white text-slate-900 antialiased selection:bg-purple-500 selection:text-white">
         <AuthProvider>
           <ToastProvider>
-            <Navbar />
-            <div className="flex-1">{children}</div>
-            <Footer />
+            <CartProvider>
+              <Navbar />
+              <div className="flex-1">{children}</div>
+              <Footer />
+            </CartProvider>
           </ToastProvider>
         </AuthProvider>
       </body>
     </html>
   );
 }
+
