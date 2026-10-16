@@ -22,6 +22,11 @@ export const orderService = {
     return res.data;
   },
 
+  async createOrder(data: any): Promise<Order> {
+    const res = await apiClient.post('/orders', data);
+    return res.data;
+  },
+
   async updateOrderStatus(id: number, data: UpdateOrderStatus): Promise<Order> {
     try {
       const res = await apiClient.patch(`/orders/${id}/status`, data);
@@ -33,3 +38,4 @@ export const orderService = {
     }
   },
 };
+
