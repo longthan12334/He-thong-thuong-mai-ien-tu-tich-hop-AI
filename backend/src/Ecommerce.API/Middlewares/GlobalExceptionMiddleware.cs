@@ -42,10 +42,14 @@ public class GlobalExceptionMiddleware
 
         context.Response.StatusCode = statusCode;
 
+        var clientMessage = statusCode == (int)HttpStatusCode.InternalServerError
+            ? "Đã xảy ra lỗi máy chủ nội bộ. Vui lòng thử lại sau."
+            : exception.Message;
+
         var response = new
         {
             status = statusCode,
-            message = exception.Message,
+            message = clientMessage,
             timestamp = DateTime.UtcNow
         };
 

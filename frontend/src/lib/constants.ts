@@ -8,7 +8,9 @@ export const APP_SHORT_NAME = 'Aethelgard Mall';
 
 /** API Configuration */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-export const API_TIMEOUT = 4000;
+// Tăng từ 4000ms → 10000ms: Backend .NET cần thời gian warm-up JIT + DB connection pool
+// lần đầu chạy. 4s quá ngắn gây timeout trước khi nhận được response.
+export const API_TIMEOUT = 10000;
 
 /** Local Storage Keys */
 export const STORAGE_KEYS = {
@@ -27,6 +29,8 @@ export const ROUTES = {
     INVENTORY: '/inventory',
     ORDERS: '/orders',
     INCOME: '/income-statistics',
+    VOUCHERS: '/vouchers',
+    TRANSACTIONS: '/transactions',
     SHOP_PROFILE: '/shop-profile',
   },
 } as const;
@@ -34,9 +38,11 @@ export const ROUTES = {
 /** Seller Navbar Links */
 export const SELLER_NAV_LINKS = [
   { name: 'Home', href: '/' },
-  { name: 'Inventory', href: '/inventory' },
   { name: 'Orders', href: '/orders' },
+  { name: 'Inventory', href: '/inventory' },
   { name: 'Income Statistics', href: '/income-statistics' },
+  { name: 'Vouchers', href: '/vouchers' },
+  { name: 'Transactions', href: '/transactions' },
   { name: 'Shop Profile', href: '/shop-profile' },
 ] as const;
 
