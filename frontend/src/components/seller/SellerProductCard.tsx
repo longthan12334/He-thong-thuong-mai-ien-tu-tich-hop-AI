@@ -46,7 +46,7 @@ export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, o
         <h3 className="product-title">{product.name}</h3>
         <div className="product-rating-row">
           <span>★ {product.rating || 5.0}</span>
-          <span className="review-count">({product.reviewCount || 40} Reviews)</span>
+          <span className="review-count">({product.reviewCount || 40} Đánh giá)</span>
         </div>
         <div className="product-price-row">
           <span className="price-amount">{formatVND(product.basePrice)}</span>

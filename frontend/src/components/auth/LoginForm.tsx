@@ -122,11 +122,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => handleDemoSelect('ducmanh@gmail.com', 'Nguyễn Đức Mạnh (Chủ Sàn / Seller)')}
+            onClick={() => handleDemoSelect('nike@gmail.com', 'Nike Official Store')}
             className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Nguyễn Đức Mạnh</div>
-            <div className="text-[10px] text-slate-400">ducmanh@gmail.com</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Nike Official</div>
+            <div className="text-[10px] text-slate-400">nike@gmail.com</div>
           </button>
           <button
             type="button"

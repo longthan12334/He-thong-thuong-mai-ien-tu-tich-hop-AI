@@ -14,15 +14,31 @@ public class StatisticsService : IStatisticsService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<IncomeSummaryDto> GetIncomeStatisticsAsync()
+    public async Task<IncomeSummaryDto> GetIncomeStatisticsAsync(int? sellerId = null, string? role = null)
     {
         var transactions = await _unitOfWork.Transactions.Query()
             .OrderByDescending(t => t.Id)
             .Take(20)
             .ToListAsync();
 
-        var orders = await _unitOfWork.Orders.GetAllAsync();
-        var totalRevenue = orders.Sum(o => o.TotalAmount);
+        var allOrders = await _unitOfWork.Orders.Query()
+            .Include(o => o.Items)
+            .ToListAsync();
+
+        IEnumerable<Ecommerce.Common.Entities.Order> orders = allOrders;
+
+        // Seller chỉ thấy đơn hàng chứa sản phẩm của mình
+        if (sellerId.HasValue && role != "Admin")
+        {
+            var sellerProductIds = await _unitOfWork.Products.Query()
+                .Where(p => p.SellerId == sellerId.Value)
+                .Select(p => p.Id)
+                .ToListAsync();
+            orders = allOrders.Where(o => o.Items.Any(item => item.ProductId.HasValue && sellerProductIds.Contains(item.ProductId.Value)));
+        }
+
+        var orderList = orders.ToList();
+        var totalRevenue = orderList.Sum(o => o.TotalAmount);
         if (totalRevenue == 0) totalRevenue = 145000000m; // Fallback mock if freshly seeded without orders
 
         // Monthly Matrix Chart Data (JAN - DEC) matching sketch exactly
@@ -57,7 +73,7 @@ public class StatisticsService : IStatisticsService
         {
             TotalRevenue = totalRevenue,
             MonthlyRevenue = 56000000m,
-            TotalOrders = orders.Count > 0 ? orders.Count : 284,
+            TotalOrders = orderList.Count > 0 ? orderList.Count : 284,
             GrowthPercent = 18.5,
             MonthlyMatrix = monthlyMatrix,
             RecentTransactions = txDtos
