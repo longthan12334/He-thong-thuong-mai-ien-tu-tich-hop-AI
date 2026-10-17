@@ -18,29 +18,29 @@ public interface IProductService
     Task<ProductDto> GetProductByIdAsync(int id);
     Task<ProductDto> GetProductBySlugAsync(string slug);
     Task<ProductDto> CreateProductAsync(CreateProductDto request, int sellerId);
-    Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request);
-    Task<bool> DeleteProductAsync(int id);
+    Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request, int? currentUserId = null, string? currentRole = null);
+    Task<bool> DeleteProductAsync(int id, int? currentUserId = null, string? currentRole = null);
     Task<List<CategoryDto>> GetCategoriesAsync();
 }
 
 public interface IOrderService
 {
-    Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null);
-    Task<OrderDto> GetOrderByIdAsync(int id);
+    Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null, int? userId = null, string? role = null);
+    Task<OrderDto> GetOrderByIdAsync(int id, int? userId = null, string? role = null);
     Task<OrderDto> GetOrderByCodeAsync(string orderCode);
     Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null);
-    Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request);
+    Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null);
 }
 
 public interface IInventoryService
 {
-    Task<InventorySummaryDto> GetInventorySummaryAsync();
+    Task<InventorySummaryDto> GetInventorySummaryAsync(int? sellerId = null, string? role = null);
     Task<bool> RestockProductAsync(RestockRequestDto request);
 }
 
 public interface IStatisticsService
 {
-    Task<IncomeSummaryDto> GetIncomeStatisticsAsync();
+    Task<IncomeSummaryDto> GetIncomeStatisticsAsync(int? sellerId = null, string? role = null);
 }
 
 public interface IAIService
@@ -52,4 +52,5 @@ public interface IStoreService
 {
     Task<List<StoreDto>> GetAllStoresAsync();
     Task<StoreDto?> GetStoreByCodeAsync(string storeCode);
+    Task<StoreDto?> UpdateStoreAsync(string storeCode, UpdateStoreDto dto);
 }

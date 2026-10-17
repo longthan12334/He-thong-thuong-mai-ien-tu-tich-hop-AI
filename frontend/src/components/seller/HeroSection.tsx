@@ -33,7 +33,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               id="search-input"
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              placeholder="Search on Aethelgard Mall..."
+              placeholder="Tìm kiếm sản phẩm trên Aethelgard Mall..."
               aria-label="Tìm kiếm sản phẩm"
             />
             <button
@@ -42,7 +42,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={onScrollToCatalog}
               type="button"
             >
-              Search
+              Tìm Kiếm
             </button>
           </div>
         </div>

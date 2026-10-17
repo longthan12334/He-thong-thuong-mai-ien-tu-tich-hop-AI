@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Microsoft.AspNetCore.Authorization;
@@ -19,7 +20,12 @@ public class InventoryController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<InventorySummaryDto>> GetSummary()
     {
-        var result = await _inventoryService.GetInventorySummaryAsync();
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var result = await _inventoryService.GetInventorySummaryAsync(userId, roleClaim);
         return Ok(result);
     }
 
@@ -46,7 +52,12 @@ public class StatisticsController : ControllerBase
     [HttpGet("income")]
     public async Task<ActionResult<IncomeSummaryDto>> GetIncomeStatistics()
     {
-        var result = await _statisticsService.GetIncomeStatisticsAsync();
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var result = await _statisticsService.GetIncomeStatisticsAsync(userId, roleClaim);
         return Ok(result);
     }
 }

@@ -55,7 +55,8 @@ namespace Ecommerce.DAL.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Slug")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Categories_Slug");
 
                     b.ToTable("Categories");
                 });
@@ -77,7 +78,7 @@ namespace Ecommerce.DAL.Migrations
 
                     b.Property<string>("CustomerEmail")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("CustomerName")
                         .IsRequired()
@@ -143,10 +144,14 @@ namespace Ecommerce.DAL.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CustomerEmail")
+                        .HasDatabaseName("IX_Orders_CustomerEmail");
+
                     b.HasIndex("OrderCode")
                         .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_Orders_UserId");
 
                     b.ToTable("Orders");
                 });
@@ -289,14 +294,21 @@ namespace Ecommerce.DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_Products_CategoryId");
 
-                    b.HasIndex("SellerId");
+                    b.HasIndex("SellerId")
+                        .HasDatabaseName("IX_Products_SellerId");
 
                     b.HasIndex("Sku")
                         .IsUnique();
 
-                    b.HasIndex("Slug");
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Products_Slug");
+
+                    b.HasIndex("IsActive", "Id")
+                        .HasDatabaseName("IX_Products_IsActive_Id");
 
                     b.ToTable("Products");
                 });
@@ -533,7 +545,8 @@ namespace Ecommerce.DAL.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_Users_Email");
 
                     b.ToTable("Users");
                 });

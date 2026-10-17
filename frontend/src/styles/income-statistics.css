@@ -118,16 +118,18 @@ body {
    ============================================================ */
 .analytics-two-col-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 14px;
+  grid-template-columns: 3.2fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  width: 100%;
 }
 
 .dash-card {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;
-  border-radius: 10px;
-  padding: 20px 22px;
-  box-shadow: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
 }
@@ -248,8 +250,8 @@ body {
 .matrix-chart-wrapper {
   display: flex;
   position: relative;
-  height: 240px;
-  margin-top: 10px;
+  height: 175px;
+  margin-top: 6px;
 }
 
 .matrix-y-axis {
@@ -480,9 +482,10 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  height: 140px;
-  padding: 10px 4px 6px;
+  height: 95px;
+  padding: 6px 4px 4px;
   border-bottom: 1px solid #E5E7EB;
+  margin-top: auto;
 }
 
 .needle-col {

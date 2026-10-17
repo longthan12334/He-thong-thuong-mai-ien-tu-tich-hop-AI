@@ -36,7 +36,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   return (
     <aside className="sidebar-filters">
       <div className="sidebar-header">
-        <h3>Category</h3>
+        <h3>Danh Mục</h3>
       </div>
 
       {/* Category Select Filter Dropdown */}
@@ -65,7 +65,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           onClick={() => onCategoryChange('')}
           style={{ cursor: 'pointer' }}
         >
-          <span>All Product</span>
+          <span>Tất Cả Sản Phẩm</span>
           <span className="count-tag">{totalProductsCount}</span>
         </li>
         <li
@@ -73,28 +73,28 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           onClick={() => onCategoryChange('1')}
           style={{ cursor: 'pointer' }}
         >
-          <span>Sneakers & Shoes</span>
+          <span>Giày Sneaker & Thể Thao</span>
         </li>
         <li
           className={`subnav-item ${categoryFilter === '2' ? 'active' : ''}`}
           onClick={() => onCategoryChange('2')}
           style={{ cursor: 'pointer' }}
         >
-          <span>Streetwear & Jackets</span>
+          <span>Thời Trang Streetwear & Áo Khoác</span>
         </li>
         <li
           className={`subnav-item ${categoryFilter === '3' ? 'active' : ''}`}
           onClick={() => onCategoryChange('3')}
           style={{ cursor: 'pointer' }}
         >
-          <span>Pants & Accessories</span>
+          <span>Quần & Phụ Kiện Thời Trang</span>
         </li>
         <li
           className={`subnav-item ${categoryFilter === '4' ? 'active' : ''}`}
           onClick={() => onCategoryChange('4')}
           style={{ cursor: 'pointer' }}
         >
-          <span>Home & Living</span>
+          <span>Gia Dụng & Đời Sống</span>
         </li>
       </ul>
 
@@ -112,7 +112,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
             onSortOrderChange('newest');
           }}
         >
-          New Arrival
+          Hàng Mới Về
         </button>
         <button
           type="button"
@@ -121,7 +121,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           }`}
           onClick={() => onQuickFilterChange('bestseller')}
         >
-          Best Seller
+          Bán Chạy Nhất
         </button>
         <button
           type="button"
@@ -130,7 +130,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           }`}
           onClick={() => onQuickFilterChange('discount')}
         >
-          On Discount
+          Đang Giảm Giá
         </button>
       </div>
 
@@ -185,7 +185,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         onClick={onReset}
         type="button"
       >
-        Reset Filters
+        Đặt Lại Bộ Lọc
       </button>
     </aside>
   );

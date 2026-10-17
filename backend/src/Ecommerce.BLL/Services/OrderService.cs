@@ -20,7 +20,7 @@ public class OrderService : IOrderService
         _mapper = mapper;
     }
 
-    public async Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null)
+    public async Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null, int? userId = null, string? role = null)
     {
         var query = _unitOfWork.Orders.Query()
             .Include(o => o.Items)
@@ -31,11 +31,26 @@ public class OrderService : IOrderService
             query = query.Where(o => o.Status == status.Value);
         }
 
+        // Khách hàng chỉ xem đơn hàng của chính mình
+        if (userId.HasValue && role == "Customer")
+        {
+            query = query.Where(o => o.UserId == userId.Value);
+        }
+        // Seller chỉ xem đơn hàng chứa sản phẩm của mình
+        else if (userId.HasValue && role == "Seller")
+        {
+            var sellerProductIds = await _unitOfWork.Products.Query()
+                .Where(p => p.SellerId == userId.Value)
+                .Select(p => p.Id)
+                .ToListAsync();
+            query = query.Where(o => o.Items.Any(item => item.ProductId.HasValue && sellerProductIds.Contains(item.ProductId.Value)));
+        }
+
         var orders = await query.OrderByDescending(o => o.Id).ToListAsync();
         return _mapper.Map<List<OrderDto>>(orders);
     }
 
-    public async Task<OrderDto> GetOrderByIdAsync(int id)
+    public async Task<OrderDto> GetOrderByIdAsync(int id, int? userId = null, string? role = null)
     {
         var order = await _unitOfWork.Orders.Query()
             .Include(o => o.Items)
@@ -43,6 +58,12 @@ public class OrderService : IOrderService
 
         if (order == null)
             throw new NotFoundException("Đơn hàng", id);
+
+        // Khách hàng chỉ xem được đơn hàng của chính mình
+        if (userId.HasValue && role != "Admin" && role != "Seller" && order.UserId != userId.Value)
+        {
+            throw new UnauthorizedException("Bạn không có quyền truy cập thông tin đơn hàng này.");
+        }
 
         return _mapper.Map<OrderDto>(order);
     }
@@ -161,8 +182,13 @@ public class OrderService : IOrderService
         return await GetOrderByIdAsync(order.Id);
     }
 
-    public async Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request)
+    public async Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null)
     {
+        if (role != null && role != "Admin" && role != "Seller")
+        {
+            throw new UnauthorizedException("Chỉ người bán (Seller) hoặc Quản trị viên (Admin) mới có quyền cập nhật trạng thái đơn hàng.");
+        }
+
         var order = await _unitOfWork.Orders.Query()
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
