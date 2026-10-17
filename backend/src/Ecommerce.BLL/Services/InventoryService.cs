@@ -15,10 +15,18 @@ public class InventoryService : IInventoryService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<InventorySummaryDto> GetInventorySummaryAsync()
+    public async Task<InventorySummaryDto> GetInventorySummaryAsync(int? sellerId = null, string? role = null)
     {
         var allProducts = await _unitOfWork.Products.GetAllAsync();
-        var products = allProducts.Where(p => p.IsActive).ToList();
+        var activeProducts = allProducts.Where(p => p.IsActive);
+
+        // Seller chỉ thấy sản phẩm của chính mình, Admin thấy toàn bộ
+        if (sellerId.HasValue && role != "Admin")
+        {
+            activeProducts = activeProducts.Where(p => p.SellerId == sellerId.Value);
+        }
+
+        var products = activeProducts.ToList();
 
         var totalSku = products.Count;
         var totalStockItems = products.Sum(p => p.StockQuantity);
