@@ -31,6 +31,15 @@ public class StoresController : ControllerBase
         if (store == null) return NotFound();
         return Ok(store);
     }
+
+    [HttpPut("{storeCode}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Seller,Admin")]
+    public async Task<ActionResult<StoreDto>> UpdateStore(string storeCode, [FromBody] UpdateStoreDto dto)
+    {
+        var updated = await _storeService.UpdateStoreAsync(storeCode, dto);
+        if (updated == null) return NotFound(new { message = "Không tìm thấy thông tin cửa hàng." });
+        return Ok(updated);
+    }
 }
 
 [ApiController]

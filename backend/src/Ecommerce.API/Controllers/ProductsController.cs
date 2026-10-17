@@ -17,18 +17,6 @@ public class ProductsController : ControllerBase
         _productService = productService;
     }
 
-    private int GetCurrentUserId()
-    {
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-
-        if (int.TryParse(sub, out var id))
-            return id;
-
-        return 1; // Fallback mặc định
-    }
-
     [HttpGet]
     public async Task<ActionResult<PagedResultDto<ProductDto>>> GetProducts([FromQuery] ProductFilterDto filter)
     {
@@ -57,46 +45,41 @@ public class ProductsController : ControllerBase
         return Ok(result);
     }
 
-    [HttpPost]
     [Authorize(Roles = "Seller,Admin")]
+    [HttpPost]
     public async Task<ActionResult<ProductDto>> CreateProduct([FromBody] CreateProductDto request)
     {
-        var sellerId = GetCurrentUserId();
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        int sellerId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : 1;
+
         var result = await _productService.CreateProductAsync(request, sellerId);
         return CreatedAtAction(nameof(GetProductById), new { id = result.Id }, result);
     }
 
-    [HttpPut("{id:int}")]
     [Authorize(Roles = "Seller,Admin")]
+    [HttpPut("{id:int}")]
     public async Task<ActionResult<ProductDto>> UpdateProduct(int id, [FromBody] CreateProductDto request)
     {
-        var sellerId = GetCurrentUserId();
-        var isAdmin = User.IsInRole("Admin");
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
-        var existing = await _productService.GetProductByIdAsync(id);
-        if (!isAdmin && existing.SellerId != sellerId)
-        {
-            return Forbid();
-        }
-
-        var result = await _productService.UpdateProductAsync(id, request);
+        var result = await _productService.UpdateProductAsync(id, request, userId, roleClaim);
         return Ok(result);
     }
 
-    [HttpDelete("{id:int}")]
     [Authorize(Roles = "Seller,Admin")]
+    [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        var sellerId = GetCurrentUserId();
-        var isAdmin = User.IsInRole("Admin");
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
-        var existing = await _productService.GetProductByIdAsync(id);
-        if (!isAdmin && existing.SellerId != sellerId)
-        {
-            return Forbid();
-        }
-
-        var success = await _productService.DeleteProductAsync(id);
+        var success = await _productService.DeleteProductAsync(id, userId, roleClaim);
         if (!success) return NotFound();
         return NoContent();
     }

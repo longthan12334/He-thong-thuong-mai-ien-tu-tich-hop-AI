@@ -21,14 +21,24 @@ public class OrdersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<List<OrderDto>>> GetOrders([FromQuery] OrderStatus? status)
     {
-        var result = await _orderService.GetOrdersAsync(status);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var result = await _orderService.GetOrdersAsync(status, userId, roleClaim);
         return Ok(result);
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<OrderDto>> GetOrderById(int id)
     {
-        var result = await _orderService.GetOrderByIdAsync(id);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var result = await _orderService.GetOrderByIdAsync(id, userId, roleClaim);
         return Ok(result);
     }
 
@@ -42,23 +52,20 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<OrderDto>> CreateOrder([FromBody] CreateOrderDto request)
     {
-        int? userId = null;
-        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? User.FindFirst("sub")?.Value
-            ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-
-        if (int.TryParse(sub, out var id))
-            userId = id;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
         var result = await _orderService.CreateOrderAsync(request, userId);
         return CreatedAtAction(nameof(GetOrderById), new { id = result.Id }, result);
     }
 
-    [HttpPatch("{id:int}/status")]
     [Authorize(Roles = "Seller,Admin")]
+    [HttpPatch("{id:int}/status")]
     public async Task<ActionResult<OrderDto>> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto request)
     {
-        var result = await _orderService.UpdateOrderStatusAsync(id, request);
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var result = await _orderService.UpdateOrderStatusAsync(id, request, roleClaim);
         return Ok(result);
     }
 }

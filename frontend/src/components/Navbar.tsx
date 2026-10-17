@@ -29,20 +29,20 @@ export default function Navbar() {
         <div className="logo flex items-center">
           <Link
             href="/"
-            style={{
-              textDecoration: 'none',
-              color: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
+            className="flex items-center gap-3 group"
+            style={{ textDecoration: 'none', color: 'inherit' }}
           >
-            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black shadow-md shadow-purple-200">
-              A
+            <div className="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center text-white font-serif font-bold text-xl shadow-md border border-slate-800 tracking-tighter group-hover:scale-105 transition-all">
+              <span className="bg-gradient-to-tr from-slate-200 via-white to-slate-400 bg-clip-text text-transparent italic">Æ</span>
             </div>
-            <span className="logo-text font-bold text-lg text-slate-900 tracking-tight">
-              Aethelgard <span className="accent-text text-purple-600">Mall</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-extrabold tracking-[0.16em] text-slate-900 uppercase font-serif leading-tight">
+                Aethelgard
+              </span>
+              <span className="text-[9px] tracking-[0.2em] text-slate-400 font-semibold uppercase -mt-0.5">
+                Shopping Mall • AI Powered
+              </span>
+            </div>
           </Link>
         </div>
 

@@ -19,6 +19,20 @@ public static class DatabaseSeeder
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
+        // ==========================================
+        // FAST-PATH: Kiểm tra 1 lần duy nhất thay vì nhiều round-trips
+        // Nếu DB đã có đủ dữ liệu → thoát sớm, tránh overhead mỗi lần startup
+        // ==========================================
+        bool hasUsers = await context.Users.AnyAsync();
+        bool hasProducts = await context.Products.AnyAsync();
+
+        if (hasUsers && hasProducts)
+        {
+            // DB đã được seed đầy đủ — không cần làm gì thêm
+            return;
+        }
+
+        // Nếu chưa có dữ liệu mới tiếp tục bên dưới
         await context.Database.MigrateAsync();
 
         // ==========================================
@@ -29,7 +43,6 @@ public static class DatabaseSeeder
             var defaultPwdHash = HashPassword("Password123@");
             var users = new List<User>
             {
-                new User { FullName = "Nguyễn Đức Mạnh", Email = "ducmanh@gmail.com", PasswordHash = defaultPwdHash, Role = UserRole.Seller, PhoneNumber = "+84 988 123 456", AvatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400", IsEmailVerified = true },
                 new User { FullName = "Aethelgard Admin", Email = "admin@gmail.com", PasswordHash = defaultPwdHash, Role = UserRole.Admin, PhoneNumber = "+84 901 000 001", AvatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400", IsEmailVerified = true },
                 new User { FullName = "Esther Howard", Email = "esther.howard@example.com", PasswordHash = defaultPwdHash, Role = UserRole.Customer, PhoneNumber = "+84 902 345 678", AvatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400", IsEmailVerified = true },
                 new User { FullName = "Gucci Official", Email = "gucci@gmail.com", PasswordHash = defaultPwdHash, Role = UserRole.Seller, PhoneNumber = "+84 912 005 888", AvatarUrl = "/img/brands/gucci/gucci-jackie-1961-mini.jpg", IsEmailVerified = true },
@@ -120,14 +133,29 @@ public static class DatabaseSeeder
             var catLiving = dbCategories.FirstOrDefault(c => c.Slug == "gia-dung-doi-song") ?? dbCategories[3];
 
             var dbUsers = await context.Users.ToListAsync();
-            var userManh = dbUsers.First(u => u.Email == "ducmanh@gmail.com");
+
+            // Lookup brand sellers for initial classic products
+            var earlyAdidas = dbUsers.First(u => u.Email == "adidas@gmail.com");
+            var earlyBalenciaga = dbUsers.First(u => u.Email == "balenciaga@gmail.com");
+            var earlyGucci = dbUsers.First(u => u.Email == "gucci@gmail.com");
+            var earlyPuma = dbUsers.First(u => u.Email == "puma@gmail.com");
+            var earlyNike = dbUsers.First(u => u.Email == "nike@gmail.com");
+            var earlyDior = dbUsers.First(u => u.Email == "dior@gmail.com");
+            var earlyLV = dbUsers.First(u => u.Email == "louisvuitton@gmail.com");
+            var earlyChanel = dbUsers.First(u => u.Email == "chanel@gmail.com");
+            var earlyPrada = dbUsers.First(u => u.Email == "prada@gmail.com");
+            var earlyHermes = dbUsers.First(u => u.Email == "hermes@gmail.com");
+            var earlySaintLaurent = dbUsers.First(u => u.Email == "saintlaurent@gmail.com");
+            var earlyFendi = dbUsers.First(u => u.Email == "fendi@gmail.com");
+            var earlyBottega = dbUsers.First(u => u.Email == "bottegaveneta@gmail.com");
+            var earlyOffWhite = dbUsers.First(u => u.Email == "offwhite@gmail.com");
 
             var allProducts = new List<Product>();
 
-            // --- A. 20 SẢN PHẨM CỦA SELLER NGUYỄN ĐỨC MẠNH ---
+            // --- A. 20 SẢN PHẨM KINH ĐIỂN CỦA CÁC THƯƠNG HIỆU ---
             var p_giay_adidas_samba_og_classic = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyAdidas.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Adidas Samba OG Classic White Black",
                 Slug = "giay-adidas-samba-og-classic",
@@ -156,7 +184,7 @@ public static class DatabaseSeeder
 
             var p_ao_khoac_ni_adidas_sakura_special_edition = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyAdidas.Id,
                 CategoryId = catStreetwear.Id,
                 Name = "Áo Khoác Nỉ Adidas Sakura Special Edition",
                 Slug = "ao-khoac-ni-adidas-sakura-special-edition",
@@ -185,7 +213,7 @@ public static class DatabaseSeeder
 
             var p_giay_balenciaga_track_40_tan_beige = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyBalenciaga.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Balenciaga Track 4.0 Tan/Beige Limited",
                 Slug = "giay-balenciaga-track-40-tan-beige",
@@ -214,7 +242,7 @@ public static class DatabaseSeeder
 
             var p_giay_balenciaga_track_thug_edition_black = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyBalenciaga.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Balenciaga Track Thug Edition Black",
                 Slug = "giay-balenciaga-track-thug-edition-black",
@@ -243,7 +271,7 @@ public static class DatabaseSeeder
 
             var p_quan_ni_balenciaga_paris_sweatpants_white = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyBalenciaga.Id,
                 CategoryId = catStreetwear.Id,
                 Name = "Quần Nỉ Balenciaga Paris Sweatpants White",
                 Slug = "quan-ni-balenciaga-paris-sweatpants-white",
@@ -272,7 +300,7 @@ public static class DatabaseSeeder
 
             var p_ao_khoac_oversized_ripped_balenciaga = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyBalenciaga.Id,
                 CategoryId = catStreetwear.Id,
                 Name = "Áo Khoác Oversized Ripped Balenciaga Denim",
                 Slug = "ao-khoac-oversized-ripped-balenciaga",
@@ -301,7 +329,7 @@ public static class DatabaseSeeder
 
             var p_giay_sneaker_gucci_ace_web_leather = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyGucci.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Sneaker Gucci Ace Web Leather Original",
                 Slug = "giay-sneaker-gucci-ace-web-leather",
@@ -330,7 +358,7 @@ public static class DatabaseSeeder
 
             var p_kinh_mat_gucci_double_g_rectangular = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyGucci.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Kính Mát Gucci Double G Rectangular Cream Gold",
                 Slug = "kinh-mat-gucci-double-g-rectangular",
@@ -357,7 +385,7 @@ public static class DatabaseSeeder
 
             var p_giay_the_thao_puma_suede_classic_retro = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyPuma.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Thể Thao Puma Suede Classic Retro",
                 Slug = "giay-the-thao-puma-suede-classic-retro",
@@ -386,7 +414,7 @@ public static class DatabaseSeeder
 
             var p_giay_nike_air_force_1_low_07_white = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyNike.Id,
                 CategoryId = catSneaker.Id,
                 Name = "Giày Nike Air Force 1 Low '07 Triple White",
                 Slug = "giay-nike-air-force-1-low-07-white",
@@ -415,7 +443,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_lady_dior_medium_cannage = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyDior.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Lady Dior Medium Cannage Lambskin",
                 Slug = "tui-xach-lady-dior-medium-cannage",
@@ -442,7 +470,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_jackie_1961_mini_hobo = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyGucci.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Jackie 1961 Mini Hobo Leather",
                 Slug = "tui-xach-jackie-1961-mini-hobo",
@@ -469,7 +497,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_louis_vuitton_speedy_25 = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyLV.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Louis Vuitton Speedy Bandoulière 25",
                 Slug = "tui-xach-louis-vuitton-speedy-25",
@@ -496,7 +524,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_chanel_classic_double_flap = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyChanel.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Chanel Classic Double Flap Lambskin",
                 Slug = "tui-xach-chanel-classic-double-flap",
@@ -523,7 +551,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_prada_re_edition_2005_nylon = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyPrada.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Prada Re-Edition 2005 Re-Nylon",
                 Slug = "tui-xach-prada-re-edition-2005-nylon",
@@ -550,7 +578,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_hermes_birkin_30_togo = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyHermes.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Hermès Birkin 30 Togo Gold Hardware",
                 Slug = "tui-xach-hermes-birkin-30-togo",
@@ -577,7 +605,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_saint_laurent_loulou_medium = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlySaintLaurent.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Saint Laurent LouLou Medium Quilted",
                 Slug = "tui-xach-saint-laurent-loulou-medium",
@@ -604,7 +632,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_fendi_baguette_medium_nappa = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyFendi.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Fendi Baguette Medium Nappa Monogram",
                 Slug = "tui-xach-fendi-baguette-medium-nappa",
@@ -631,7 +659,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_bottega_veneta_the_pouch = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyBottega.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Bottega Veneta The Pouch Soft Calf",
                 Slug = "tui-xach-bottega-veneta-the-pouch",
@@ -658,7 +686,7 @@ public static class DatabaseSeeder
 
             var p_tui_xach_off_white_jitney_28_quote = new Product
             {
-                SellerId = userManh.Id,
+                SellerId = earlyOffWhite.Id,
                 CategoryId = catAccessories.Id,
                 Name = "Túi Xách Off-White Jitney 2.8 Quote Top Handle",
                 Slug = "tui-xach-off-white-jitney-28-quote",

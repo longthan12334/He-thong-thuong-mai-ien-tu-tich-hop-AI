@@ -102,10 +102,13 @@ public class ProductService : IProductService
 
     public async Task<ProductDto> GetProductBySlugAsync(string slug)
     {
+        // Slug luôn được lưu lowercase (xem GenerateSlug bên dưới).
+        // Chỉ cần lowercase input — tránh LOWER() trên cột DB gây full table scan.
+        var slugLower = slug.ToLower();
         var product = await _unitOfWork.Products.Query()
             .Include(p => p.Category)
             .Include(p => p.Variants)
-            .FirstOrDefaultAsync(p => p.Slug.ToLower() == slug.ToLower());
+            .FirstOrDefaultAsync(p => p.Slug == slugLower);
 
         if (product == null)
             throw new NotFoundException($"Không tìm thấy sản phẩm có slug '{slug}'.");
@@ -140,11 +143,16 @@ public class ProductService : IProductService
         return await GetProductByIdAsync(product.Id);
     }
 
-    public async Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request)
+    public async Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request, int? currentUserId = null, string? currentRole = null)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id);
         if (product == null)
             throw new NotFoundException("Sản phẩm", id);
+
+        if (currentUserId.HasValue && currentRole != "Admin" && product.SellerId != currentUserId.Value)
+        {
+            throw new UnauthorizedException("Bạn không có quyền sửa sản phẩm của người bán khác.");
+        }
 
         product.Name = request.Name;
         product.CategoryId = request.CategoryId;
@@ -164,11 +172,16 @@ public class ProductService : IProductService
         return await GetProductByIdAsync(id);
     }
 
-    public async Task<bool> DeleteProductAsync(int id)
+    public async Task<bool> DeleteProductAsync(int id, int? currentUserId = null, string? currentRole = null)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(id);
         if (product == null)
             return false;
+
+        if (currentUserId.HasValue && currentRole != "Admin" && product.SellerId != currentUserId.Value)
+        {
+            throw new UnauthorizedException("Bạn không có quyền xóa sản phẩm của người bán khác.");
+        }
 
         product.IsActive = false;
         _unitOfWork.Products.Update(product);
