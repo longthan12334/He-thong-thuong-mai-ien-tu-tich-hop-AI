@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.Common.DTOs;
+namespace Ecommerce.Common.DTOs;
 
 public class StoreDto
 {
@@ -20,3 +20,17 @@ public class StoreDto
     public string? ImageUrl { get; set; }
     public string? StoreUrl { get; set; }
 }
+
+public class UpdateStoreDto
+{
+    public string StoreName { get; set; } = string.Empty;
+    public string? StoreType { get; set; }
+    public string? City { get; set; }
+    public string? Country { get; set; }
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+    public string? Email { get; set; }
+    public string? OperatingHours { get; set; }
+    public string? ImageUrl { get; set; }
+}
+

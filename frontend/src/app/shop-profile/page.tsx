@@ -148,12 +148,21 @@ export default function ShopProfilePage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const [shopProducts, setShopProducts] = useState<Product[]>(initialProducts);
+  const [isSellerUser, setIsSellerUser] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [shopInfo, setShopInfo] = useState({
     name: 'DIOR Official Flagship Store',
     code: 'CD',
     slogan: '@dior_vietnam • Authentic French Haute Couture, Luxury Leather Goods & Beauty',
-    origin: 'Pháp (Từ năm 1946)'
+    origin: 'Pháp (Từ năm 1946)',
+    phoneHn: '(024) 3936 8899',
+    addressHn: 'Tầng 1 & 2, TTTM Tràng Tiền Plaza, 24 Hai Bà Trưng, P. Tràng Tiền, Q. Hoàn Kiếm, Hà Nội',
+    hoursHn: '09:30 - 21:30 (Thứ Hai đến Chủ Nhật)',
+    phoneHcm: '(028) 3827 6688',
+    addressHcm: 'Khách sạn Sheraton Saigon, 88 Đồng Khởi, P. Bến Nghé, Quận 1, TP. Hồ Chí Minh',
+    hoursHcm: '09:30 - 22:00 (Thứ Hai đến Chủ Nhật)',
   });
+  const [editForm, setEditForm] = useState({ ...shopInfo });
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -165,15 +174,32 @@ export default function ShopProfilePage() {
           const user = JSON.parse(stored);
           if (user && user.userId) {
             sellerId = user.userId;
+            setIsSellerUser(user.role === 'Seller' || user.role === 'Admin');
             brandKey = (user.email || '').split('@')[0].toLowerCase();
             const meta = BRAND_META[brandKey] || {
               name: user.fullName || `${brandKey.toUpperCase()} Official Store`,
               code: brandKey.slice(0, 3).toUpperCase(),
               slogan: `@${brandKey}_official • Authentic High Fashion & Iconic Luxury Collections`,
-              origin: 'Quốc Tế'
+              origin: 'Quốc Tế',
             };
-            setShopInfo(meta);
+            setShopInfo((prev) => ({
+              ...prev,
+              name: meta.name,
+              code: meta.code,
+              slogan: meta.slogan,
+              origin: meta.origin,
+            }));
           }
+        } catch {}
+      }
+
+      // Nạp hồ sơ gian hàng tùy chỉnh đã lưu nếu có
+      const savedCustomProfile = localStorage.getItem('aethelgard_boutique_profile');
+      if (savedCustomProfile) {
+        try {
+          const parsed = JSON.parse(savedCustomProfile);
+          setShopInfo((prev) => ({ ...prev, ...parsed }));
+          setEditForm((prev) => ({ ...prev, ...parsed }));
         } catch {}
       }
 
@@ -213,6 +239,43 @@ export default function ShopProfilePage() {
     setTimeout(() => {
       setToastMessage(null);
     }, 3400);
+  };
+
+  const handleOpenEditModal = () => {
+    setEditForm({ ...shopInfo });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setShopInfo(editForm);
+    localStorage.setItem('aethelgard_boutique_profile', JSON.stringify(editForm));
+
+    // Cập nhật lên backend API nếu người bán đã đăng nhập
+    try {
+      const token = localStorage.getItem('aethelgard_token');
+      if (token) {
+        await fetch(`http://localhost:5000/api/stores/${editForm.code}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            storeName: editForm.name,
+            storeType: 'Official Flagship Boutique',
+            address: editForm.addressHn,
+            phone: editForm.phoneHn,
+            operatingHours: editForm.hoursHn,
+            country: editForm.origin,
+            city: 'Hà Nội',
+          }),
+        });
+      }
+    } catch {}
+
+    setIsEditModalOpen(false);
+    showToast('Đã lưu và cập nhật hồ sơ gian hàng thành công!');
   };
 
   // Follow toggle
@@ -292,7 +355,7 @@ export default function ShopProfilePage() {
         <span className="breadcrumb-separator">/</span>
         <span style={{ color: 'var(--text-muted)' }}>Gian Hàng Thương Hiệu Xa Xỉ (Luxury Flagship)</span>
         <span className="breadcrumb-separator">/</span>
-        <span className="breadcrumb-current">GUCCI Official Flagship Store</span>
+        <span className="breadcrumb-current">{shopInfo.name}</span>
       </nav>
 
       {/* 1. LUXURY COVER BANNER */}
@@ -352,6 +415,27 @@ export default function ShopProfilePage() {
               <a href="#boutiques-section" className="btn-view-boutique-jump">
                 <span>📍 2 Cửa Hàng Boutique</span>
               </a>
+              <button
+                type="button"
+                onClick={handleOpenEditModal}
+                className="btn-edit-shop-profile"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '9px 16px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                  color: '#ffffff',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  border: '1px solid #334155',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+              >
+                <span>⚙ Sửa Hồ Sơ Gian Hàng</span>
+              </button>
             </div>
           </div>
         </div>

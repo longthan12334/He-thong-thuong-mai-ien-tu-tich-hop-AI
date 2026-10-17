@@ -28,7 +28,29 @@ public class StoreService : IStoreService
         var store = (await _unitOfWork.Stores.FindAsync(s => s.StoreCode.ToLower() == storeCode.ToLower())).FirstOrDefault();
         return store != null ? _mapper.Map<StoreDto>(store) : null;
     }
+
+    public async Task<StoreDto?> UpdateStoreAsync(string storeCode, UpdateStoreDto dto)
+    {
+        var store = (await _unitOfWork.Stores.FindAsync(s => s.StoreCode.ToLower() == storeCode.ToLower())).FirstOrDefault();
+        if (store == null) return null;
+
+        if (!string.IsNullOrWhiteSpace(dto.StoreName)) store.StoreName = dto.StoreName;
+        if (!string.IsNullOrWhiteSpace(dto.StoreType)) store.StoreType = dto.StoreType;
+        if (!string.IsNullOrWhiteSpace(dto.City)) store.City = dto.City;
+        if (!string.IsNullOrWhiteSpace(dto.Country)) store.Country = dto.Country;
+        if (!string.IsNullOrWhiteSpace(dto.Address)) store.Address = dto.Address;
+        if (!string.IsNullOrWhiteSpace(dto.Phone)) store.Phone = dto.Phone;
+        if (!string.IsNullOrWhiteSpace(dto.Email)) store.Email = dto.Email;
+        if (!string.IsNullOrWhiteSpace(dto.OperatingHours)) store.OperatingHours = dto.OperatingHours;
+        if (!string.IsNullOrWhiteSpace(dto.ImageUrl)) store.ImageUrl = dto.ImageUrl;
+        store.UpdatedAt = DateTime.UtcNow;
+
+        _unitOfWork.Stores.Update(store);
+        await _unitOfWork.SaveChangesAsync();
+        return _mapper.Map<StoreDto>(store);
+    }
 }
+
 
 public class AIService : IAIService
 {
