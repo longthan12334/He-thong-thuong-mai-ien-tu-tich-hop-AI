@@ -1,0 +1,6 @@
+﻿.git_backup/
+node_modules/
+.env
+venv/
+__pycache__/
+dist/
