@@ -1,4 +1,4 @@
-/** Store Type Definitions */
+/** Định nghĩa kiểu dữ liệu Gian hàng */
 
 export interface StoreProfile {
   id: number;

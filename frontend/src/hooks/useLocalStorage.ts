@@ -17,7 +17,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         setStoredValue(JSON.parse(item));
       }
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      console.error(`Lỗi đọc localStorage với khóa "${key}":`, error);
     }
   }, [key]);
 
@@ -29,7 +29,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
       }
     } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
+      console.error(`Lỗi ghi localStorage với khóa "${key}":`, error);
     }
   };
 

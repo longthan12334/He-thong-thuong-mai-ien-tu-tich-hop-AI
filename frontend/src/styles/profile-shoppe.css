@@ -1,5 +1,5 @@
-/* Profile Shoppe Luxury Product Detail Stylesheet */
-/* Adapted from Velora & Nextgen concepts for Aethelgard Mall */
+/* Stylesheet trang chi tiết sản phẩm cao cấp */
+/* Phỏng theo ý tưởng Velora & Nextgen cho Aethelgard Mall */
 
 .profile-page-wrapper {
   width: 100%;
@@ -37,7 +37,7 @@
   font-weight: 600;
 }
 
-/* MAIN PRODUCT GRID (2 COLUMNS: GALLERY & INFO) */
+/* LƯỚI SẢN PHẨM CHÍNH (2 CỘT: ẢNH & THÔNG TIN) */
 .product-hero-grid {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -46,7 +46,7 @@
   margin-bottom: 60px;
 }
 
-/* GALLERY LAYOUT */
+/* BỐ CỤC THƯ VIỆN ẢNH */
 .product-gallery-container {
   display: flex;
   gap: 20px;
@@ -148,7 +148,7 @@
   transform: scale(1.1);
 }
 
-/* PRODUCT DETAILS & BUY BOX */
+/* THÔNG TIN SẢN PHẨM & KHỐI MUA HÀNG */
 .product-config-panel {
   display: flex;
   flex-direction: column;
@@ -204,7 +204,7 @@
   text-decoration: underline;
 }
 
-/* Price Row */
+/* Hàng giá */
 .product-price-block {
   display: flex;
   align-items: center;
@@ -237,7 +237,7 @@
   font-weight: 800;
 }
 
-/* Flash Delivery Countdown Box (from Nextgen) */
+/* Khung đếm ngược giao nhanh (ý tưởng từ Nextgen) */
 .delivery-countdown-box {
   display: flex;
   align-items: center;
@@ -268,7 +268,7 @@
   margin-bottom: 24px;
 }
 
-/* Color Picker */
+/* Chọn màu sắc */
 .selector-group {
   margin-bottom: 22px;
 }
@@ -307,7 +307,7 @@
   box-shadow: 0 0 0 2.5px var(--primary);
 }
 
-/* Size Picker */
+/* Chọn kích cỡ */
 .size-guide-link {
   color: var(--text-muted);
   text-decoration: none;
@@ -357,7 +357,7 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-/* Action Rows (Add to Cart, Stepper, Wishlist) */
+/* Hàng nút thao tác (Thêm vào giỏ, số lượng, Yêu thích) */
 .action-buttons-stack {
   display: flex;
   gap: 14px;
@@ -472,7 +472,7 @@
   border-color: #CBD5E1;
 }
 
-/* Trust Badges */
+/* Huy hiệu cam kết */
 .trust-badges-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -502,7 +502,7 @@
   line-height: 1.4;
 }
 
-/* TABBED CONTENT SECTION (DETAILS, MATERIALS, FIT, SHIPPING) */
+/* PHẦN NỘI DUNG THEO TAB (CHI TIẾT, CHẤT LIỆU, FORM DÁNG, VẬN CHUYỂN) */
 .product-tabs-section {
   background-color: #FFFFFF;
   border: 1px solid var(--border);
@@ -632,7 +632,7 @@
   margin-top: 4px;
 }
 
-/* REVIEWS & RATINGS SECTION (from Nextgen concept) */
+/* PHẦN ĐÁNH GIÁ & NHẬN XÉT (ý tưởng từ Nextgen) */
 .reviews-section-wrapper {
   background-color: #FFFFFF;
   border: 1px solid var(--border);
@@ -720,7 +720,7 @@
   font-size: 0.8rem;
 }
 
-/* Review Cards List */
+/* Danh sách thẻ nhận xét */
 .customer-reviews-feed {
   display: flex;
   flex-direction: column;
@@ -783,7 +783,7 @@
   color: #334155;
 }
 
-/* YOU MAY ALSO LIKE SECTION */
+/* PHẦN SẢN PHẨM TƯƠNG TỰ */
 .related-products-section {
   margin-bottom: 40px;
 }

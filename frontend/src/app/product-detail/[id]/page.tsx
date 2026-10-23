@@ -1,270 +1,333 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import type { Product } from '@/types';
 import { productService } from '@/services/product.service';
 import { useCart } from '@/hooks/useCart';
+import { useToast } from '@/hooks/useToast';
+import { useAuth } from '@/hooks/useAuth';
+import { useCatalog } from '@/hooks/useCatalog';
+import { useShopper } from '@/contexts/ShopperContext';
+import { Modal, Skeleton } from '@/components/ui';
+import { AIStylistPanel } from '@/components/customer';
+import { formatVND, getInitials } from '@/lib/utils';
+import { FALLBACK_IMAGE } from '@/lib/constants';
+import {
+  buildSpecs,
+  colorToHex,
+  extractBrand,
+  findVariant,
+  FREE_SHIPPING_THRESHOLD,
+  getProductOptions,
+  similarProducts,
+} from '@/lib/customer';
 
+type TabKey = 'details' | 'materials' | 'sizefit' | 'shipping';
 
-interface ProductData {
+interface LocalReview {
   id: string;
-  title: string;
-  category: string;
-  priceCurrent: string;
-  priceOriginal: string;
-  discount: string;
-  shortDesc: string;
-  images: { src: string; alt: string }[];
-  colors: { name: string; hex: string }[];
-  sizes: string[];
-  rating: string;
-  ratingScore: string;
-  reviewCount: number;
+  productId: number;
+  author: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
-const productDatabase: Record<string, ProductData> = {
-  '1': {
-    id: '1',
-    title: 'Gucci Luxury Signature Casual Sneaker Authentic Italian Edition',
-    category: 'Footwear & Luxury Sneakers • Gucci Signature',
-    priceCurrent: '5.200.000₫',
-    priceOriginal: '5.800.000₫',
-    discount: '10% OFF',
-    shortDesc: 'Giày sneaker da cao cấp nhập khẩu từ Ý, thiết kế dải ruy băng Web xanh-đỏ kinh điển, đế cao su chống trơn trượt cùng lót đệm êm ái tuyệt đối.',
-    images: [
-      { src: '/img/products/gucci-sneaker.jpg', alt: 'Angle 1 - Gucci Sneaker' },
-      { src: '/img/products/adidas-samba.jpg', alt: 'Angle 2 - Samba Alternative' },
-      { src: "/img/products/nike-summer-sneaker.jpg", alt: 'Angle 3 - Sneaker Collection' },
-      { src: '/img/products/fashion-mood-board.jpg', alt: 'Angle 4 - Moodboard' }
-    ],
-    colors: [
-      { name: 'Pure White & Web', hex: '#F8FAFC' },
-      { name: 'Onyx Black', hex: '#111827' }
-    ],
-    sizes: ['39 EU', '40 EU', '41 EU', '42 EU', '43 EU'],
-    rating: '★★★★★',
-    ratingScore: '5.0',
-    reviewCount: 620
-  },
-  '2': {
-    id: '2',
-    title: 'Gucci Runway Vintage Monogram Heritage Jacket Limited Edition',
-    category: 'Outerwear & Heritage Jackets • Gucci Runway',
-    priceCurrent: '8.650.000₫',
-    priceOriginal: '10.200.000₫',
-    discount: '15% OFF',
-    shortDesc: 'Áo khoác Vintage Monogram thuộc bộ sưu tập Runway phiên bản giới hạn, chất liệu cao cấp dệt họa tiết GG tinh xảo.',
-    images: [
-      { src: '/img/products/gucci-runway.jpg', alt: 'Angle 1 - Runway Jacket' },
-      { src: '/img/products/balenciaga-ripped-jacket.jpg', alt: 'Angle 2 - Denim Jacket' },
-      { src: '/img/products/sample-velora.jpg', alt: 'Angle 3 - Hoodie' },
-      { src: '/img/products/fashion-mood-board.jpg', alt: 'Angle 4 - Fabric Detail' }
-    ],
-    colors: [
-      { name: 'Classic Monogram Brown', hex: '#78350F' },
-      { name: 'Heritage Charcoal', hex: '#374151' }
-    ],
-    sizes: ['S', 'M', 'L', 'XL'],
-    rating: '★★★★★',
-    ratingScore: '5.0',
-    reviewCount: 340
-  },
-  '3': {
-    id: '3',
-    title: 'Essential Heavyweight Oversized Hoodie',
-    category: 'Streetwear & Hoodies • Essentials',
-    priceCurrent: '1.450.000₫',
-    priceOriginal: '2.150.000₫',
-    discount: '33% OFF',
-    shortDesc: 'Áo hoodie phom rộng phong cách Oversized Streetwear cao cấp, dệt từ sợi Cotton French Terry 450 GSM dày dặn, đứng form chuẩn Châu Âu, giữ ấm vượt trội và mang lại cảm giác mềm mại tối đa khi vận động.',
-    images: [
-      { src: '/img/products/sample-velora.jpg', alt: 'Angle 1 - Model Front' },
-      { src: '/img/products/adidas-sakura-hoodie.jpg', alt: 'Angle 2 - Product Flat' },
-      { src: '/img/products/balenciaga-ripped-jacket.jpg', alt: 'Angle 3 - Styling' },
-      { src: '/img/products/fashion-mood-board.jpg', alt: 'Angle 4 - Fabric Detail' }
-    ],
-    colors: [
-      { name: 'Charcoal Gray', hex: '#374151' },
-      { name: 'Vintage Ash Gray', hex: '#9CA3AF' },
-      { name: 'Raw Cream', hex: '#E5E0D8' },
-      { name: 'Deep Onyx Black', hex: '#111827' }
-    ],
-    sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-    rating: '★★★★★',
-    ratingScore: '4.8',
-    reviewCount: 128
-  }
-};
+const REVIEWS_KEY = 'aethelgard_reviews';
+const SAME_DAY_CUTOFF_HOUR = 17; // Đơn trước 17:00 được xử lý ngay trong ngày
+
+/** Đếm ngược tới mốc chốt đơn xử lý trong ngày (17:00), qua mốc thì tính sang ngày hôm sau */
+function secondsUntilCutoff(now: Date) {
+  const cutoff = new Date(now);
+  cutoff.setHours(SAME_DAY_CUTOFF_HOUR, 0, 0, 0);
+  if (now >= cutoff) cutoff.setDate(cutoff.getDate() + 1);
+  return Math.max(0, Math.floor((cutoff.getTime() - now.getTime()) / 1000));
+}
+
+function isFootwear(p: Product) {
+  const text = `${p.categoryName || ''} ${p.name}`.toLowerCase();
+  return /giày|giay|sneaker|boot|loafer|sandal|dép|pump|shoe/.test(text);
+}
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const idStr = String(params?.id || '1');
-  const initialProd = productDatabase[idStr] || {
-    ...productDatabase['1'],
-    id: idStr
-  };
-  const [prod, setProd] = useState<ProductData>(initialProd);
+  const productId = Number(params?.id);
 
-  const { addToCart, setIsCartOpen } = useCart();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const { addToCart, setIsCheckoutOpen } = useCart();
+  const { isInWishlist, toggleWishlist, trackView } = useShopper();
+  const { products: catalog } = useCatalog();
 
-  const [activeImage, setActiveImage] = useState(prod.images[0].src);
-  const [activeColor, setActiveColor] = useState(prod.colors[0].name);
-  const [activeSize, setActiveSize] = useState(prod.sizes[1] || prod.sizes[0]);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const [activeImage, setActiveImage] = useState('');
+  const [activeColor, setActiveColor] = useState('');
+  const [activeSize, setActiveSize] = useState('');
   const [qty, setQty] = useState(1);
-  const [isWishlist, setIsWishlist] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'materials' | 'sizefit' | 'shipping'>('details');
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabKey>('details');
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(() => secondsUntilCutoff(new Date()));
 
-  // Countdown timer
-  const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 30, seconds: 25 });
+  const [reviews, setReviews] = useState<LocalReview[]>([]);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
 
+  // 1. Tải sản phẩm thật từ Backend (productService tự fallback dữ liệu mẫu khi offline)
   useEffect(() => {
-    if (idStr) {
-      productService
-        .getProductById(Number(idStr))
-        .then((p: any) => {
-          if (p && p.name) {
-            const rawGallery = p.galleryUrls && p.galleryUrls.length > 0 ? p.galleryUrls : [p.imageUrl || '/img/products/sample-velora.jpg'];
-            const imgs = rawGallery.map((src: string, i: number) => ({
-              src,
-              alt: `${p.name} - Chi tiết ${i + 1}`
-            }));
-            const realProd: ProductData = {
-              id: String(p.id),
-              title: p.name,
-              category: `${p.categoryName || 'Thời Trang'} • ${p.collectionName || 'Chính Hãng'}`,
-              priceCurrent: (p.basePrice || 0).toLocaleString('vi-VN') + '₫',
-              priceOriginal: (p.originalPrice || Math.round((p.basePrice || 0) * 1.15)).toLocaleString('vi-VN') + '₫',
-              discount: p.discountPercent ? `${p.discountPercent}% OFF` : '10% OFF',
-              shortDesc: p.description || 'Sản phẩm cao cấp phân phối chính hãng tại Aethelgard Shopping Mall.',
-              images: imgs,
-              colors: [
-                { name: 'Bản Tiêu Chuẩn', hex: '#111827' },
-                { name: 'Bản Giới Hạn Limited', hex: '#6366F1' }
-              ],
-              sizes: p.variants && p.variants.length > 0
-                ? p.variants.map((v: any) => v.size || 'Freesize')
-                : ['39 EU', '40 EU', '41 EU', '42 EU'],
-              rating: '★★★★★',
-              ratingScore: String(p.rating || '5.0'),
-              reviewCount: p.reviewCount || 48
-            };
-            setProd(realProd);
-            setActiveImage(realProd.images[0].src);
-            setActiveColor(realProd.colors[0].name);
-            setActiveSize(realProd.sizes[0]);
-          }
-        })
-        .catch(() => {});
+    if (!productId) {
+      setNotFound(true);
+      setIsLoading(false);
+      return;
     }
-  }, [idStr]);
+    let mounted = true;
+    setIsLoading(true);
+    setNotFound(false);
+    productService
+      .getProductById(productId)
+      .then((p) => {
+        if (!mounted) return;
+        setProduct(p);
+        const opts = getProductOptions(p.variants);
+        setActiveImage(p.galleryUrls?.[0] || p.imageUrl || FALLBACK_IMAGE);
+        setActiveColor(opts.colors.find((c) => c.stock > 0)?.value || opts.colors[0]?.value || '');
+        setActiveSize('');
+        setQty(1);
+        setActiveTab('details');
+        trackView(p);
+      })
+      .catch(() => mounted && setNotFound(true))
+      .finally(() => mounted && setIsLoading(false));
+    return () => {
+      mounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
 
+  // 2. Đồng hồ chốt đơn trong ngày
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        let total = prev.hours * 3600 + prev.minutes * 60 + prev.seconds - 1;
-        if (total <= 0) return { hours: 0, minutes: 0, seconds: 0 };
-        return {
-          hours: Math.floor(total / 3600),
-          minutes: Math.floor((total % 3600) / 60),
-          seconds: total % 60
-        };
-      });
-    }, 1000);
+    const timer = setInterval(() => setSecondsLeft(secondsUntilCutoff(new Date())), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  const showToast = (msg: string) => {
-    setToastMsg(msg);
-    setTimeout(() => setToastMsg(null), 3200);
+  // 3. Đánh giá do khách viết trên thiết bị này
+  useEffect(() => {
+    try {
+      const all: LocalReview[] = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+      setReviews(all.filter((r) => r.productId === productId));
+    } catch {
+      setReviews([]);
+    }
+  }, [productId]);
+
+  const options = useMemo(() => getProductOptions(product?.variants), [product]);
+  const selectedVariant = useMemo(
+    () => findVariant(product?.variants, activeSize || undefined, activeColor || undefined),
+    [product, activeSize, activeColor]
+  );
+
+  const gallery = useMemo(() => {
+    if (!product) return [];
+    const list = [...(product.galleryUrls || [])];
+    if (product.imageUrl && !list.includes(product.imageUrl)) list.unshift(product.imageUrl);
+    return list.length > 0 ? list : [FALLBACK_IMAGE];
+  }, [product]);
+
+  const related = useMemo(
+    () => (product ? similarProducts(catalog, product, 4) : []),
+    [catalog, product]
+  );
+
+  const brand = product ? extractBrand(product) : '';
+  const brandProductCount = brand ? catalog.filter((p) => extractBrand(p) === brand).length : 0;
+
+  // Tồn kho khả dụng theo phân loại đang chọn
+  const availableStock = selectedVariant && (activeSize || !options.sizes.length)
+    ? selectedVariant.stockQuantity
+    : product?.stockQuantity ?? 0;
+  const isOutOfStock = (product?.stockQuantity ?? 0) <= 0;
+  const needsSize = options.sizes.length > 0 && !activeSize;
+
+  useEffect(() => {
+    if (availableStock > 0 && qty > availableStock) setQty(availableStock);
+  }, [availableStock, qty]);
+
+  if (isLoading) {
+    return (
+      <div className="profile-page-wrapper">
+        <section className="product-hero-grid">
+          <Skeleton className="h-[480px] w-full" />
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-1/3" />
+            <Skeleton className="h-10 w-3/4" />
+            <Skeleton className="h-8 w-1/2" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  if (notFound || !product) {
+    return (
+      <div className="profile-page-wrapper">
+        <div className="customer-empty-state customer-empty-page">
+          <h1 className="product-detail-title">Không tìm thấy sản phẩm</h1>
+          <p>Sản phẩm có thể đã ngừng kinh doanh hoặc đường dẫn không chính xác.</p>
+          <Link href="/shop" className="customer-link-btn">
+            ← Quay lại cửa hàng
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isWishlist = isInWishlist(product.id);
+  const showOriginal = !!product.originalPrice && product.originalPrice > product.basePrice;
+  const discount =
+    product.discountPercent && product.discountPercent > 0
+      ? product.discountPercent
+      : showOriginal
+        ? Math.round((1 - product.basePrice / product.originalPrice!) * 100)
+        : 0;
+
+  const formatTimer = () => {
+    const h = String(Math.floor(secondsLeft / 3600)).padStart(2, '0');
+    const m = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, '0');
+    const s = String(secondsLeft % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
   };
 
-  const handleWishlistToggle = () => {
-    const next = !isWishlist;
-    setIsWishlist(next);
-    showToast(next ? 'Đã thêm vào danh sách yêu thích!' : 'Đã xóa khỏi danh sách yêu thích!');
+  const validateSelection = () => {
+    if (isOutOfStock) {
+      showToast('Sản phẩm tạm hết hàng');
+      return false;
+    }
+    if (needsSize) {
+      showToast('Vui lòng chọn kích cỡ trước khi thêm vào giỏ');
+      document.getElementById('size-selector')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+    if (availableStock <= 0) {
+      showToast('Phân loại bạn chọn đã hết hàng, vui lòng chọn phân loại khác');
+      return false;
+    }
+    return true;
+  };
+
+  const putIntoCart = () => {
+    const specs = buildSpecs(activeColor || undefined, activeSize || undefined);
+    addToCart({ ...product, stockQuantity: availableStock }, qty, specs);
+    return specs;
   };
 
   const handleAddToCart = () => {
-    addToCart(
-      {
-        id: Number(prod.id),
-        name: prod.title,
-        basePrice: parseInt(prod.priceCurrent.replace(/\D/g, ''), 10) || 0,
-        imageUrl: prod.images[0]?.src || '/img/products/adidas-samba.jpg',
-        categoryName: prod.category,
-        sku: `SKU-${prod.id}`,
-        stockQuantity: 50,
-      } as any,
-      qty,
-      `${activeColor}, Size ${activeSize}`
-    );
-    showToast(`Đã thêm ${qty}x ${prod.title} (${activeColor}, Size ${activeSize}) vào giỏ hàng!`);
+    if (!validateSelection()) return;
+    const specs = putIntoCart();
+    showToast(`Đã thêm ${qty} × ${product.name} (${specs}) vào giỏ hàng!`);
   };
 
   const handleBuyNow = () => {
-    addToCart(
-      {
-        id: Number(prod.id),
-        name: prod.title,
-        basePrice: parseInt(prod.priceCurrent.replace(/\D/g, ''), 10) || 0,
-        imageUrl: prod.images[0]?.src || '/img/products/adidas-samba.jpg',
-        categoryName: prod.category,
-        sku: `SKU-${prod.id}`,
-        stockQuantity: 50,
-      } as any,
-      qty,
-      `${activeColor}, Size ${activeSize}`
-    );
-    setIsCartOpen(true);
+    if (!validateSelection()) return;
+    putIntoCart();
+    setIsCheckoutOpen(true);
   };
 
-
-  const formatTimer = () => {
-    const h = String(timeLeft.hours).padStart(2, '0');
-    const m = String(timeLeft.minutes).padStart(2, '0');
-    const s = String(timeLeft.seconds).padStart(2, '0');
-    return `${h}:${m}:${s}`;
+  const handleWishlistToggle = () => {
+    const added = toggleWishlist(product);
+    showToast(added ? 'Đã thêm vào danh sách yêu thích!' : 'Đã xóa khỏi danh sách yêu thích!');
   };
+
+  const submitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reviewComment.trim().length < 10) {
+      showToast('Nhận xét cần tối thiểu 10 ký tự');
+      return;
+    }
+    const review: LocalReview = {
+      id: `${Date.now()}`,
+      productId: product.id,
+      author: user?.fullName || 'Khách hàng',
+      rating: reviewRating,
+      comment: reviewComment.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      const all: LocalReview[] = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+      localStorage.setItem(REVIEWS_KEY, JSON.stringify([review, ...all]));
+    } catch {
+      // bỏ qua
+    }
+    setReviews((prev) => [review, ...prev]);
+    setReviewComment('');
+    setReviewRating(5);
+    showToast('Cảm ơn bạn đã gửi đánh giá!');
+  };
+
+  const ratingScore = (product.rating || 0).toFixed(1);
+  const fullStars = Math.round(product.rating || 0);
+  const starText = '★★★★★'.slice(0, fullStars) + '☆☆☆☆☆'.slice(0, 5 - fullStars);
+  const footwear = isFootwear(product);
 
   return (
     <div className="profile-page-wrapper">
       {/* BREADCRUMBS */}
       <nav className="breadcrumb-nav">
-        <Link href="/">Home</Link>
+        <Link href="/shop">Cửa Hàng</Link>
         <span className="breadcrumb-separator">/</span>
-        <Link href="/shop-profile">GUCCI Official Flagship</Link>
-        <span className="breadcrumb-separator">/</span>
-        <span className="breadcrumb-current">{prod.title}</span>
+        {product.categoryName && (
+          <>
+            <Link href={`/shop?category=${product.categoryId}`}>{product.categoryName}</Link>
+            <span className="breadcrumb-separator">/</span>
+          </>
+        )}
+        <span className="breadcrumb-current">{product.name}</span>
       </nav>
 
-      {/* SECTION 1: PRODUCT HERO SHOWCASE (GALLERY + CONFIGURATION) */}
+      {/* PHẦN 1: TRƯNG BÀY SẢN PHẨM (THƯ VIỆN ẢNH + CẤU HÌNH) */}
       <section className="product-hero-grid">
-        {/* LEFT: INTERACTIVE GALLERY */}
+        {/* TRÁI: THƯ VIỆN ẢNH TƯƠNG TÁC */}
         <div className="product-gallery-container">
           <div className="thumbnail-strip">
-            {prod.images.map((img, i) => (
+            {gallery.map((src, i) => (
               <div
-                key={i}
-                className={`thumb-item ${activeImage === img.src ? 'active' : ''}`}
-                onClick={() => setActiveImage(img.src)}
+                key={src + i}
+                className={`thumb-item ${activeImage === src ? 'active' : ''}`}
+                onClick={() => setActiveImage(src)}
                 style={{ cursor: 'pointer' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.src} alt={img.alt} />
+                <img
+                  src={src}
+                  alt={`${product.name} - góc ${i + 1}`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                  }}
+                />
               </div>
             ))}
           </div>
 
           <div className="main-image-viewport">
-            <span className="gallery-badge">New Arrival • 2026 Collection</span>
+            <span className="gallery-badge">Chính hãng • {product.collectionName || 'Bộ sưu tập Aethelgard'}</span>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img id="main-product-img" src={activeImage} alt={prod.title} />
+            <img
+              id="main-product-img"
+              src={activeImage || FALLBACK_IMAGE}
+              alt={product.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+              }}
+            />
             <button
               className="btn-zoom-preview"
-              title="Xem chi tiết ảnh"
-              onClick={() => showToast('Phóng to chế độ siêu nét 4K')}
+              title="Xem ảnh lớn"
+              onClick={() => setIsZoomOpen(true)}
               type="button"
             >
               🔍
@@ -272,9 +335,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* RIGHT: PRODUCT BUY BOX & CONFIGURATION */}
+        {/* PHẢI: KHỐI MUA HÀNG & CHỌN PHÂN LOẠI */}
         <div className="product-config-panel">
-          {/* SELLER SHOP MINI CARD */}
+          {/* THẺ THÔNG TIN GIAN HÀNG */}
           <div
             className="seller-mini-card"
             style={{
@@ -285,7 +348,7 @@ export default function ProductDetailPage() {
               border: '1px solid var(--border)',
               borderRadius: 'var(--radius-md)',
               padding: '12px 16px',
-              marginBottom: '20px'
+              marginBottom: '20px',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -300,14 +363,14 @@ export default function ProductDetailPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: '1rem'
+                  fontSize: '1rem',
                 }}
               >
-                GG
+                {getInitials(brand || 'Aethelgard Mall')}
               </div>
               <div>
                 <div style={{ fontWeight: 800, fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span>GUCCI Official Store</span>
+                  <span>{brand ? `Cửa hàng chính hãng ${brand}` : 'Boutique Aethelgard'}</span>
                   <span
                     style={{
                       background: '#DC2626',
@@ -315,19 +378,19 @@ export default function ProductDetailPage() {
                       fontSize: '0.68rem',
                       fontWeight: 900,
                       padding: '2px 6px',
-                      borderRadius: '4px'
+                      borderRadius: '4px',
                     }}
                   >
-                    FLAGSHIP
+                    CHÍNH HÃNG
                   </span>
                 </div>
                 <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '2px' }}>
-                  5.0 ★ (68.4k đánh giá) • 📍 2 Boutique Hà Nội & TP.HCM
+                  {brandProductCount > 0 ? `${brandProductCount} sản phẩm trên sàn` : 'Gian hàng đối tác'} • Bảo đảm hàng chính hãng
                 </div>
               </div>
             </div>
             <Link
-              href="/shop-profile"
+              href={brand ? `/shop?brand=${encodeURIComponent(brand)}` : '/shop'}
               style={{
                 padding: '8px 16px',
                 background: '#FFFFFF',
@@ -337,90 +400,120 @@ export default function ProductDetailPage() {
                 fontSize: '0.82rem',
                 color: 'var(--text-main)',
                 textDecoration: 'none',
-                transition: 'all 0.2s'
+                transition: 'all 0.2s',
               }}
             >
               Xem Gian Hàng →
             </Link>
           </div>
 
-          <span className="category-tag-pill">{prod.category}</span>
-          <h1 className="product-detail-title">{prod.title}</h1>
+          <span className="category-tag-pill">
+            {product.categoryName || 'Thời Trang'} • {product.collectionName || 'Chính Hãng'}
+          </span>
+          <h1 className="product-detail-title">{product.name}</h1>
 
-          {/* Ratings & Reviews Count */}
+          {/* Điểm đánh giá & số lượt đánh giá */}
           <div className="product-rating-badge-row">
-            <span className="stars-gold">{prod.rating}</span>
-            <span className="rating-score-text">{prod.ratingScore}</span>
+            <span className="stars-gold">{starText}</span>
+            <span className="rating-score-text">{ratingScore}</span>
             <a href="#reviews-anchor" className="reviews-counter-link">
-              ({prod.reviewCount} đánh giá từ khách hàng)
+              ({product.reviewCount || 0} đánh giá từ khách hàng)
             </a>
           </div>
 
           {/* Pricing */}
           <div className="product-price-block">
-            <span className="price-current">{prod.priceCurrent}</span>
-            <span className="price-original">{prod.priceOriginal}</span>
-            <span className="discount-badge-pill">{prod.discount}</span>
+            <span className="price-current">{formatVND(product.basePrice)}</span>
+            {showOriginal && <span className="price-original">{formatVND(product.originalPrice!)}</span>}
+            {discount > 0 && <span className="discount-badge-pill">-{discount}%</span>}
           </div>
 
-          {/* Fast Delivery Countdown */}
+          {/* Đếm ngược giao hàng nhanh */}
           <div className="delivery-countdown-box">
             <span>
-              ⚡ Đặt hàng trong <span id="flash-timer" className="timer-val">{formatTimer()}</span> để nhận giao hàng hỏa tốc trong ngày!
+              ⚡ Đặt hàng trong <span id="flash-timer" className="timer-val">{formatTimer()}</span> để được boutique xử lý & bàn giao vận chuyển ngay trong ngày!
             </span>
           </div>
 
-          {/* Short Description */}
-          <p className="product-short-summary">{prod.shortDesc}</p>
+          {/* Mô tả ngắn */}
+          <p className="product-short-summary">{product.description}</p>
 
-          {/* Color Picker */}
-          <div className="selector-group">
-            <div className="selector-header">
-              <span>Màu sắc: <strong id="current-color-name">{activeColor}</strong></span>
+          {/* Chọn màu sắc */}
+          {options.colors.length > 0 && (
+            <div className="selector-group">
+              <div className="selector-header">
+                <span>
+                  Màu sắc: <strong id="current-color-name">{activeColor || 'Chưa chọn'}</strong>
+                </span>
+              </div>
+              <div className="color-swatches-list">
+                {options.colors.map((c) => (
+                  <button
+                    key={c.value}
+                    className={`color-swatch-btn ${activeColor === c.value ? 'active' : ''}`}
+                    style={{ backgroundColor: colorToHex(c.value), opacity: c.stock > 0 ? 1 : 0.35 }}
+                    onClick={() => setActiveColor(c.value)}
+                    title={c.stock > 0 ? c.value : `${c.value} (hết hàng)`}
+                    aria-label={`Màu ${c.value}`}
+                    type="button"
+                  ></button>
+                ))}
+              </div>
             </div>
-            <div className="color-swatches-list">
-              {prod.colors.map((c) => (
-                <button
-                  key={c.name}
-                  className={`color-swatch-btn ${activeColor === c.name ? 'active' : ''}`}
-                  style={{ backgroundColor: c.hex }}
-                  onClick={() => setActiveColor(c.name)}
-                  title={c.name}
-                  type="button"
-                ></button>
-              ))}
-            </div>
-          </div>
+          )}
 
-          {/* Size Picker */}
-          <div className="selector-group">
-            <div className="selector-header">
-              <span>Chọn kích cỡ</span>
-              <span className="size-guide-link" onClick={() => setActiveTab('sizefit')} style={{ cursor: 'pointer' }}>
-                📏 Bảng kích cỡ (Size Guide)
-              </span>
+          {/* Chọn kích cỡ */}
+          {options.sizes.length > 0 && (
+            <div className="selector-group" id="size-selector">
+              <div className="selector-header">
+                <span>
+                  Chọn kích cỡ{activeSize ? `: ${activeSize}` : ''}
+                  {needsSize && <em className="customer-required-hint"> (bắt buộc)</em>}
+                </span>
+                <span className="size-guide-link" onClick={() => setActiveTab('sizefit')} style={{ cursor: 'pointer' }}>
+                  📏 Bảng kích cỡ (Size Guide)
+                </span>
+              </div>
+              <div className="size-options-grid">
+                {options.sizes.map((s) => {
+                  const variant = findVariant(product.variants, s.value, activeColor || undefined);
+                  const stock = variant ? variant.stockQuantity : s.stock;
+                  return (
+                    <button
+                      key={s.value}
+                      className={`size-btn ${activeSize === s.value ? 'active' : ''}`}
+                      onClick={() => setActiveSize(s.value)}
+                      disabled={stock <= 0}
+                      title={stock <= 0 ? 'Hết hàng' : `Còn ${stock} sản phẩm`}
+                      style={stock <= 0 ? { opacity: 0.4, textDecoration: 'line-through', cursor: 'not-allowed' } : undefined}
+                      type="button"
+                    >
+                      {s.value}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="size-options-grid">
-              {prod.sizes.map((s) => (
-                <button
-                  key={s}
-                  className={`size-btn ${activeSize === s ? 'active' : ''}`}
-                  onClick={() => setActiveSize(s)}
-                  type="button"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
 
-          {/* Action Buttons (Add to Cart, Stepper, Wishlist) */}
+          {/* Tình trạng tồn kho */}
+          <p className={`customer-stock-line ${isOutOfStock ? 'out' : availableStock <= 10 ? 'low' : ''}`}>
+            {isOutOfStock
+              ? 'Tạm hết hàng'
+              : needsSize
+                ? `Còn ${product.stockQuantity} sản phẩm (chọn size để xem tồn kho chính xác)`
+                : availableStock <= 10
+                  ? `Chỉ còn ${availableStock} sản phẩm — đặt ngay kẻo lỡ`
+                  : `Còn hàng (${availableStock} sản phẩm)`}
+          </p>
+
+          {/* Nút thao tác (Thêm vào giỏ, chọn số lượng, Yêu thích) */}
           <div className="action-buttons-stack">
             <div className="qty-stepper">
               <button
                 id="btn-qty-minus"
                 className="qty-step-btn"
-                onClick={() => setQty(prev => Math.max(1, prev - 1))}
+                onClick={() => setQty((prev) => Math.max(1, prev - 1))}
                 aria-label="Giảm số lượng"
                 type="button"
               >
@@ -430,7 +523,13 @@ export default function ProductDetailPage() {
               <button
                 id="btn-qty-plus"
                 className="qty-step-btn"
-                onClick={() => setQty(prev => prev + 1)}
+                onClick={() => {
+                  if (availableStock > 0 && qty >= availableStock) {
+                    showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`);
+                    return;
+                  }
+                  setQty((prev) => prev + 1);
+                }}
                 aria-label="Tăng số lượng"
                 type="button"
               >
@@ -442,6 +541,8 @@ export default function ProductDetailPage() {
               id="btn-add-cart"
               className="btn-add-to-cart-primary"
               onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
               type="button"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -449,13 +550,13 @@ export default function ProductDetailPage() {
                 <path d="M3 6h18" />
                 <path d="M16 10a4 4 0 0 1-8 0" />
               </svg>
-              <span>Thêm Vào Giỏ Hàng</span>
+              <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}</span>
             </button>
 
             <button
               id="btn-wishlist"
               className={`btn-wishlist-toggle ${isWishlist ? 'active' : ''}`}
-              title="Thêm vào danh sách yêu thích"
+              title={isWishlist ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
               onClick={handleWishlistToggle}
               type="button"
             >
@@ -467,19 +568,21 @@ export default function ProductDetailPage() {
             id="btn-buy-now"
             className="btn-buy-now-accent"
             onClick={handleBuyNow}
+            disabled={isOutOfStock}
+            style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             type="button"
           >
             Mua Ngay Với 1 Bước
           </button>
 
-          {/* Trust Badges */}
+          {/* Huy hiệu cam kết */}
           <div className="trust-badges-grid">
             <div className="trust-item">
               <div className="trust-icon-title">
                 <span>🚚</span>
                 <span>Giao Hàng Miễn Phí</span>
               </div>
-              <span className="trust-subtext">Đơn hàng từ 500.000₫ toàn quốc</span>
+              <span className="trust-subtext">Đơn hàng trên {formatVND(FREE_SHIPPING_THRESHOLD)} toàn quốc</span>
             </div>
             <div className="trust-item">
               <div className="trust-icon-title">
@@ -493,41 +596,25 @@ export default function ProductDetailPage() {
                 <span>🛡</span>
                 <span>Chính Hãng 100%</span>
               </div>
-              <span className="trust-subtext">Cam kết chuẩn hàng authentic</span>
+              <span className="trust-subtext">Cam kết 100% hàng chính hãng</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* SECTION 2: PRODUCT SPECIFICATIONS & VISUAL TABS */}
+      {/* PHẦN 2: THÔNG SỐ SẢN PHẨM & CÁC TAB */}
       <section className="product-tabs-section">
         <div className="tabs-nav-bar">
-          <button
-            className={`tab-nav-btn ${activeTab === 'details' ? 'active' : ''}`}
-            onClick={() => setActiveTab('details')}
-            type="button"
-          >
+          <button className={`tab-nav-btn ${activeTab === 'details' ? 'active' : ''}`} onClick={() => setActiveTab('details')} type="button">
             Chi Tiết Sản Phẩm
           </button>
-          <button
-            className={`tab-nav-btn ${activeTab === 'materials' ? 'active' : ''}`}
-            onClick={() => setActiveTab('materials')}
-            type="button"
-          >
+          <button className={`tab-nav-btn ${activeTab === 'materials' ? 'active' : ''}`} onClick={() => setActiveTab('materials')} type="button">
             Chất Liệu & Bảo Quản
           </button>
-          <button
-            className={`tab-nav-btn ${activeTab === 'sizefit' ? 'active' : ''}`}
-            onClick={() => setActiveTab('sizefit')}
-            type="button"
-          >
+          <button className={`tab-nav-btn ${activeTab === 'sizefit' ? 'active' : ''}`} onClick={() => setActiveTab('sizefit')} type="button">
             Thông Số Form Dáng
           </button>
-          <button
-            className={`tab-nav-btn ${activeTab === 'shipping' ? 'active' : ''}`}
-            onClick={() => setActiveTab('shipping')}
-            type="button"
-          >
+          <button className={`tab-nav-btn ${activeTab === 'shipping' ? 'active' : ''}`} onClick={() => setActiveTab('shipping')} type="button">
             Vận Chuyển & Bảo Hành
           </button>
         </div>
@@ -537,38 +624,48 @@ export default function ProductDetailPage() {
           <div id="tab-details" className="tab-pane-content active">
             <div className="tab-split-grid">
               <div>
-                <p className="tab-text-lead">
-                  Được chế tác từ sợi bông tự nhiên định lượng cao cấp, chiếc áo Essential Oversized Hoodie mang lại trải nghiệm êm ái vượt bậc cùng độ bền vượt thời gian. Thiết kế phom rũ tự nhiên giúp bạn dễ dàng kết hợp layer với áo thun basic hoặc quần jogger cá tính.
-                </p>
+                <p className="tab-text-lead">{product.description}</p>
                 <ul className="tab-feature-bullets">
+                  {brand && (
+                    <li>
+                      <span className="bullet-icon">✓</span>
+                      <span><strong>Thương hiệu:</strong> {brand}</span>
+                    </li>
+                  )}
+                  {product.collectionName && (
+                    <li>
+                      <span className="bullet-icon">✓</span>
+                      <span><strong>Bộ sưu tập:</strong> {product.collectionName}</span>
+                    </li>
+                  )}
                   <li>
                     <span className="bullet-icon">✓</span>
-                    <span><strong>Oversized Drop Shoulder:</strong> Phom vai trễ tạo sự phóng khoáng, che khuyết điểm cơ thể tối đa.</span>
+                    <span><strong>Danh mục:</strong> {product.categoryName || 'Thời trang cao cấp'}</span>
                   </li>
+                  {product.countryOfOrigin && (
+                    <li>
+                      <span className="bullet-icon">✓</span>
+                      <span><strong>Xuất xứ:</strong> {product.countryOfOrigin}</span>
+                    </li>
+                  )}
                   <li>
                     <span className="bullet-icon">✓</span>
-                    <span><strong>Vải Heavy French Terry 450 GSM:</strong> Mặt ngoài mịn màng, mặt trong dệt vảy cá thoáng khí, giữ nhiệt tốt.</span>
-                  </li>
-                  <li>
-                    <span className="bullet-icon">✓</span>
-                    <span><strong>Mũ trùm 2 lớp đứng form:</strong> Thiết kế mũ dày dặn không bị xẹp, kèm dây rút dệt cao cấp bo kim loại khắc chìm.</span>
-                  </li>
-                  <li>
-                    <span className="bullet-icon">✓</span>
-                    <span><strong>Túi Kangaroo trước bụng:</strong> Rộng rãi, đường may đôi gia cố chắc chắn chống rách mép.</span>
-                  </li>
-                  <li>
-                    <span className="bullet-icon">✓</span>
-                    <span><strong>Phong cách Unisex:</strong> Phù hợp hoàn hảo cho cả nam giới và nữ giới yêu thích thời trang đường phố.</span>
+                    <span><strong>Mã sản phẩm (SKU):</strong> {selectedVariant?.sku || product.sku}</span>
                   </li>
                 </ul>
               </div>
               <div className="tab-visual-banner">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/img/products/fashion-mood-board.jpg" alt="Craftsmanship Detail" />
+                <img
+                  src={gallery[1] || gallery[0]}
+                  alt={`Chi tiết ${product.name}`}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                  }}
+                />
                 <div className="tab-visual-overlay">
-                  <h4>ESSENTIALS CRAFTSMANSHIP</h4>
-                  <p>Dệt nguyên bản 450 GSM Heavy French Terry • Độ bền giặt 500+ chu kỳ</p>
+                  <h4>TAY NGHỀ CHẾ TÁC {(brand || 'Aethelgard').toUpperCase()}</h4>
+                  <p>{product.collectionName || 'Phân phối chính hãng tại Aethelgard Mall'}</p>
                 </div>
               </div>
             </div>
@@ -579,28 +676,62 @@ export default function ProductDetailPage() {
         {activeTab === 'materials' && (
           <div id="tab-materials" className="tab-pane-content active">
             <p className="tab-text-lead">
-              <strong>Thành phần:</strong> 100% Cotton chải kỹ (Combed Cotton) định lượng 450 GSM.<br />
+              <strong>Thành phần / Chất liệu:</strong> {product.material || 'Đang cập nhật từ thương hiệu'}
+              <br />
               <strong>Hướng dẫn bảo quản:</strong>
             </p>
             <ul className="tab-feature-bullets">
-              <li><span className="bullet-icon">✓</span> Giặt máy ở chế độ nước lạnh (dưới 30°C) và lộn trái áo trước khi giặt.</li>
-              <li><span className="bullet-icon">✓</span> Không sử dụng chất tẩy clo mạnh để bảo toàn màu sắc nguyên bản.</li>
-              <li><span className="bullet-icon">✓</span> Phơi trong bóng râm, tránh ánh nắng gắt trực tiếp làm khô sợi vải.</li>
-              <li><span className="bullet-icon">✓</span> Ủi ở nhiệt độ trung bình (110°C - 150°C), không ủi trực tiếp lên nhãn ép nhiệt.</li>
+              {product.careInstructions ? (
+                product.careInstructions
+                  .split(/[.;\n]/)
+                  .map((line) => line.trim())
+                  .filter(Boolean)
+                  .map((line) => (
+                    <li key={line}>
+                      <span className="bullet-icon">✓</span> {line}
+                    </li>
+                  ))
+              ) : (
+                <>
+                  <li><span className="bullet-icon">✓</span> Bảo quản nơi khô ráo, tránh ánh nắng trực tiếp và độ ẩm cao.</li>
+                  <li><span className="bullet-icon">✓</span> Vệ sinh theo hướng dẫn trên nhãn mác của thương hiệu.</li>
+                  <li><span className="bullet-icon">✓</span> Cất trong túi chống bụi đi kèm khi không sử dụng.</li>
+                </>
+              )}
             </ul>
           </div>
         )}
 
-        {/* TAB 3: SIZE & FIT */}
+        {/* TAB 3: KÍCH CỠ & FORM DÁNG */}
         {activeTab === 'sizefit' && (
           <div id="tab-sizefit" className="tab-pane-content active">
-            <p className="tab-text-lead">Gợi ý chọn size dựa theo chiều cao và cân nặng chuẩn:</p>
-            <ul className="tab-feature-bullets">
-              <li><span className="bullet-icon">✓</span> <strong>Size S:</strong> Chiều cao 1m55 - 1m65 | Cân nặng 48kg - 58kg (Vừa vặn thoải mái)</li>
-              <li><span className="bullet-icon">✓</span> <strong>Size M:</strong> Chiều cao 1m65 - 1m75 | Cân nặng 58kg - 70kg (Oversized chuẩn)</li>
-              <li><span className="bullet-icon">✓</span> <strong>Size L:</strong> Chiều cao 1m72 - 1m80 | Cân nặng 70kg - 82kg (Phom rộng rũ)</li>
-              <li><span className="bullet-icon">✓</span> <strong>Size XL/XXL:</strong> Chiều cao trên 1m80 | Cân nặng 82kg - 100kg</li>
-            </ul>
+            {footwear ? (
+              <>
+                <p className="tab-text-lead">Quy đổi size giày theo chiều dài bàn chân:</p>
+                <ul className="tab-feature-bullets">
+                  <li><span className="bullet-icon">✓</span> <strong>EU 38–39:</strong> Chiều dài chân 24.0 – 24.8 cm</li>
+                  <li><span className="bullet-icon">✓</span> <strong>EU 40–41:</strong> Chiều dài chân 25.0 – 26.0 cm</li>
+                  <li><span className="bullet-icon">✓</span> <strong>EU 42–43:</strong> Chiều dài chân 26.5 – 27.5 cm</li>
+                  <li><span className="bullet-icon">✓</span> <strong>EU 44–45:</strong> Chiều dài chân 28.0 – 29.0 cm</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="tab-text-lead">Gợi ý chọn size dựa theo chiều cao và cân nặng chuẩn:</p>
+                <ul className="tab-feature-bullets">
+                  <li><span className="bullet-icon">✓</span> <strong>Size S:</strong> Chiều cao 1m55 - 1m65 | Cân nặng 48kg - 58kg</li>
+                  <li><span className="bullet-icon">✓</span> <strong>Size M:</strong> Chiều cao 1m65 - 1m75 | Cân nặng 58kg - 70kg</li>
+                  <li><span className="bullet-icon">✓</span> <strong>Size L:</strong> Chiều cao 1m72 - 1m80 | Cân nặng 70kg - 82kg</li>
+                  <li><span className="bullet-icon">✓</span> <strong>Size XL/XXL:</strong> Chiều cao trên 1m80 | Cân nặng 82kg - 100kg</li>
+                </ul>
+              </>
+            )}
+            {options.sizes.length > 0 && (
+              <p className="tab-text-lead" style={{ marginTop: 12 }}>
+                <strong>Size đang có hàng:</strong>{' '}
+                {options.sizes.filter((s) => s.stock > 0).map((s) => s.value).join(', ') || 'Tạm hết'}
+              </p>
+            )}
           </div>
         )}
 
@@ -609,193 +740,167 @@ export default function ProductDetailPage() {
           <div id="tab-shipping" className="tab-pane-content active">
             <p className="tab-text-lead">Chính sách vận chuyển & đổi trả minh bạch tại Aethelgard Mall:</p>
             <ul className="tab-feature-bullets">
-              <li><span className="bullet-icon">✓</span> <strong>Hỏa tốc nội thành:</strong> Giao ngay trong 2-4 tiếng kể từ lúc chốt đơn.</li>
-              <li><span className="bullet-icon">✓</span> <strong>Giao hàng tiêu chuẩn toàn quốc:</strong> 1-3 ngày làm việc (VNPost / Viettel Post / GHN).</li>
-              <li><span className="bullet-icon">✓</span> <strong>Đồng kiểm khi nhận hàng:</strong> Bạn được kiểm tra hàng trước khi thanh toán.</li>
+              <li><span className="bullet-icon">✓</span> <strong>Phí vận chuyển:</strong> Miễn phí cho đơn trên {formatVND(FREE_SHIPPING_THRESHOLD)}, các đơn khác đồng giá 50.000 đ.</li>
+              <li><span className="bullet-icon">✓</span> <strong>Thời gian giao:</strong> Dự kiến 3 ngày làm việc, theo dõi hành trình trong mục Đơn Hàng Của Tôi.</li>
+              <li><span className="bullet-icon">✓</span> <strong>Đồng kiểm khi nhận hàng:</strong> Bạn được kiểm tra hàng trước khi thanh toán (COD).</li>
               <li><span className="bullet-icon">✓</span> <strong>Đổi hàng miễn phí:</strong> Hỗ trợ đổi size tận nhà trong vòng 30 ngày.</li>
+              <li><span className="bullet-icon">✓</span> <strong>Hóa đơn:</strong> Giá đã niêm yết chưa gồm thuế VAT 8% (hiển thị rõ khi thanh toán).</li>
             </ul>
           </div>
         )}
       </section>
 
-      {/* SECTION 3: REVIEWS & RATINGS BREAKDOWN */}
+      {/* PHẦN 2.5: TRỢ LÝ PHỐI ĐỒ AI */}
+      <AIStylistPanel product={product} catalog={catalog} />
+
+      {/* SECTION 3: REVIEWS & RATINGS */}
       <section className="reviews-section-wrapper" id="reviews-anchor">
         <h2 className="reviews-section-header">Đánh Giá & Nhận Xét Từ Khách Hàng</h2>
         <div className="reviews-breakdown-grid">
-          {/* Overall Score Card */}
+          {/* Thẻ điểm tổng quan */}
           <div className="overall-score-card">
-            <div className="big-rating-number">4.8<span> / 5</span></div>
-            <div className="stars-gold">★★★★★</div>
-            <div className="review-verified-tag">Dựa trên 128 lượt đánh giá mua hàng thực tế</div>
-
-            <div className="rating-histogram">
-              <div className="histo-row">
-                <span>5★</span>
-                <div className="histo-bar"><div className="histo-fill" style={{ width: '86%' }}></div></div>
-                <span className="histo-count">110</span>
-              </div>
-              <div className="histo-row">
-                <span>4★</span>
-                <div className="histo-bar"><div className="histo-fill" style={{ width: '10%' }}></div></div>
-                <span className="histo-count">13</span>
-              </div>
-              <div className="histo-row">
-                <span>3★</span>
-                <div className="histo-bar"><div className="histo-fill" style={{ width: '3%' }}></div></div>
-                <span className="histo-count">4</span>
-              </div>
-              <div className="histo-row">
-                <span>2★</span>
-                <div className="histo-bar"><div className="histo-fill" style={{ width: '1%' }}></div></div>
-                <span className="histo-count">1</span>
-              </div>
-              <div className="histo-row">
-                <span>1★</span>
-                <div className="histo-bar"><div className="histo-fill" style={{ width: '0%' }}></div></div>
-                <span className="histo-count">0</span>
-              </div>
+            <div className="big-rating-number">
+              {ratingScore}
+              <span> / 5</span>
             </div>
+            <div className="stars-gold">{starText}</div>
+            <div className="review-verified-tag">Dựa trên {product.reviewCount || 0} lượt đánh giá mua hàng thực tế</div>
+
+            {/* Form viết đánh giá */}
+            <form className="customer-review-form" onSubmit={submitReview}>
+              <label className="customer-form-label">Viết đánh giá của bạn</label>
+              <div className="customer-star-input" role="radiogroup" aria-label="Chọn số sao">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    role="radio"
+                    aria-checked={reviewRating === n}
+                    className={n <= reviewRating ? 'on' : ''}
+                    onClick={() => setReviewRating(n)}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+              <textarea
+                className="form-control"
+                rows={3}
+                placeholder="Chất liệu, form dáng, đóng gói... (tối thiểu 10 ký tự)"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+              <button type="submit" className="customer-ai-submit">
+                Gửi đánh giá
+              </button>
+            </form>
           </div>
 
-          {/* Customer Feed */}
+          {/* Danh sách nhận xét của khách */}
           <div className="customer-reviews-feed">
-            <div className="review-testimonial-card">
-              <div className="reviewer-meta-row">
-                <div className="reviewer-info">
-                  <div className="reviewer-avatar">AM</div>
-                  <div>
-                    <div className="reviewer-name">Alex Mathio</div>
-                    <span className="verified-badge">✓ Đã mua hàng xác thực</span>
-                  </div>
-                </div>
-                <span className="review-date">14 Tháng 10, 2026</span>
+            {reviews.length === 0 ? (
+              <div className="review-testimonial-card customer-review-empty">
+                <p className="review-comment-text">
+                  Chưa có nhận xét chi tiết nào cho sản phẩm này. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
+                </p>
               </div>
-              <div className="stars-gold" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>★★★★★</div>
-              <p className="review-comment-text">
-                &quot;Chất vải 450 GSM cực kỳ dày dặn và đầm tay, đúng chuẩn form áo hoodie streetwear xịn. Mũ 2 lớp đứng form không bị gãy như hàng chợ. Mình cao 1m75 nặng 68kg mang size M chuẩn vừa đẹp!&quot;
-              </p>
-            </div>
-
-            <div className="review-testimonial-card">
-              <div className="reviewer-meta-row">
-                <div className="reviewer-info">
-                  <div className="reviewer-avatar" style={{ backgroundColor: '#0284C7' }}>MT</div>
-                  <div>
-                    <div className="reviewer-name">Minh Trang</div>
-                    <span className="verified-badge">✓ Đã mua hàng xác thực</span>
+            ) : (
+              reviews.map((r) => (
+                <div key={r.id} className="review-testimonial-card">
+                  <div className="reviewer-meta-row">
+                    <div className="reviewer-info">
+                      <div className="reviewer-avatar">{getInitials(r.author)}</div>
+                      <div>
+                        <div className="reviewer-name">{r.author}</div>
+                        <span className="verified-badge">✓ Đánh giá của bạn (lưu trên thiết bị này)</span>
+                      </div>
+                    </div>
+                    <span className="review-date">{new Date(r.createdAt).toLocaleDateString('vi-VN')}</span>
                   </div>
-                </div>
-                <span className="review-date">10 Tháng 10, 2026</span>
-              </div>
-              <div className="stars-gold" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>★★★★★</div>
-              <p className="review-comment-text">
-                &quot;Màu Charcoal Gray bên ngoài nhìn sang chảnh hơn trong ảnh nhiều, đóng hộp chắc chắn có tem mác thẻ bảo hành xịn sò. Giao hàng hỏa tốc trong ngày rất nhanh.&quot;
-              </p>
-            </div>
-
-            <div className="review-testimonial-card">
-              <div className="reviewer-meta-row">
-                <div className="reviewer-info">
-                  <div className="reviewer-avatar" style={{ backgroundColor: '#10B981' }}>DP</div>
-                  <div>
-                    <div className="reviewer-name">David Pham</div>
-                    <span className="verified-badge">✓ Đã mua hàng xác thực</span>
+                  <div className="stars-gold" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                    {'★★★★★'.slice(0, r.rating)}
+                    {'☆☆☆☆☆'.slice(0, 5 - r.rating)}
                   </div>
+                  <p className="review-comment-text">&quot;{r.comment}&quot;</p>
                 </div>
-                <span className="review-date">02 Tháng 10, 2026</span>
-              </div>
-              <div className="stars-gold" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>★★★★★</div>
-              <p className="review-comment-text">
-                &quot;Đã mua chiếc thứ hai màu Raw Cream. Đường may kép rất tinh xảo, giặt máy 3 lần rồi mà không hề bị xù lông hay co rút. Rất hài lòng với chất lượng Aethelgard!&quot;
-              </p>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </section>
 
-      {/* SECTION 4: YOU MAY ALSO LIKE (RELATED PRODUCTS) */}
-      <section className="related-products-section">
-        <div className="related-section-header">
-          <h2>Sản Phẩm Tương Tự (You May Also Like)</h2>
-          <Link href="/#catalog" className="view-all-link">
-            <span>Xem tất cả bộ sưu tập</span>
-            <span>→</span>
-          </Link>
-        </div>
+      {/* PHẦN 4: SẢN PHẨM TƯƠNG TỰ */}
+      {related.length > 0 && (
+        <section className="related-products-section">
+          <div className="related-section-header">
+            <h2>Sản Phẩm Tương Tự</h2>
+            <Link href={`/shop?category=${product.categoryId}`} className="view-all-link">
+              <span>Xem tất cả {product.categoryName || 'sản phẩm'}</span>
+              <span>→</span>
+            </Link>
+          </div>
 
-        <div className="related-grid">
-          {/* Card 1 */}
-          <Link href="/product-detail/6" className="related-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="related-img-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/products/adidas-sakura-hoodie.jpg" alt="Adidas Sakura Hoodie" loading="lazy" />
-              <button className="btn-card-wishlist" title="Yêu thích" type="button">♡</button>
-            </div>
-            <div className="related-info">
-              <div className="related-title">Adidas Sakura Zip Up Hoodie Limited</div>
-              <div className="related-price-row">
-                <span className="related-price">1.890.000₫</span>
-                <span className="stars-gold" style={{ fontSize: '0.82rem' }}>★ 4.9</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 2 */}
-          <Link href="/product-detail/4" className="related-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="related-img-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/products/balenciaga-track-beige.jpg" alt="Balenciaga Track 4.0" loading="lazy" />
-              <button className="btn-card-wishlist" title="Yêu thích" type="button">♡</button>
-            </div>
-            <div className="related-info">
-              <div className="related-title">Balenciaga Track 4.0 Triple Black Edition</div>
-              <div className="related-price-row">
-                <span className="related-price">4.850.000₫</span>
-                <span className="stars-gold" style={{ fontSize: '0.82rem' }}>★ 5.0</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 3 */}
-          <Link href="/product-detail/5" className="related-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="related-img-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/products/balenciaga-ripped-jacket.jpg" alt="Oversized Balenciaga Jacket" loading="lazy" />
-              <button className="btn-card-wishlist" title="Yêu thích" type="button">♡</button>
-            </div>
-            <div className="related-info">
-              <div className="related-title">Oversized Ripped Balenciaga Denim Jacket</div>
-              <div className="related-price-row">
-                <span className="related-price">3.650.000₫</span>
-                <span className="stars-gold" style={{ fontSize: '0.82rem' }}>★ 4.8</span>
-              </div>
-            </div>
-          </Link>
-
-          {/* Card 4 */}
-          <Link href="/product-detail/7" className="related-card" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div className="related-img-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/img/products/adidas-samba.jpg" alt="Adidas Samba" loading="lazy" />
-              <button className="btn-card-wishlist" title="Yêu thích" type="button">♡</button>
-            </div>
-            <div className="related-info">
-              <div className="related-title">Adidas Samba OG Classic Leather White</div>
-              <div className="related-price-row">
-                <span className="related-price">2.490.000₫</span>
-                <span className="stars-gold" style={{ fontSize: '0.82rem' }}>★ 4.9</span>
-              </div>
-            </div>
-          </Link>
-        </div>
-      </section>
-
-      {/* Toast Container */}
-      {toastMsg && (
-        <div id="toast-container" className="toast-container">
-          <div className="toast">{toastMsg}</div>
-        </div>
+          <div className="related-grid">
+            {related.map((p) => {
+              const liked = isInWishlist(p.id);
+              return (
+                <Link key={p.id} href={`/product-detail/${p.id}`} className="related-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <div className="related-img-box">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.imageUrl || FALLBACK_IMAGE}
+                      alt={p.name}
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                      }}
+                    />
+                    <button
+                      className="btn-card-wishlist"
+                      title={liked ? 'Bỏ yêu thích' : 'Yêu thích'}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const added = toggleWishlist(p);
+                        showToast(added ? 'Đã thêm vào danh sách yêu thích' : 'Đã gỡ khỏi danh sách yêu thích');
+                      }}
+                    >
+                      {liked ? '♥' : '♡'}
+                    </button>
+                  </div>
+                  <div className="related-info">
+                    <div className="related-title">{p.name}</div>
+                    <div className="related-price-row">
+                      <span className="related-price">{formatVND(p.basePrice)}</span>
+                      <span className="stars-gold" style={{ fontSize: '0.82rem' }}>★ {(p.rating || 0).toFixed(1)}</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
+
+      {/* Lightbox xem ảnh lớn */}
+      <Modal isOpen={isZoomOpen} onClose={() => setIsZoomOpen(false)} size="xl" title={product.name}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={activeImage || FALLBACK_IMAGE} alt={product.name} className="customer-zoom-img" />
+        <div className="customer-zoom-thumbs">
+          {gallery.map((src, i) => (
+            <button
+              key={src + i}
+              type="button"
+              className={activeImage === src ? 'active' : ''}
+              onClick={() => setActiveImage(src)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt={`Ảnh ${i + 1}`} />
+            </button>
+          ))}
+        </div>
+      </Modal>
     </div>
   );
 }

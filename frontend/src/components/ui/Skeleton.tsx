@@ -11,7 +11,7 @@ export function Skeleton({ className }: SkeletonProps) {
   );
 }
 
-/** Skeleton cho Product Card */
+/** Khung tải cho thẻ sản phẩm */
 export function ProductCardSkeleton() {
   return (
     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -25,7 +25,7 @@ export function ProductCardSkeleton() {
   );
 }
 
-/** Skeleton cho Table row */
+/** Khung tải cho dòng bảng */
 export function TableRowSkeleton({ columns = 5 }: { columns?: number }) {
   return (
     <tr>

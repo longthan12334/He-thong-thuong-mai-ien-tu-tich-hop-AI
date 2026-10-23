@@ -7,6 +7,13 @@ interface MonthlyMatrixChartProps {
   onSelectMonth: (month: string) => void;
 }
 
+
+/** Nhãn tháng hiển thị tiếng Việt (giữ nguyên khóa dữ liệu JAN..DEC) */
+const MONTH_LABELS: Record<string, string> = {
+  JAN: 'TH1', FEB: 'TH2', MAR: 'TH3', APR: 'TH4', MAY: 'TH5', JUN: 'TH6',
+  JUL: 'TH7', AUG: 'TH8', SEP: 'TH9', OCT: 'TH10', NOV: 'TH11', DEC: 'TH12',
+};
+
 const matrixChartData = [
   { month: 'JAN', existing: 4, newUsers: 3, valTotal: '14k' },
   { month: 'FEB', existing: 5, newUsers: 4, valTotal: '18k' },
@@ -65,7 +72,7 @@ export const MonthlyMatrixChart: React.FC<MonthlyMatrixChartProps> = ({
                   title={`Khách cũ: ${item.existing * 10}%`}
                 />
               </div>
-              <span className="month-label">{item.month}</span>
+              <span className="month-label">{MONTH_LABELS[item.month] || item.month}</span>
               <span className="val-label">{item.valTotal}</span>
             </div>
           );
