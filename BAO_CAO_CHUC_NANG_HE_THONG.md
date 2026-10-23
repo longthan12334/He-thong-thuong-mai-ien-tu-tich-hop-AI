@@ -80,54 +80,73 @@ Phân hệ Seller cung cấp bộ công cụ quản trị kinh doanh số toàn 
 
 ## 🛍️ III. PHÂN HỆ NGƯỜI MUA (CUSTOMER / KHÁCH HÀNG)
 
-Phân hệ Người mua hướng tới trải nghiệm mua sắm xa xỉ (Luxury Boutique Shopping Experience), mượt mà từ khâu tìm kiếm sản phẩm đến thanh toán.
+Phân hệ Người mua hướng tới trải nghiệm mua sắm xa xỉ (Luxury Boutique Shopping Experience), mượt mà từ khâu tìm kiếm sản phẩm đến thanh toán và theo dõi vòng đời đơn hàng.
 
-### 1. Khám phá & Tìm kiếm Sản phẩm (Trang chủ & Catalog)
-* **Hero Banner tương tác**: Giới thiệu bộ sưu tập cao cấp mùa mới, tích hợp thanh tìm kiếm nhanh và nút cuộn mượt đến danh mục sản phẩm.
-* **Bộ lọc đa tiêu chí (Product Filters)**:
+### 1. Trung Tâm Mua Sắm Toàn Sàn (`/shop` & Trang Chủ)
+* **Hero Banner tương tác**: Giới thiệu bộ sưu tập cao cấp mùa mới, tích hợp thanh tìm kiếm thông minh và nút cuộn mượt đến danh mục sản phẩm.
+* **Bộ tìm kiếm gợi ý thông minh (Smart Search & Autocomplete)**:
+  - Tự động gợi ý sản phẩm thời gian thực ngay khi người dùng gõ từ khóa.
+  - Hỗ trợ tìm kiếm tiếng Việt không dấu, khớp theo tên sản phẩm, bộ sưu tập và danh mục thương hiệu.
+  - Giao diện dropdown gợi ý được căn chỉnh layer nổi (`z-index: 50`), bóng đổ mềm, khoảng đệm thoáng đãng, hiển thị rõ ràng ảnh thu nhỏ, tên món đồ, danh mục và giá bán niêm yết mà không che khuất thông tin.
+* **Bộ lọc đa tiêu chí kết hợp (Multi-faceted Filters)**:
   - Lọc theo danh mục thời trang: Áo khoác, Quần âu, Giày Sneaker, Túi xách, Phụ kiện xa xỉ.
+  - Lọc theo thương hiệu Flagship chính hãng: Dior, Gucci, Adidas, Chanel, Louis Vuitton, Balenciaga...
   - Lọc nhanh: Hàng bán chạy nhất (`Bestseller`), Hàng đang giảm giá (`Discount`).
-  - Lọc theo khoảng giá tùy biến: Thiết lập mức giá tối thiểu và giá tối đa.
+  - Lọc theo khoảng giá tùy biến (Min/Max Slider) và trạng thái còn hàng.
   - Sắp xếp linh hoạt: Mới nhất, Giá tăng dần, Giá giảm dần, Độ phổ biến.
-* **Lưới sản phẩm cao cấp (Seller Product Card)**:
-  - Hiển thị ảnh chất lượng cao, tên thương hiệu, huy hiệu đặc quyền (Chính hãng 100%, New Arrival), tỷ lệ giảm giá phần trăm, giá bán niêm yết và giá gạch chân.
-  - Nút xem nhanh sản phẩm mở khay chi tiết sản phẩm.
+* **Lưới sản phẩm cao cấp (Customer Product Card)**:
+  - Hiển thị ảnh chất lượng cao, tên thương hiệu, huy hiệu đặc quyền (Chính hãng 100%, New Arrival), tỷ lệ giảm giá %, giá bán niêm yết và giá gạch chân.
+  - Nút xem nhanh sản phẩm, nút thả tim yêu thích (Wishlist) và nút thêm nhanh vào giỏ hàng.
 * **Thanh điều hướng phân trang động (Smart Dynamic Pagination)**:
   - Phân trang chuẩn 12 sản phẩm trên mỗi trang.
   - Tự động tính toán tổng số trang dựa trên kết quả lọc và tìm kiếm.
-  - Tự sinh nút bấm thông minh kèm dấu `...` khi danh sách nhiều trang.
-  - Nút *Previous* / *Next* tự động vô hiệu hóa tại đầu và cuối trang; hỗ trợ cuộn mượt mà (`smooth scroll`) lên đầu danh mục sau mỗi lần chuyển trang.
+  - Tự sinh nút bấm thông minh kèm dấu `...` khi danh sách nhiều trang, hỗ trợ cuộn mượt mà lên đầu trang khi chuyển trang.
 
-### 2. Trang Chi tiết Sản phẩm Chuẩn Flagship (`/product-detail/[id]`)
-* **Trưng bày sản phẩm đa góc nhìn**: Thư viện ảnh chi tiết, gắn nhãn bảo đảm nguyên seal và tem kiểm định chính hãng.
-* **Lựa chọn cấu hình sản phẩm**:
-  - Lựa chọn kích cỡ thời trang: 38, 39, 40, 41, 42, 43 (Giày) hoặc S, M, L, XL (Trang phục).
-  - Lựa chọn phiên bản màu sắc và chất liệu.
-  - Bộ chọn số lượng mua với giới hạn tối đa theo tồn kho thực tế.
-* **Trợ lý phối đồ AI độc quyền (AI Fashion Stylist)**:
-  - Trợ lý thông minh phân tích phong cách thiết kế của sản phẩm hiện tại để gợi ý set trang phục (outfit) hoàn chỉnh: cách kết hợp áo khoác, quần suông, giày sneaker và phụ kiện kính râm đồng điệu.
-* **Cam kết đặc quyền thương hiệu (Luxury Guarantees)**:
+### 2. Trang Chi Tiết Sản Phẩm Chuẩn Flagship (`/product-detail/[id]`)
+* **Trưng bày sản phẩm đa góc nhìn & Lightbox**:
+  - Thư viện ảnh chi tiết góc rộng, hỗ trợ phóng to (Lightbox) kiểm tra từng đường kim mũi chỉ và bề mặt chất liệu vải/da.
+  - Gắn nhãn bảo đảm nguyên seal và tem kiểm định chính hãng NFC quốc tế.
+* **Lựa chọn cấu hình biến thể sản phẩm**:
+  - Lựa chọn kích cỡ: 38 - 44 (Giày) hoặc S, M, L, XL (Trang phục) liên kết trực tiếp với số lượng tồn kho thực tế của từng biến thể (`ProductVariants`).
+  - Lựa chọn màu sắc và chất liệu thực tế.
+  - Bộ chọn số lượng mua với giới hạn tối đa theo tồn khả dụng trong kho.
+* **Trợ lý phối đồ AI độc quyền (Aethelgard AI Stylist - Gemini AI)**:
+  - Tích hợp mô hình AI Generative (Google Gemini) phân tích phong cách thiết kế của sản phẩm hiện tại để gợi ý phối đồ thời trang cá nhân hóa.
+  - Các thẻ phong cách định sẵn (Prompt Chips): *Dạ tiệc thượng lưu*, *Dạo phố cuối tuần*, *Phong cách Smart Casual*, *Set đồ mùa đông*, *Tone-sur-tone lịch lãm*.
+  - Ô nhập liệu cho phép khách hàng tự do nhập câu hỏi phối đồ theo hoàn cảnh riêng.
+  - **Gợi ý hoàn thiện set đồ (Complementary Outfits)**: Tự động đề xuất các món đồ bổ trợ từ danh mục khác (ví dụ: đang xem Giày $\rightarrow$ gợi ý Áo khoác và Kính mát phù hợp).
+  - Nút **"Thêm trọn bộ vào giỏ hàng"**: Cho phép thêm đồng thời cả set đồ gợi ý vào giỏ chỉ bằng 1 cú nhấp chuột.
+* **Chính sách & Cam kết đặc quyền thương hiệu**:
   - Bồi hoàn 300% nếu phát hiện hàng không chính hãng.
   - Đóng hộp quà tặng cao cấp nguyên seal.
-  - Dịch vụ giao hàng VIP bàn giao tận tay.
+  - Dịch vụ giao hàng VIP tận tay và miễn phí đổi trả trong 7 ngày.
 
-### 3. Giỏ hàng Toàn cục (Global Cart Provider)
-* **Lưu trữ liên thông**: Sử dụng `CartContext` lưu trữ thông tin giỏ hàng vào `localStorage` (`aethelgard_cart`), bảo toàn dữ liệu xuyên suốt các trang và sau khi refresh trình duyệt.
-* **Drawer giỏ hàng (`CartModal.tsx`)**:
-  - Mở trực tiếp từ thanh Navbar ở bất kỳ trang nào.
-  - Hiển thị danh sách mặt hàng đã chọn kèm phân loại size, màu sắc, đơn giá, số lượng.
-  - Hỗ trợ tăng/giảm số lượng, xóa từng món hoặc xóa toàn bộ giỏ hàng.
-  - Tự động tính toán tổng số lượng và tổng thanh toán tức thì.
-
-### 4. Đặt hàng & Thanh toán (Checkout Modal)
-* **Quy trình đặt hàng tinh gọn**:
+### 3. Giỏ Hàng Toàn Cục & Trải Nghiệm Thanh Toán
+* **Lưu trữ liên thông (`CartContext.tsx`)**:
+  - Quản lý State giỏ hàng tập trung, đồng bộ tức thời với `localStorage` (`aethelgard_cart`), bảo toàn dữ liệu xuyên suốt các trang và sau khi tải lại trình duyệt.
+  - Khóa phân biệt biến thể chính xác (`${productId}-${specs}`): Cho phép mua cùng một mẫu áo với nhiều size/màu khác nhau thành từng dòng riêng biệt, không bị gộp sai dòng.
+* **Hộp thoại thanh toán tinh gọn (`CheckoutModal.tsx`)**:
   - Thu thập thông tin giao nhận: Họ và tên người nhận, Số điện thoại, Email nhận thông báo, Địa chỉ giao hàng chi tiết.
-  - Chọn hình thức thanh toán: **COD (Thanh toán khi nhận hàng)** hoặc **Chuyển khoản Ngân hàng / Thẻ tín dụng**.
-* **Mã hóa đơn hàng chuẩn**: Hệ thống tự động sinh mã đơn hàng độc bản dạng `AG-2026-XXXX`.
+  - Hỗ trợ phương thức thanh toán: **COD (Thanh toán khi nhận hàng)** hoặc **Chuyển khoản Ngân hàng**.
+  - Tự động điền trước thông tin cá nhân đối với người dùng đã đăng nhập.
 * **Kiểm soát tồn kho tức thời - Chống bán khống (Anti-Overselling Guard)**:
   - Ngay khi khách bấm *"Xác nhận đặt hàng"*, Backend kích hoạt transaction kiểm tra tồn kho khả dụng của từng sản phẩm và biến thể.
-  - Nếu số lượng tồn kho không đủ (khách đặt vượt quá số lượng còn lại trong kho), hệ thống lập tức từ chối và thông báo chính xác số lượng tồn thực tế.
-  - Nếu đủ hàng, hệ thống tự động trừ tồn kho ngay lập tức, cập nhật `StockStatus` và sinh bản ghi đơn hàng.
+  - Nếu số lượng tồn kho không đủ, hệ thống lập tức từ chối và thông báo chính xác số lượng tồn thực tế.
+  - Nếu đủ hàng, hệ thống tự động trừ tồn kho, cập nhật `StockStatus` và sinh mã đơn hàng chuẩn hệ sinh thái dạng `AG-2026-XXXX`.
+
+### 4. Quản Lý & Theo Dõi Đơn Hàng Dành Cho Khách Hàng
+* **Trang Quản lý Đơn mua của Tôi (`/shop/my-orders`)**:
+  - Khách hàng đã đăng nhập có thể tra cứu toàn bộ danh sách đơn hàng đã đặt trong tài khoản của mình.
+  - Hiển thị thanh tiến trình 5 bước trực quan: *Chờ Xác Nhận $\rightarrow$ Đã Xác Nhận $\rightarrow$ Đang Giao $\rightarrow$ Đã Giao $\rightarrow$ Đã Hủy*.
+  - **Tính năng Hủy đơn hàng an toàn (Customer Order Cancellation)**:
+    - Cho phép khách hàng tự hủy các đơn hàng đang ở trạng thái `Pending`.
+    - Backend kích hoạt hàm `CancelOrderByCustomerAsync` tự động cộng hoàn trả lại số lượng tồn kho cho cả sản phẩm tổng và biến thể variant trong CSDL, bảo toàn số liệu tồn kho.
+* **Cổng Tra cứu Vận đơn Nhanh cho Khách vãng lai (`/shop/track-order`)**:
+  - Khách mua không cần đăng nhập vẫn có thể tra cứu lộ trình vận chuyển bằng cách nhập **Mã đơn hàng** (`AG-2026-XXXX`) và **Số điện thoại nhận hàng**.
+  - Hiển thị hãng vận chuyển (FedEx, GHN, Viettel Post...), mã tracking và dòng thời gian chi tiết.
+* **Danh sách Sản phẩm Yêu thích (`/shop/wishlist`)**:
+  - Lưu trữ danh mục sản phẩm yêu thích của khách hàng vào bộ nhớ trình duyệt.
+  - Cho phép xem nhanh, xóa khỏi danh sách hoặc chuyển thẳng sang giỏ hàng mua ngay.
 
 ### 5. Hồ sơ Gian hàng Thương hiệu (`/shop-profile`)
 * Trải nghiệm gian hàng Boutique chính hãng: Gucci, Dior, Adidas, Burberry...
@@ -170,12 +189,12 @@ Dưới đây là bảng đánh giá hiện trạng hệ thống và đề xuấ
 
 | Hạng mục | Hiện trạng đã hoàn thiện | Hạn chế còn tồn tại |
 | :--- | :--- | :--- |
-| **Kiến trúc & Cơ sở dữ liệu** | Phân tầng Clean Architecture rõ ràng, chuẩn hóa quan hệ bảng, có Seeder tự động | Chưa triển khai bộ nhớ đệm (Redis Cache), chưa có ElasticSearch cho tìm kiếm nâng cao |
-| **Bảo mật & Quyền hạn** | JWT Authentication, BCrypt băm mật khẩu, kiểm tra quyền sở hữu Seller | Chưa có xác thực 2 lớp (2FA qua SMS/Email OTP thực tế), chưa có Refresh Token rotation |
-| **Phân hệ Người mua** | Giao diện đẹp, tìm kiếm & lọc mượt mà, phân trang động, giỏ hàng & thanh toán hoàn chỉnh | Khách hàng chưa có trang tra cứu lịch sử các đơn hàng đã đặt của riêng mình |
-| **Phân hệ Người bán** | Đầy đủ KPI kho, KPI đơn, nhập kho nhanh, cập nhật trạng thái đơn, thống kê tài chính | Chưa có chức năng đăng thêm sản phẩm mới (Create Product Form) và tải ảnh lên Cloud |
-| **Thanh toán & Vận chuyển** | Hỗ trợ COD và Chuyển khoản, kiểm tra chống bán khống chặt chẽ | Phương thức Chuyển khoản hiện là hình thức thủ công, chưa kết nối cổng thanh toán tự động |
-| **Trí tuệ nhân tạo (AI)** | Đã tích hợp AI Fashion Stylist gợi ý phối đồ thời trang | Gợi ý AI hiện hoạt động theo kịch bản mẫu (Rule-based), chưa gọi trực tiếp LLM OpenAI/Gemini API |
+| **Kiến trúc & Cơ sở dữ liệu** | Phân tầng Clean Architecture rõ ràng, chuẩn hóa quan hệ bảng, có Seeder tự động, đã có cấu hình Docker | Chưa triển khai bộ nhớ đệm phân tán Redis, chưa có ElasticSearch cho tìm kiếm nâng cao hàng triệu bản ghi |
+| **Bảo mật & Quyền hạn** | JWT Authentication, BCrypt băm mật khẩu, kiểm tra quyền sở hữu Seller, phân quyền 3 vai trò chặt chẽ | Chưa có xác thực 2 lớp (2FA qua SMS/Email OTP thực tế), chưa có Refresh Token rotation |
+| **Phân hệ Người mua** | Trung tâm mua sắm `/shop`, chi tiết sản phẩm, giỏ hàng toàn cục, lịch sử đơn mua `/shop/my-orders`, tra cứu vận đơn `/shop/track-order`, wishlist | Chưa có tính năng viết đánh giá và chấm sao sản phẩm kèm hình ảnh thực tế sau khi mua |
+| **Phân hệ Người bán** | Đầy đủ KPI kho, KPI đơn, nhập kho nhanh, cập nhật trạng thái đơn, thống kê ma trận doanh thu, AI viết mô tả sản phẩm | Chưa tích hợp dịch vụ tải ảnh trực tiếp lên Cloud (S3/Cloudinary) |
+| **Thanh toán & Vận chuyển** | Hỗ trợ COD và Chuyển khoản, kiểm tra chống bán khống chặt chẽ, tự động hoàn kho khi hủy đơn | Phương thức Chuyển khoản hiện là hình thức đối soát thủ công, chưa kết nối cổng thanh toán tự động |
+| **Trí tuệ nhân tạo (AI)** | Đã tích hợp Google Gemini AI Stylist tư vấn phối đồ, gợi ý set trang phục chéo danh mục, AI tạo mô tả sản phẩm SEO | Chưa tích hợp mô hình AI xử lý hình ảnh thử đồ ảo (Virtual Try-on) trực tiếp trên giao diện |
 
 ---
 
@@ -189,51 +208,42 @@ Dưới đây là bảng đánh giá hiện trạng hệ thống và đề xuấ
 │ (Ưu tiên cao nhất)│  (Nâng cao trải   │     (Công nghệ đột phá &       │
 │                   │      nghiệm)      │        Tự động hóa)            │
 ├───────────────────┼───────────────────┼────────────────────────────────┤
-│ • Lịch sử đơn mua │ • Tích hợp cổng   │ • Trợ lý AI Stylist đa năng    │
-│ • Quản lý sản phẩm│   VNPay / MoMo    │   (Kết nối Gemini 1.5 / GPT-4o)│
-│ • Upload ảnh S3   │ • Đánh giá & Sao  │ • Thử đồ ảo (Virtual Try-on)   │
-│ • Cổng tra cứu đơn│ • Chat Realtime   │ • Webhook đơn vị vận chuyển    │
-│   cho khách       │ • Flash Sale      │ • Thông báo Email / SMS        │
+│ • Cổng thanh toán │ • Đánh giá 5 sao  │ • Thử đồ ảo (Virtual Try-on)   │
+│   VNPay / MoMo    │   kèm ảnh thật    │   với hình ảnh người dùng      │
+│ • Tải ảnh S3/Cloud│ • Chat Realtime   │ • Webhook đơn vị vận chuyển    │
+│ • Refresh Token   │   (SignalR Chat)  │   (Giao Hàng Nhanh / GHTK)     │
+│   gia hạn phiên   │ • Voucher Flash   │ • Thông báo Email / SMS        │
+│   đăng nhập       │   Sale theo giờ   │   (SendGrid / Zalo ZNS)        │
 └───────────────────┴───────────────────┴────────────────────────────────┘
 ```
 
-#### 🔥 Giai đoạn 1: Hoàn thiện Nghiệp vụ Cốt lõi (Ưu tiên cao nhất)
-1. **Trang Quản lý Đơn hàng dành riêng cho Khách hàng (`/my-orders`)**:
-   - Khách hàng sau khi đăng nhập có thể xem danh sách tất cả các đơn hàng mình đã đặt, xem chi tiết từng món và theo dõi lộ trình vận chuyển của gói hàng.
-   - Hỗ trợ tính năng hủy đơn hàng khi đơn còn ở trạng thái `PENDING`.
-2. **Cổng Tra cứu Đơn hàng Nhanh cho Khách vãng lai (`/track-order`)**:
-   - Cho phép khách mua không cần đăng nhập vẫn có thể tra cứu trạng thái đơn bằng cách nhập **Mã đơn hàng** (`AG-2026-XXXX`) và **Số điện thoại**.
-3. **Màn hình Đăng bán Sản phẩm mới cho Seller (`/seller/products/new`)**:
-   - Form nhập liệu sản phẩm: Tên sản phẩm, Danh mục, Bộ sưu tập, Giá bán lẻ, Giá vốn, Mô tả chi tiết, Danh sách biến thể (Size, Màu sắc, Số lượng tồn kho ban đầu).
-   - Tích hợp dịch vụ tải ảnh sản phẩm lên máy chủ hoặc dịch vụ đám mây (Cloudinary / AWS S3).
-4. **Cơ chế Refresh Token & Tự động gia hạn phiên đăng nhập**:
-   - Bổ sung bảng `RefreshToken` trong cơ sở dữ liệu để tự động cấp mới Access Token khi hết hạn mà không bắt người dùng phải đăng nhập lại liên tục.
+#### 🔥 Giai đoạn 1: Hoàn thiện Nghiệp vụ Cốt lõi & Thanh Toán Tự Động (Ưu tiên cao nhất)
+1. **Tích hợp Cổng Thanh toán Trực tuyến Tự động (VNPay / MoMo / VietQR)**:
+   - Tích hợp cổng VNPay Sandbox và MoMo Payment Gateway.
+   - Khi thanh toán, hệ thống sinh mã VietQR động chứa chính xác số tiền và mã đơn hàng `AG-2026-XXXX`.
+   - Webhook IPN tự động kích hoạt cập nhật trạng thái đơn hàng sang `PAID` ngay khi ngân hàng báo có tiền.
+2. **Dịch vụ Tải ảnh Lên Đám Mây (Cloud Storage S3 / Cloudinary)**:
+   - Cho phép người bán tải ảnh sản phẩm từ máy tính lên Cloudinary hoặc AWS S3, tự động tối ưu hóa định dạng WebP và tạo ảnh thumbnail đa kích cỡ.
+3. **Cơ chế Refresh Token & Tự động Gia hạn Phiên Đăng Nhập**:
+   - Bổ sung bảng `RefreshToken` trong cơ sở dữ liệu để tự động cấp mới Access Token khi hết hạn (sau 24h) mà không làm gián đoạn trải nghiệm người dùng.
 
-#### ⚡ Giai đoạn 2: Tích hợp Dịch vụ và Trải nghiệm Tương tác
-5. **Tích hợp Cổng Thanh toán Trực tuyến Tự động**:
-   - Tích hợp các cổng thanh toán phổ biến tại Việt Nam: **VNPay Sandbox / MoMo API / VietQR Chuyển khoản tự động đối soát**.
-   - Khách quét mã QR tự động điền đúng số tiền và nội dung đơn hàng, hệ thống nhận IPN Webhook và tự động chuyển trạng thái đơn sang `PAID` mà không cần xác nhận thủ công.
-6. **Hệ thống Đánh giá & Nhận xét Sản phẩm (Customer Reviews & Ratings)**:
-   - Cho phép khách hàng đã mua sản phẩm đánh giá số sao (1 đến 5 sao) và viết cảm nhận kèm hình ảnh thực tế.
-   - Thống kê tỷ lệ đánh giá và hiển thị huy hiệu *"Đã mua hàng chính hãng"*.
-7. **Hệ thống Nhắn tin Trực tiếp Realtime (Chat giữa Khách và Chủ shop)**:
-   - Ứng dụng **SignalR** hoặc **Socket.IO** để xây dựng khung chat trực tiếp góc màn hình.
-   - Khách có thể bấm *"Chat ngay với Shop"* trên trang sản phẩm để hỏi tư vấn size, mặc cả hoặc yêu cầu thêm hình ảnh thực tế.
-8. **Hệ thống Khuyến mãi & Flash Sale đa tầng**:
-   - Cho phép Admin và Seller tạo các mã Voucher (giảm theo % hoặc số tiền cố định, điều kiện đơn tối thiểu).
-   - Đồng hồ đếm ngược Flash Sale theo các khung giờ vàng (12h, 20h) kích thích quyết định mua sắm.
+#### ⚡ Giai đoạn 2: Tích hợp Tương tác Trực tiếp & Khuyến Mãi
+4. **Hệ thống Đánh giá & Nhận xét Sản phẩm (Customer Reviews & Ratings)**:
+   - Cho phép khách hàng đã mua và nhận hàng thành công viết đánh giá, chấm sao (1 đến 5 sao) kèm hình ảnh thực tế.
+   - Hiển thị huy hiệu *"Đã mua hàng chính hãng"* tăng độ uy tín cho gian hàng.
+5. **Hệ thống Nhắn tin Trực tiếp Thời Gian Thực (SignalR Realtime Chat)**:
+   - Ứng dụng công nghệ **ASP.NET Core SignalR** kết hợp WebSocket để xây dựng khung chat giữa Khách hàng và Chủ shop.
+   - Khách có thể bấm *"Chat ngay với Shop"* trên trang sản phẩm để hỏi tư vấn kích cỡ, chất liệu hoặc thỏa thuận giá.
+6. **Hệ thống Khuyến mãi & Flash Sale Đa Tầng**:
+   - Quản trị viên và người bán có thể thiết lập mã giảm giá theo khung giờ vàng (Flash Sale 12h, 20h) với đồng hồ đếm ngược kích thích mua sắm.
 
-#### 🚀 Giai đoạn 3: Nâng cấp AI Thông minh & Mở rộng Quy mô
-9. **Trợ lý Thời trang AI Thông minh Thế hệ mới (Generative AI Stylist)**:
-   - Tích hợp trực tiếp API **Google Gemini 1.5 Flash / Pro** hoặc **OpenAI GPT-4o**.
-   - Ứng dụng mô hình RAG (Retrieval-Augmented Generation) nạp toàn bộ danh mục sản phẩm của shop vào Vector Database.
-   - Trợ lý AI có thể trò chuyện tự nhiên với khách: *"Tôi cao 1m75 nặng 68kg chuẩn bị đi dự tiệc cưới ngoài trời, hãy tư vấn cho tôi 1 set đồ lịch lãm kèm phụ kiện có sẵn trên sàn"*.
-10. **Phòng Thử đồ Ảo (AI Virtual Try-On)**:
-    - Ứng dụng mô hình AI xử lý hình ảnh (như IDM-VTON) cho phép người mua tải lên ảnh chụp toàn thân để thử ướm trực quan chiếc áo khoác hoặc chiếc đầm lên vóc dáng của mình trước khi đặt mua.
-11. **Tích hợp Webhook với Đơn vị Vận chuyển Thực tế**:
-    - Kết nối trực tiếp API của **Giao Hàng Nhanh (GHN Express)** hoặc **Giao Hàng Tiết Kiệm (GHTK)**.
-    - Khi chủ shop bấm *"Giao hàng"*, hệ thống tự động đẩy đơn sang GHN, sinh mã vận đơn thật và in phiếu gửi hàng có mã vạch chuẩn.
-12. **Hệ thống Thông báo Đa kênh (Omnichannel Notifications)**:
-    - Tự động gửi Email xác nhận đơn hàng qua **SendGrid** kèm hóa đơn điện tử PDF.
-    - Gửi tin nhắn SMS / Zalo ZNS thông báo khi đơn hàng bắt đầu được giao đến địa chỉ khách hàng.
+#### 🚀 Giai đoạn 3: Đột Phá AI & Tự Động Hóa Vận Hành
+7. **Phòng Thử Đồ Ảo (AI Virtual Try-On)**:
+   - Ứng dụng mô hình AI xử lý hình ảnh (như IDM-VTON / Stable Diffusion) cho phép người mua tải ảnh chụp toàn thân để ướm thử trang phục hoặc giày lên cơ thể trước khi mua.
+8. **Tích hợp Webhook với Đơn vị Vận chuyển Thực tế (GHN Express / GHTK)**:
+   - Kết nối trực tiếp API của Giao Hàng Nhanh hoặc Giao Hàng Tiết Kiệm.
+   - Tự động đẩy đơn hàng sang bưu tá khi chủ shop bấm duyệt đơn, tự động in mã vận đơn barcode và cập nhật trạng thái đơn hàng theo lộ trình GPS thực tế của shipper.
+9. **Hệ thống Thông báo Đa Kênh Tự Động (SendGrid Email & Zalo ZNS)**:
+   - Tự động gửi Email xác nhận kèm hóa đơn điện tử PDF sau khi đặt hàng thành công.
+   - Gửi tin nhắn SMS / Zalo ZNS thông báo khi đơn hàng bắt đầu được giao đến tay khách hàng.
 
