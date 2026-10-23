@@ -2,7 +2,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 /**
- * Merge Tailwind CSS classes with clsx + tailwind-merge.
+ * Gộp các class Tailwind CSS bằng clsx + tailwind-merge.
  * Sử dụng: cn('px-4 py-2', isActive && 'bg-blue-500', className)
  */
 export function cn(...inputs: ClassValue[]) {
@@ -44,7 +44,7 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
- * Delay helper cho async operations
+ * Hàm tạm dừng cho các thao tác bất đồng bộ
  */
 export function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

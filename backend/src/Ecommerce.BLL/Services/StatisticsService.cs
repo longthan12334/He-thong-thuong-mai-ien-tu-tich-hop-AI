@@ -41,7 +41,7 @@ public class StatisticsService : IStatisticsService
         var totalRevenue = orderList.Sum(o => o.TotalAmount);
         if (totalRevenue == 0) totalRevenue = 145000000m; // Fallback mock if freshly seeded without orders
 
-        // Monthly Matrix Chart Data (JAN - DEC) matching sketch exactly
+        // Dữ liệu biểu đồ ma trận theo tháng (Tháng 1 - Tháng 12) khớp với bản thiết kế
         var monthlyMatrix = new List<MonthlyDataDto>
         {
             new() { Month = "JAN", ExistingUsers = 4, NewUsers = 3, ValTotal = "14k" },

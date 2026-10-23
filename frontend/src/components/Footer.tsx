@@ -16,7 +16,7 @@ export default function Footer() {
     <footer className="bg-slate-900 text-slate-300 py-12 border-t border-slate-800 mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8">
         
-        {/* Col 1: Brand Info */}
+        {/* Cột 1: Thông tin thương hiệu */}
         <div className="space-y-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-slate-950 font-serif font-bold text-lg">
@@ -31,30 +31,30 @@ export default function Footer() {
           </p>
         </div>
 
-        {/* Col 2: About */}
+        {/* Cột 2: Về chúng tôi */}
         <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">About</h4>
+          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">Về Chúng Tôi</h4>
           <ul className="space-y-2 text-sm text-slate-400">
-            <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Meet The Team</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Tin tức</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Đội ngũ</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Liên hệ</a></li>
           </ul>
         </div>
 
-        {/* Col 3: Support */}
+        {/* Cột 3: Hỗ trợ */}
         <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">Support</h4>
+          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">Hỗ Trợ</h4>
           <ul className="space-y-2 text-sm text-slate-400">
-            <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Shipping</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">Return</a></li>
-            <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Liên hệ</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Vận chuyển</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Đổi trả</a></li>
+            <li><a href="#" className="hover:text-white transition-colors">Câu hỏi thường gặp</a></li>
           </ul>
         </div>
 
-        {/* Col 4: Social Media */}
+        {/* Cột 4: Mạng xã hội */}
         <div>
-          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">Social Media</h4>
+          <h4 className="text-white text-xs font-bold uppercase tracking-wider mb-3">Mạng Xã Hội</h4>
           <div className="flex items-center gap-2.5">
             {['X', 'F', 'IN', 'IG'].map((item) => (
               <a
@@ -71,10 +71,10 @@ export default function Footer() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pt-8 border-t border-slate-800 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-4">
-        <span>Copyright © 2026 Aethelgard Mall. All Rights Reserved.</span>
+        <span>Bản quyền © 2026 Aethelgard Mall. Bảo lưu mọi quyền.</span>
         <div className="flex items-center gap-4">
-          <a href="#" className="hover:text-slate-400 transition-colors">Terms of Service</a>
-          <a href="#" className="hover:text-slate-400 transition-colors">Privacy Policy</a>
+          <a href="#" className="hover:text-slate-400 transition-colors">Điều khoản dịch vụ</a>
+          <a href="#" className="hover:text-slate-400 transition-colors">Chính sách bảo mật</a>
         </div>
       </div>
     </footer>
