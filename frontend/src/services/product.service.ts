@@ -64,4 +64,18 @@ export const productService = {
     const res = await apiClient.delete(`/products/${id}`);
     return res.status === 204;
   },
+
+  async getProductReviews(productId: number): Promise<any[]> {
+    try {
+      const res = await apiClient.get(`/products/${productId}/reviews`);
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async addProductReview(productId: number, data: { customerName: string; rating: number; comment: string }): Promise<any> {
+    const res = await apiClient.post(`/products/${productId}/reviews`, data);
+    return res.data;
+  },
 };

@@ -17,6 +17,12 @@ public class InventoryService : IInventoryService
 
     public async Task<InventorySummaryDto> GetInventorySummaryAsync(int? sellerId = null, string? role = null)
     {
+        // Chặn quyền truy cập nếu là tài khoản Khách hàng
+        if (role == "Customer")
+        {
+            throw new UnauthorizedException("Khách mua hàng không có quyền truy cập dữ liệu tồn kho quản trị.");
+        }
+
         var allProducts = await _unitOfWork.Products.GetAllAsync();
         var activeProducts = allProducts.Where(p => p.IsActive);
 
@@ -56,11 +62,24 @@ public class InventoryService : IInventoryService
         };
     }
 
-    public async Task<bool> RestockProductAsync(RestockRequestDto request)
+    public async Task<bool> RestockProductAsync(RestockRequestDto request, int? sellerId = null, string? role = null)
     {
         var product = await _unitOfWork.Products.GetByIdAsync(request.ProductId);
         if (product == null)
             throw new NotFoundException("Sản phẩm", request.ProductId);
+
+        // Khách hàng không có quyền nhập hàng
+        if (role == "Customer")
+        {
+            throw new UnauthorizedException("Khách mua hàng không có quyền nhập hàng.");
+        }
+
+        // Seller chỉ được nhập hàng cho sản phẩm thuộc quyền sở hữu của chính mình
+        if (role == "Seller")
+        {
+            if (!sellerId.HasValue || product.SellerId != sellerId.Value)
+                throw new UnauthorizedException("Bạn không có quyền nhập hàng cho sản phẩm của người bán khác.");
+        }
 
         product.StockQuantity += request.AdditionalQuantity;
         if (product.StockQuantity > 10)

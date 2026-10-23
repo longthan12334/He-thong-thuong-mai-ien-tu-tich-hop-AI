@@ -1,4 +1,4 @@
-﻿using Ecommerce.Common.Entities;
+using Ecommerce.Common.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.DAL.Context;
@@ -17,6 +17,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<OrderItem> OrderItems => Set<OrderItem>();
     public DbSet<Store> Stores => Set<Store>();
     public DbSet<TransactionRecord> Transactions => Set<TransactionRecord>();
+    public DbSet<Review> Reviews => Set<Review>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -198,6 +198,50 @@ public class ProductService : IProductService
         return _mapper.Map<List<CategoryDto>>(categories);
     }
 
+    public async Task<List<ReviewDto>> GetProductReviewsAsync(int productId)
+    {
+        var reviews = await _unitOfWork.Reviews.Query()
+            .Where(r => r.ProductId == productId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        return _mapper.Map<List<ReviewDto>>(reviews);
+    }
+
+    public async Task<ReviewDto> AddProductReviewAsync(int productId, CreateReviewDto request, int? userId = null)
+    {
+        var product = await _unitOfWork.Products.GetByIdAsync(productId);
+        if (product == null)
+            throw new NotFoundException("Sản phẩm", productId);
+
+        var review = new Review
+        {
+            ProductId = productId,
+            UserId = userId,
+            CustomerName = string.IsNullOrWhiteSpace(request.CustomerName) ? "Khách Hàng Aethelgard" : request.CustomerName.Trim(),
+            Rating = Math.Clamp(request.Rating, 1, 5),
+            Comment = request.Comment?.Trim() ?? string.Empty,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await _unitOfWork.Reviews.AddAsync(review);
+        await _unitOfWork.SaveChangesAsync();
+
+        var allReviews = await _unitOfWork.Reviews.Query()
+            .Where(r => r.ProductId == productId)
+            .ToListAsync();
+
+        if (allReviews.Any())
+        {
+            product.Rating = Math.Round(allReviews.Average(r => r.Rating), 1);
+            product.ReviewCount = allReviews.Count;
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        return _mapper.Map<ReviewDto>(review);
+    }
+
     private static string GenerateSlug(string name)
     {
         return name.ToLower()
