@@ -60,6 +60,20 @@ public class OrdersController : ControllerBase
         return CreatedAtAction(nameof(GetOrderById), new { id = result.Id }, result);
     }
 
+    /// <summary>[Customer] Khách hàng hủy đơn của chính mình khi đơn còn Chờ xác nhận.</summary>
+    [Authorize]
+    [HttpPatch("{id:int}/cancel")]
+    public async Task<ActionResult<OrderDto>> CancelMyOrder(int id)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+            return BadRequest(new { message = "Vui lòng đăng nhập để hủy đơn hàng." });
+
+        var result = await _orderService.CancelOrderByCustomerAsync(id, userId);
+        return Ok(result);
+    }
+
     [Authorize(Roles = "Seller,Admin")]
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult<OrderDto>> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto request)

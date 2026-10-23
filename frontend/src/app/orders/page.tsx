@@ -261,7 +261,7 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* 2. KPI Cards */}
+      {/* 2. Thẻ chỉ số KPI */}
       <OrderKpiCards
         totalCount={counts.all}
         pendingCount={counts.pending}
@@ -272,7 +272,7 @@ export default function OrdersPage() {
         onFilterChange={setActiveTab}
       />
 
-      {/* 3. Filter Bar */}
+      {/* 3. Thanh bộ lọc */}
       <OrderFilterBar
         currentFilter={activeTab}
         onFilterChange={setActiveTab}
@@ -281,7 +281,7 @@ export default function OrdersPage() {
         counts={counts}
       />
 
-      {/* 4. Orders Table */}
+      {/* 4. Bảng đơn hàng */}
       <OrderTable
         orders={filteredOrders}
         onSelectOrder={handleOpenDrawer}
@@ -291,7 +291,7 @@ export default function OrdersPage() {
         onCancelOrder={handleCancelOrder}
       />
 
-      {/* 5. Live Tracking Drawer */}
+      {/* 5. Ngăn theo dõi vận đơn */}
       <OrderTrackingDrawer
         isOpen={isDrawerOpen}
         order={selectedOrder}
@@ -303,7 +303,7 @@ export default function OrdersPage() {
         onCancelOrder={handleCancelOrder}
       />
 
-      {/* 6. Confirm Dialog */}
+      {/* 6. Hộp thoại xác nhận */}
       {confirmDialog}
     </main>
   );

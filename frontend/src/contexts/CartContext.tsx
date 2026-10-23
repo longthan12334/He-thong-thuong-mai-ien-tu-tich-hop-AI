@@ -14,8 +14,8 @@ interface CartContextType {
   totalQty: number;
   totalAmount: number;
   addToCart: (product: Product, quantity?: number, specs?: string) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  removeFromCart: (productId: number, specs?: string) => void;
+  updateQuantity: (productId: number, quantity: number, specs?: string) => void;
   clearCart: () => void;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
@@ -24,6 +24,17 @@ interface CartContextType {
 }
 
 const CART_STORAGE_KEY = 'aethelgard_cart';
+
+/**
+ * Mỗi dòng giỏ hàng được nhận diện bằng (productId + phân loại).
+ * Cùng 1 sản phẩm nhưng khác size/màu sẽ là 2 dòng riêng biệt.
+ * Khi không truyền specs, các hàm remove/update tác động lên mọi dòng của sản phẩm đó
+ * (giữ tương thích với code cũ chỉ truyền productId).
+ */
+const normalizeSpecs = (specs?: string) => (specs || 'Tiêu chuẩn').trim();
+const isSameLine = (item: CartItem, productId: number, specs?: string) =>
+  item.product.id === productId &&
+  (specs === undefined || normalizeSpecs(item.specs) === normalizeSpecs(specs));
 
 const CartContext = createContext<CartContextType | null>(null);
 
@@ -59,33 +70,34 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [cart, isLoaded]);
 
   const addToCart = useCallback((product: Product, quantity = 1, specs?: string) => {
+    const lineSpecs = normalizeSpecs(specs);
     setCart((prev) => {
-      const index = prev.findIndex((item) => item.product.id === product.id);
+      const index = prev.findIndex((item) => isSameLine(item, product.id, lineSpecs));
       if (index > -1) {
         const updated = [...prev];
         updated[index] = {
           ...updated[index],
+          product,
           quantity: updated[index].quantity + quantity,
-          specs: specs || updated[index].specs,
         };
         return updated;
       }
-      return [...prev, { product, quantity, specs: specs || 'Tiêu chuẩn' }];
+      return [...prev, { product, quantity, specs: lineSpecs }];
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: number) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  const removeFromCart = useCallback((productId: number, specs?: string) => {
+    setCart((prev) => prev.filter((item) => !isSameLine(item, productId, specs)));
   }, []);
 
-  const updateQuantity = useCallback((productId: number, quantity: number) => {
+  const updateQuantity = useCallback((productId: number, quantity: number, specs?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(productId, specs);
       return;
     }
     setCart((prev) =>
       prev.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
+        isSameLine(item, productId, specs) ? { ...item, quantity } : item
       )
     );
   }, [removeFromCart]);

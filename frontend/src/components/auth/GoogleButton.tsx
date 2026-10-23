@@ -58,7 +58,7 @@ function loadGisScript(): Promise<void> {
       script.dataset.loaded = '1';
       resolve();
     };
-    script.onerror = () => reject(new Error('Failed to load Google Identity Services script'));
+    script.onerror = () => reject(new Error('Không tải được thư viện đăng nhập Google'));
     document.head.appendChild(script);
   });
 }
@@ -95,7 +95,7 @@ export function GoogleButton({
         });
       })
       .catch((err) => {
-        console.error('[GoogleButton] GIS script load error:', err);
+        console.error('[GoogleButton] Lỗi tải thư viện Google:', err);
       });
   }, [activeClientId, onCredential]);
 
