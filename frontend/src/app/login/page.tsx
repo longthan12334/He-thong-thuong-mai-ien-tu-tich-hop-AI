@@ -16,6 +16,18 @@ const DUAL_IMAGE_PAIRS = [
   { left: '/img/login/17.jpg', right: '/img/login/1.jpg' }
 ];
 
+/**
+ * Điều hướng sau đăng nhập/đăng ký:
+ * - Khách hàng (Customer) về khu mua sắm /shop thay vì trang quản trị gian hàng "/"
+ * - Seller/Admin giữ nguyên hành vi cũ
+ */
+function resolvePostLoginPath(role: string | undefined, savedPath: string | null): string {
+  const isCustomer = !role || role === 'Customer';
+  if (!isCustomer) return savedPath || '/';
+  if (savedPath && savedPath !== '/' && savedPath !== '/login') return savedPath;
+  return '/shop';
+}
+
 export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -23,11 +35,11 @@ export default function LoginPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Forgot password flow state
+  // Trạng thái luồng quên mật khẩu
   const [forgotFlowOpen, setForgotFlowOpen] = useState(false);
   const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1);
 
-  // Form values
+  // Giá trị form
   const [selectedRole, setSelectedRole] = useState<'Admin' | 'Seller' | 'Customer' | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -39,18 +51,18 @@ export default function LoginPage() {
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
 
-  // Password strength states
+  // Trạng thái độ mạnh mật khẩu
   const [regStrength, setRegStrength] = useState({ score: 0, label: '—', color: '#cbd5e1', width: '0%', hint: 'Mật khẩu đạt tiêu chuẩn an toàn khi đáp ứng đủ tiêu chuẩn' });
   const [forgotStrength, setForgotStrength] = useState({ score: 0, label: '—', color: '#cbd5e1', width: '0%' });
 
-  // OTP resend timer
+  // Bộ đếm gửi lại OTP
   const [resendSeconds, setResendSeconds] = useState(60);
   const [resendActive, setResendActive] = useState(false);
 
   // Toast
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
-  // Image slider
+  // Trình chiếu ảnh
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -60,7 +72,7 @@ export default function LoginPage() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // 15-second dual slider auto-play
+  // Tự chuyển ảnh 2 cột mỗi 15 giây
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % DUAL_IMAGE_PAIRS.length);
@@ -68,7 +80,7 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // OTP resend countdown
+  // Đếm ngược gửi lại OTP
   useEffect(() => {
     if (!resendActive) return;
     if (resendSeconds <= 0) {
@@ -122,7 +134,7 @@ export default function LoginPage() {
         localStorage.setItem('aethelgard_token', res.token);
         localStorage.setItem('aethelgard_user', JSON.stringify(res));
         showToast(`Đăng nhập Google thành công! Chào mừng ${res.fullName}.`);
-        const dest = sessionStorage.getItem('redirect_after_login') || '/';
+        const dest = resolvePostLoginPath(res.role, sessionStorage.getItem('redirect_after_login'));
         sessionStorage.removeItem('redirect_after_login');
         setTimeout(() => {
           window.location.href = dest;
@@ -144,7 +156,7 @@ export default function LoginPage() {
       localStorage.setItem('aethelgard_token', data.token);
       localStorage.setItem('aethelgard_user', JSON.stringify(data));
       showToast(`Đăng nhập thành công! Chào mừng ${data.fullName || loginEmail} trở lại.`);
-      const dest = sessionStorage.getItem('redirect_after_login') || '/';
+      const dest = resolvePostLoginPath(data.role, sessionStorage.getItem('redirect_after_login'));
       sessionStorage.removeItem('redirect_after_login');
       setTimeout(() => {
         window.location.href = dest;
@@ -177,13 +189,14 @@ export default function LoginPage() {
         fullName: regName.trim(),
         email: regEmail.trim(),
         password: regPassword,
+        role: 'Customer',
       });
 
       localStorage.setItem('aethelgard_token', data.token);
       localStorage.setItem('aethelgard_user', JSON.stringify(data));
       showToast(`Đăng ký thành công! Chào mừng ${data.fullName || regName} đến với Aethelgard.`);
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = resolvePostLoginPath(data.role, '/');
       }, 600);
     } catch (err: any) {
       const errorMsg = err.response?.data?.message || err.message || 'Đăng ký tài khoản thất bại.';
@@ -200,7 +213,7 @@ export default function LoginPage() {
     setForgotStep(2);
     setResendSeconds(60);
     setResendActive(true);
-    showToast(`[MAIL SERVICE] Đã gửi OTP xác thực tới ${forgotEmail} (Mã mặc định: 000000)`);
+    showToast(`[DỊCH VỤ EMAIL] Đã gửi OTP xác thực tới ${forgotEmail} (Mã mặc định: 000000)`);
     setTimeout(() => {
       otpInputsRef.current[0]?.focus();
     }, 100);
@@ -276,17 +289,17 @@ export default function LoginPage() {
   return (
     <div className="login-split-page antialiased font-jakarta">
       
-      {/* Toast Notification */}
+      {/* Thông báo nổi */}
       {toastMsg && (
         <div className="fixed bottom-7 right-7 z-50 bg-slate-900/90 backdrop-blur border border-white/20 text-white px-6 py-3 rounded-full shadow-2xl text-xs font-semibold tracking-wide animate-fade-in">
           {toastMsg}
         </div>
       )}
 
-      {/* ────────────────── LEFT COLUMN: AUTH & RECOVERY CONTAINERS ────────────────── */}
+      {/* ────────────────── CỘT TRÁI: ĐĂNG NHẬP & KHÔI PHỤC MẬT KHẨU ────────────────── */}
       <div className="login-left-col">
         
-        {/* Header Brand Logo & Top Bar */}
+        {/* Logo thương hiệu & thanh trên cùng */}
         <div className="mb-4 flex items-center justify-between">
           <a href="/" className="inline-flex items-center gap-3.5 group">
             <div className="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center text-white font-serif font-bold text-xl shadow-md border border-slate-800 tracking-tighter group-hover:scale-105 transition-all">
@@ -294,29 +307,29 @@ export default function LoginPage() {
             </div>
             <div className="flex flex-col">
               <span className="text-xl font-extrabold tracking-[0.18em] text-slate-900 uppercase font-serif">Aethelgard</span>
-              <span className="text-[10px] tracking-[0.2em] text-slate-400 font-semibold uppercase -mt-0.5">Shopping Mall • AI Powered</span>
+              <span className="text-[10px] tracking-[0.2em] text-slate-400 font-semibold uppercase -mt-0.5">Trung Tâm Mua Sắm • Tích Hợp AI</span>
             </div>
           </a>
         </div>
 
-        {/* ════════ 1. MAIN TASK 1 AUTH CARD (LOG IN & SIGN UP) ════════ */}
+        {/* ════════ 1. THẺ XÁC THỰC CHÍNH (ĐĂNG NHẬP & ĐĂNG KÝ) ════════ */}
         {!forgotFlowOpen ? (
           <div className="my-auto py-2 transition-all duration-300">
             <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
-              {activeTab === 'login' ? 'Log in to your account' : 'Create your account'}
+              {activeTab === 'login' ? 'Đăng nhập tài khoản' : 'Tạo tài khoản mới'}
             </h1>
             <p className="text-slate-500 text-sm sm:text-base leading-relaxed mb-6">
               {activeTab === 'login'
-                ? 'Welcome back! Log in to access your personal space, exclusive deals, and AI smart shopping.'
-                : 'Your personal shopping space starts here. Create an account for full access.'}
+                ? 'Chào mừng bạn trở lại! Đăng nhập để vào không gian cá nhân, nhận ưu đãi độc quyền và mua sắm thông minh cùng AI.'
+                : 'Không gian mua sắm của riêng bạn bắt đầu từ đây. Tạo tài khoản để sử dụng đầy đủ tính năng.'}
             </p>
 
-            {/* Real Google GIS OAuth Button */}
+            {/* Nút đăng nhập Google (GIS OAuth) */}
             <div>
               <GoogleButton onCredential={handleGoogleCredential} label="Tiếp tục với Google" />
             </div>
 
-            {/* Quick Access Roles Row - Minimalist, Pure & Elegant */}
+            {/* Hàng chọn nhanh vai trò - tối giản & thanh lịch */}
             <div className="mt-3.5 mb-6">
               <div className="grid grid-cols-3 gap-2.5">
                 <button
@@ -332,7 +345,7 @@ export default function LoginPage() {
                   <Shield className={`w-3.5 h-3.5 transition-colors ${
                     selectedRole === 'Admin' ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'
                   }`} />
-                  <span className="text-[12px] font-semibold tracking-wide">Admin</span>
+                  <span className="text-[12px] font-semibold tracking-wide">Quản trị</span>
                 </button>
 
                 <button
@@ -348,7 +361,7 @@ export default function LoginPage() {
                   <Store className={`w-3.5 h-3.5 transition-colors ${
                     selectedRole === 'Seller' ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'
                   }`} />
-                  <span className="text-[12px] font-semibold tracking-wide">Seller</span>
+                  <span className="text-[12px] font-semibold tracking-wide">Người bán</span>
                 </button>
 
                 <button
@@ -364,7 +377,7 @@ export default function LoginPage() {
                   <User className={`w-3.5 h-3.5 transition-colors ${
                     selectedRole === 'Customer' ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'
                   }`} />
-                  <span className="text-[12px] font-semibold tracking-wide">Customer</span>
+                  <span className="text-[12px] font-semibold tracking-wide">Khách hàng</span>
                 </button>
               </div>
             </div>
@@ -376,7 +389,7 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-slate-200"></div>
             </div>
 
-            {/* Segmented Control Tab */}
+            {/* Tab chuyển đổi phân đoạn */}
             <div className="relative bg-slate-100 rounded-xl p-1 flex mb-6">
               <div className={`tab-slider ${activeTab === 'login' ? 'slide-right' : ''}`}></div>
               <button
@@ -384,22 +397,22 @@ export default function LoginPage() {
                 className={`tab-button ${activeTab === 'register' ? 'active' : ''}`}
                 onClick={() => setActiveTab('register')}
               >
-                Sign Up
+                Đăng Ký
               </button>
               <button
                 type="button"
                 className={`tab-button ${activeTab === 'login' ? 'active' : ''}`}
                 onClick={() => setActiveTab('login')}
               >
-                Log In
+                Đăng Nhập
               </button>
             </div>
 
-            {/* Form Log In */}
+            {/* Form Đăng nhập */}
             {activeTab === 'login' && (
               <form onSubmit={handleLoginSubmit} className="space-y-4 animate-fade-in">
                 <div>
-                  <label className="input-label">Email Address</label>
+                  <label className="input-label">Địa chỉ Email</label>
                   <input
                     type="email"
                     required
@@ -412,7 +425,7 @@ export default function LoginPage() {
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="input-label mb-0">Password</label>
+                    <label className="input-label mb-0">Mật khẩu</label>
                     <a
                       href="#"
                       onClick={(e) => {
@@ -422,7 +435,7 @@ export default function LoginPage() {
                       }}
                       className="text-xs font-semibold text-sketch-purple hover:underline transition-colors flex items-center gap-1"
                     >
-                      <span>Forgot your password ?</span>
+                      <span>Quên mật khẩu?</span>
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>
                       </svg>
@@ -435,7 +448,7 @@ export default function LoginPage() {
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       className="input-field !pl-4 pr-12"
-                      placeholder={showLoginPassword ? "Password" : "••••••••"}
+                      placeholder={showLoginPassword ? "Mật khẩu" : "••••••••"}
                     />
                     <button
                       type="button"
@@ -449,7 +462,7 @@ export default function LoginPage() {
                       }}
                       className="toggle-eye"
                       style={{ zIndex: 20 }}
-                      aria-label="Toggle password"
+                      aria-label="Hiện/ẩn mật khẩu"
                     >
                       {showLoginPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
                     </button>
@@ -460,16 +473,16 @@ export default function LoginPage() {
                   type="submit"
                   className="w-full py-3.5 px-4 bg-sketch-purple hover:opacity-90 text-white rounded-lg font-bold text-sm transition-all shadow-md mt-4"
                 >
-                  Log In
+                  Đăng Nhập
                 </button>
               </form>
             )}
 
-            {/* Form Sign Up */}
+            {/* Form Đăng ký */}
             {activeTab === 'register' && (
               <form onSubmit={handleRegisterSubmit} className="space-y-4 animate-fade-in">
                 <div>
-                  <label className="input-label">Full Name</label>
+                  <label className="input-label">Họ và tên</label>
                   <input
                     type="text"
                     required
@@ -481,7 +494,7 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">Email Address</label>
+                  <label className="input-label">Địa chỉ Email</label>
                   <input
                     type="email"
                     required
@@ -493,7 +506,7 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label className="input-label">Password</label>
+                  <label className="input-label">Mật khẩu</label>
                   <div className="input-wrapper relative">
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -501,7 +514,7 @@ export default function LoginPage() {
                       value={regPassword}
                       onChange={(e) => handleRegPasswordChange(e.target.value)}
                       className="input-field !pl-4 pr-12"
-                      placeholder="Create a secure password"
+                      placeholder="Tạo mật khẩu an toàn"
                     />
                     <button
                       type="button"
@@ -515,13 +528,13 @@ export default function LoginPage() {
                       }}
                       className="toggle-eye"
                       style={{ zIndex: 20 }}
-                      aria-label="Toggle password"
+                      aria-label="Hiện/ẩn mật khẩu"
                     >
                       {showRegPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
 
-                  {/* Password Strength Meter */}
+                  {/* Thước đo độ mạnh mật khẩu */}
                   {regPassword && (
                     <div className="mt-3 transition-all duration-300">
                       <div className="flex items-center justify-between mb-1">
@@ -545,27 +558,27 @@ export default function LoginPage() {
                   type="submit"
                   className="w-full py-3.5 px-4 bg-sketch-purple hover:opacity-90 text-white rounded-lg font-bold text-sm transition-all shadow-md mt-4"
                 >
-                  Continue
+                  Tiếp tục
                 </button>
               </form>
             )}
 
             <p className="text-xs text-slate-400 mt-5 leading-relaxed text-center">
-              By continuing, you agree to Aethelgard&apos;s{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); showToast('Terms of Service'); }} className="text-slate-700 underline font-medium">
-                Terms of Service
+              Khi tiếp tục, bạn đồng ý với{' '}
+              <a href="#" onClick={(e) => { e.preventDefault(); showToast('Điều khoản dịch vụ'); }} className="text-slate-700 underline font-medium">
+                Điều khoản dịch vụ
               </a>{' '}
-              and{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); showToast('Privacy Policy'); }} className="text-slate-700 underline font-medium">
-                Privacy Policy
+              và{' '}
+              <a href="#" onClick={(e) => { e.preventDefault(); showToast('Chính sách bảo mật'); }} className="text-slate-700 underline font-medium">
+                Chính sách bảo mật
               </a>.
             </p>
           </div>
         ) : (
-          /* ════════ 2. TASK 6 SKETCH WIREFRAME CONTAINER (EXACT 3 SCREENS) ════════ */
+          /* ════════ 2. KHUNG QUÊN MẬT KHẨU (3 MÀN HÌNH) ════════ */
           <div className="my-auto py-2 text-center max-w-sm mx-auto w-full animate-fade-in">
             
-            {/* ════ SCREEN 1 SKETCH: Forgot your password ? ════ */}
+            {/* ════ MÀN HÌNH 1: Quên mật khẩu ════ */}
             {forgotStep === 1 && (
               <div>
                 <div className="text-left mb-2">
@@ -573,14 +586,14 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setForgotFlowOpen(false)}
                     className="sketch-back-btn"
-                    title="Back to Login"
+                    title="Quay lại đăng nhập"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <span>Quay lại</span>
                   </button>
                 </div>
 
-                {/* SVG Illustration 1: Person thinking with ? marks */}
+                {/* Hình minh họa SVG 1: Người đang suy nghĩ với dấu ? */}
                 <div className="sketch-illustration-box">
                   <div className="sketch-semicircle-bg"></div>
                   <svg className="sketch-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -598,9 +611,9 @@ export default function LoginPage() {
                   </svg>
                 </div>
 
-                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Forgot your password ?</h2>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Quên mật khẩu?</h2>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-6">
-                  Enter your e-mail address and we&apos;ll send you a link to reset your password
+                  Nhập địa chỉ email, chúng tôi sẽ gửi mã để bạn đặt lại mật khẩu
                 </p>
 
                 <form onSubmit={handleForgotStep1Submit} className="space-y-4">
@@ -611,7 +624,7 @@ export default function LoginPage() {
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
                       className="sketch-input"
-                      placeholder="Email Address (e.g. name@gmail.com)"
+                      placeholder="Địa chỉ email (VD: ten@gmail.com)"
                     />
                   </div>
 
@@ -621,17 +634,17 @@ export default function LoginPage() {
                       onClick={() => setForgotFlowOpen(false)}
                       className="sketch-btn-cancel"
                     >
-                      Cancel
+                      Hủy
                     </button>
                     <button type="submit" className="sketch-btn-purple">
-                      Reset
+                      Đặt lại
                     </button>
                   </div>
                 </form>
               </div>
             )}
 
-            {/* ════ SCREEN 2 SKETCH: Check in your mail ! ════ */}
+            {/* ════ MÀN HÌNH 2: Kiểm tra hộp thư ════ */}
             {forgotStep === 2 && (
               <div>
                 <div className="text-left mb-2">
@@ -639,20 +652,20 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setForgotStep(1)}
                     className="sketch-back-btn"
-                    title="Back to Step 1"
+                    title="Quay lại bước 1"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <span>Quay lại</span>
                   </button>
                 </div>
 
-                {/* SVG Illustration 2: Open Envelope with RESET Paper */}
+                {/* SVG Illustration 2: Open Envelope với tờ giấy ĐẶT LẠI */}
                 <div className="sketch-illustration-box">
                   <div className="sketch-semicircle-bg"></div>
                   <svg className="sketch-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <line x1="20" y1="140" x2="180" y2="140" stroke="#8065c9" strokeWidth="2.5" strokeDasharray="14 8 4 6" strokeLinecap="round"/>
                     <rect x="75" y="45" width="50" height="55" rx="3" fill="#ffffff" stroke="#8065c9" strokeWidth="3"/>
-                    <text x="82" y="64" fontFamily="sans-serif" fontWeight="bold" fontSize="10" fill="#8065c9" letterSpacing="1">RESET</text>
+                    <text x="82" y="64" fontFamily="sans-serif" fontWeight="bold" fontSize="10" fill="#8065c9" letterSpacing="1">ĐẶT LẠI</text>
                     <line x1="84" y1="74" x2="116" y2="74" stroke="#8065c9" strokeWidth="2.5" strokeLinecap="round"/>
                     <line x1="86" y1="82" x2="114" y2="82" stroke="#8065c9" strokeWidth="2.5" strokeLinecap="round"/>
                     <path d="M60 80 L100 105 L140 80 L140 135 L60 135 Z" fill="#e8e2fc" stroke="#8065c9" strokeWidth="3.5" strokeLinejoin="round"/>
@@ -660,12 +673,12 @@ export default function LoginPage() {
                   </svg>
                 </div>
 
-                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Check in your mail !</h2>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Kiểm tra hộp thư của bạn!</h2>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-4">
-                  We just emailed you with the instructions to reset your password.
+                  Chúng tôi vừa gửi email hướng dẫn đặt lại mật khẩu cho bạn.
                 </p>
 
-                {/* Interactive OTP Verification Box */}
+                {/* Ô nhập mã OTP tương tác */}
                 <div className="space-y-4 mb-6">
                   <div className="flex items-center justify-center gap-2">
                     {otpBoxes.map((digit, idx) => (
@@ -688,7 +701,7 @@ export default function LoginPage() {
 
                   <div className="flex items-center justify-between text-xs px-2">
                     <button type="button" onClick={() => setForgotStep(1)} className="text-slate-400 hover:text-slate-700">
-                      ← Back
+                      ← Quay lại
                     </button>
                     <button
                       type="button"
@@ -697,11 +710,11 @@ export default function LoginPage() {
                         setResendSeconds(60);
                         setResendActive(true);
                         setOtpBoxes(['', '', '', '', '', '']);
-                        showToast('[MAIL SERVICE] Đã gửi lại mã OTP. Vui lòng nhập mã mặc định: 000000');
+                        showToast('[DỊCH VỤ EMAIL] Đã gửi lại mã OTP. Vui lòng nhập mã mặc định: 000000');
                       }}
                       className={`text-sketch-purple font-semibold ${resendActive ? 'opacity-50 cursor-not-allowed' : 'hover:underline'}`}
                     >
-                      {resendActive ? `Resend OTP (${resendSeconds}s)` : 'Resend OTP'}
+                      {resendActive ? `Gửi lại OTP (${resendSeconds}s)` : 'Gửi lại OTP'}
                     </button>
                   </div>
 
@@ -718,13 +731,13 @@ export default function LoginPage() {
                     }}
                     className="sketch-btn-purple w-full"
                   >
-                    Verify OTP & Continue
+                    Xác thực OTP & Tiếp tục
                   </button>
                 </div>
 
-                {/* Footer Note */}
+                {/* Ghi chú cuối trang */}
                 <div className="border-t border-slate-100 pt-4 mt-4">
-                  <p className="text-[11px] text-slate-400">For any questions or problems please email us at</p>
+                  <p className="text-[11px] text-slate-400">Mọi thắc mắc hoặc sự cố, vui lòng gửi email tới</p>
                   <a href="mailto:helpdesk@aethelgard.com" className="text-xs font-bold text-sketch-purple hover:underline mt-0.5 inline-block">
                     helpdesk@aethelgard.com
                   </a>
@@ -732,7 +745,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* ════ SCREEN 3 SKETCH: Reset your password ════ */}
+            {/* ════ MÀN HÌNH 3: Đặt lại mật khẩu ════ */}
             {forgotStep === 3 && (
               <div>
                 <div className="text-left mb-2">
@@ -740,14 +753,14 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => setForgotStep(2)}
                     className="sketch-back-btn"
-                    title="Back to OTP Step"
+                    title="Quay lại bước nhập OTP"
                   >
                     <ArrowLeft className="w-4 h-4" />
-                    <span>Back</span>
+                    <span>Quay lại</span>
                   </button>
                 </div>
 
-                {/* SVG Illustration 3: Curved Arrow with Lock Badge */}
+                {/* Hình minh họa SVG 3: Mũi tên cong và biểu tượng ổ khóa */}
                 <div className="sketch-illustration-box">
                   <div className="sketch-semicircle-bg"></div>
                   <svg className="sketch-svg" viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -759,9 +772,9 @@ export default function LoginPage() {
                   </svg>
                 </div>
 
-                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Reset your password</h2>
+                <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Đặt lại mật khẩu</h2>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-6">
-                  What would you like your new password to be ?
+                  Bạn muốn đặt mật khẩu mới là gì?
                 </p>
 
                 <form onSubmit={handleForgotStep3Submit} className="space-y-4">
@@ -773,7 +786,7 @@ export default function LoginPage() {
                         value={newPass}
                         onChange={(e) => handleForgotNewPassChange(e.target.value)}
                         className="sketch-input pr-12"
-                        placeholder="Password"
+                        placeholder="Mật khẩu"
                       />
                       <button
                         type="button"
@@ -787,13 +800,13 @@ export default function LoginPage() {
                         }}
                         className="toggle-eye"
                         style={{ zIndex: 20 }}
-                        aria-label="Toggle password"
+                        aria-label="Hiện/ẩn mật khẩu"
                       >
                         {showNewPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
 
-                    {/* Minimalist Password Strength Bar */}
+                    {/* Thanh độ mạnh mật khẩu tối giản */}
                     {newPass && (
                       <div className="mt-2.5 transition-all duration-300 text-left">
                         <div className="flex items-center justify-between mb-1 text-xs">
@@ -820,7 +833,7 @@ export default function LoginPage() {
                         value={confirmPass}
                         onChange={(e) => setConfirmPass(e.target.value)}
                         className="sketch-input pr-12"
-                        placeholder="Confirm Password"
+                        placeholder="Xác nhận mật khẩu"
                       />
                       <button
                         type="button"
@@ -834,7 +847,7 @@ export default function LoginPage() {
                         }}
                         className="toggle-eye"
                         style={{ zIndex: 20 }}
-                        aria-label="Toggle password"
+                        aria-label="Hiện/ẩn mật khẩu"
                       >
                         {showConfirmPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
                       </button>
@@ -842,7 +855,7 @@ export default function LoginPage() {
                   </div>
 
                   <button type="submit" className="sketch-btn-purple w-full">
-                    Save
+                    Lưu
                   </button>
                 </form>
               </div>
@@ -851,23 +864,23 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Footer Trusted By / Categories */}
+        {/* Chân trang: danh mục nổi bật */}
         <div className="pt-4 border-t border-slate-100 text-center">
           <p className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2">
-            Explore Top E-Commerce Categories
+            Khám Phá Danh Mục Nổi Bật
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap opacity-75 grayscale hover:grayscale-0 transition-all">
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">FASHION</span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">ELECTRONICS</span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">BEAUTY</span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">HOME LIVING</span>
-            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">AI ASSISTANT</span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">THỜI TRANG</span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">ĐIỆN TỬ</span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">LÀM ĐẸP</span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">NHÀ CỬA</span>
+            <span className="px-2.5 py-1 rounded-md bg-slate-100 font-bold text-[10px] text-slate-700 tracking-wider uppercase">TRỢ LÝ AI</span>
           </div>
         </div>
 
       </div>
 
-      {/* ────────────────── RIGHT COLUMN: DUAL-COLUMN 15S AUTO-SLIDER ────────────────── */}
+      {/* ────────────────── CỘT PHẢI: TRÌNH CHIẾU ẢNH 2 CỘT TỰ ĐỘNG 15 GIÂY ────────────────── */}
       <div className="login-right-panel">
         <div className="dual-slider-wrapper relative w-full h-full min-h-screen">
           {DUAL_IMAGE_PAIRS.map((pair, idx) => (

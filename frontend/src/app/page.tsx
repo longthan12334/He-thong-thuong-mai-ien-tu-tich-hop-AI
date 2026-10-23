@@ -13,7 +13,6 @@ import {
   SellerDrawer,
   ProductFilters,
   HeroSection,
-  HomeAnalyticsStrip,
   BrandCinematicShowcase,
   ProductEditorModal,
   SellerRegisterModal,
@@ -201,17 +200,15 @@ export default function HomePage() {
 
   return (
     <>
-      {/* 1. HERO BANNER */}
+      {/* 1. BANNER CHÍNH */}
       <HeroSection
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onScrollToCatalog={scrollToCatalog}
+        products={products}
       />
 
-      {/* 2. SƠ ĐỒ DOANH SỐ & PHÂN RÃ DOANH THU (1/4 CUỐI MẶT ĐẦU) */}
-      <HomeAnalyticsStrip />
-
-      {/* 3. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
+      {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
       <BrandCinematicShowcase
         shopName={sellerTitle || 'Aethelgard Store'}
         products={products}
@@ -219,7 +216,7 @@ export default function HomePage() {
         onScrollToCatalog={scrollToCatalog}
       />
 
-      {/* 4. SHOWROOM SẢN PHẨM CỬA HÀNG */}
+      {/* 3. SHOWROOM SẢN PHẨM CỬA HÀNG */}
       <section className="page-section shop-section" id="catalog">
         <main className="main-layout">
           <ProductFilters
@@ -238,7 +235,7 @@ export default function HomePage() {
             onReset={resetFilters}
           />
 
-          {/* Product Grid */}
+          {/* Lưới sản phẩm */}
           <section className="catalog-section">
             <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
               <div>

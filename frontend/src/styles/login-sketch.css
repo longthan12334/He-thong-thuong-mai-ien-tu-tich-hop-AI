@@ -1,10 +1,10 @@
 /* ==============================================================================
- * SHOPAI MARKET — WIREFRAME SKETCH DESIGN SYSTEM
- * Task 6: HTTMDTTHA-51 — Exact 3-Step Wireframe Sketch Implementation
- * Color Theme: Purple (#8065c9) / Soft Lavender (#f3f0ff)
+ * SHOPAI MARKET — HỆ THỐNG THIẾT KẾ DẠNG PHÁC THẢO
+ * Task 6: HTTMDTTHA-51 — Triển khai giao diện phác thảo 3 bước
+ * Bảng màu: Tím (#8065c9) / Tím oải hương nhạt (#f3f0ff)
  * ============================================================================== */
 
-/* ─── WIREFRAME SKETCH ILLUSTRATION BACKDROP ─── */
+/* ─── NỀN HÌNH MINH HỌA PHÁC THẢO ─── */
 .sketch-illustration-box {
     position: relative;
     width: 200px;
@@ -33,7 +33,7 @@
     height: 100%;
 }
 
-/* ─── SKETCH FORM CONTROLS & BUTTONS ─── */
+/* ─── Ô NHẬP & NÚT BẤM ─── */
 .sketch-input {
     width: 100%;
     padding: 12px 18px;
@@ -100,7 +100,7 @@
     border-color: #8065c9;
 }
 
-/* ─── SKETCH TOP BACK BUTTON ─── */
+/* ─── NÚT QUAY LẠI PHÍA TRÊN ─── */
 .sketch-back-btn {
     display: inline-flex;
     align-items: center;
@@ -124,7 +124,7 @@
     transform: translateX(-2px);
 }
 
-/* ─── SLEEK 6-BOX OTP INPUT GRID ─── */
+/* ─── LƯỚI 6 Ô NHẬP OTP ─── */
 .otp-box {
     width: 42px;
     height: 50px;
@@ -163,7 +163,7 @@
     background-color: #fef2f2 !important;
 }
 
-/* ─── SKETCH INLINE RED ERROR TEXT ─── */
+/* ─── CHỮ BÁO LỖI MÀU ĐỎ ─── */
 .sketch-error-text {
     color: #ef4444;
     font-size: 0.8125rem;
@@ -181,7 +181,7 @@
 }
 
 
-/* ─── TAB SWITCHER (Task 1 Segmented Control 50:50) ─── */
+/* ─── NÚT CHUYỂN TAB (chia đôi 50:50) ─── */
 .tab-slider {
     position: absolute;
     top: 4px;
@@ -219,7 +219,7 @@
     color: #0f172a;
 }
 
-/* ─── FORM PANELS ─── */
+/* ─── KHUNG FORM ─── */
 .form-panel {
     display: none;
     opacity: 0;
@@ -241,7 +241,7 @@
     }
 }
 
-/* ─── INPUT FIELDS ─── */
+/* ─── Ô NHẬP LIỆU ─── */
 .input-label {
     display: block;
     font-size: 0.825rem;
@@ -278,14 +278,14 @@
     box-shadow: 0 0 0 4px rgba(128, 101, 201, 0.12);
 }
 
-/* Hide native browser reveal icon so it doesn't conflict with custom eye */
+/* Ẩn biểu tượng hiện mật khẩu mặc định của trình duyệt để không trùng với nút con mắt tự làm */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear,
 input[type="password"]::-webkit-credentials-auto-fill-button {
     display: none !important;
 }
 
-/* ─── TOGGLE PASSWORD ─── */
+/* ─── NÚT HIỆN/ẨN MẬT KHẨU ─── */
 .toggle-eye {
     position: absolute;
     right: 12px;
@@ -311,7 +311,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     background: rgba(0, 0, 0, 0.04);
 }
 
-/* ─── TOAST NOTIFICATION ─── */
+/* ─── THÔNG BÁO NỔI ─── */
 .toast-notification {
     position: fixed;
     bottom: 28px;
@@ -341,13 +341,13 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     letter-spacing: 0.04em;
 }
 
-/* ─── PASSWORD STRENGTH COLORS ─── */
+/* ─── MÀU ĐỘ MẠNH MẬT KHẨU ─── */
 .strength-weak { color: #ef4444 !important; }
 .strength-medium { color: #f59e0b !important; }
 .strength-strong { color: #3b82f6 !important; }
 .strength-very-strong { color: #10b981 !important; }
 
-/* ─── DUAL-COLUMN 15-SECOND AUTO-SLIDER ─── */
+/* ─── TRÌNH CHIẾU 2 CỘT TỰ CHUYỂN 15 GIÂY ─── */
 .dual-slider-wrapper {
     position: relative;
     width: 100%;
@@ -398,7 +398,7 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
     display: block;
 }
 
-/* ─── 50:50 SPLIT SCREEN LAYOUT ─── */
+/* ─── BỐ CỤC CHIA ĐÔI MÀN HÌNH 50:50 ─── */
 .login-split-page {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
