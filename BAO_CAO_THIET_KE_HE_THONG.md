@@ -5,247 +5,292 @@
 
 ## 🏗️ I. TỔNG QUAN KIẾN TRÚC HỆ THỐNG
 
-Hệ thống được xây dựng theo mô hình **Client-Server hiện đại**, tách biệt hoàn toàn giữa tầng hiển thị (**Frontend SPA/SSR**) và tầng dịch vụ nghiệp vụ (**Backend RESTful API**), giao tiếp thông qua giao thức bảo mật HTTP/HTTPS và định dạng chuẩn JSON.
+Hệ thống được thiết kế theo mô hình **Khách - Chủ (Client-Server) hiện đại, phân tán và hướng dịch vụ**, tách biệt hoàn toàn giữa tầng giao diện hiển thị (**Frontend**) và tầng dịch vụ nghiệp vụ (**Backend API**). Toàn bộ hệ thống được đóng gói hoàn chỉnh bằng **Docker và Docker Compose**, đảm bảo tính nhất quán trên mọi môi trường vận hành.
+
+![Biểu đồ Kiến Trúc Tổng Quan Hệ Thống](./docs/diagrams/01_tong_quan_kien_truc.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer ["1. Tầng Trình Duyệt / Khách Hàng"]
-        WebBrowser["Trình duyệt Web (Desktop / Mobile)"]
-    end
+    Client["Trình Duyệt và Ứng Dụng Khách<br/>(Máy tính, Điện thoại)"]
 
-    subgraph FrontendApp ["2. Tầng Ứng Dụng Frontend (Next.js 15)"]
+    subgraph WebApp ["1. Giao Diện Người Dùng (Next.js - Cổng 3001)"]
         direction TB
-        AppRouter["Next.js App Router (Port 3001)"]
-        UIComp["React Components & UI Modals"]
-        ContextSys["Context State (Auth, Cart, Toast)"]
-        ServiceLayer["Frontend Service Layer (Axios / Fetch)"]
-        AppRouter --> UIComp
-        UIComp --> ContextSys
-        ContextSys --> ServiceLayer
+        Pages["Các Trang Mua Sắm và Quản Trị"]
+        Components["Thành Phần Giao Diện và Giỏ Hàng"]
+        Contexts["Bộ Quản Lý Trạng Thái Người Dùng"]
+        Pages --> Components --> Contexts
     end
 
-    subgraph BackendAPI ["3. Tầng Dịch Vụ Backend (.NET 10 Web API)"]
+    subgraph WebApi ["2. Dịch Vụ Máy Chủ (ASP.NET Core API - Cổng 5000)"]
         direction TB
-        APIController["API Controllers & Middlewares (Port 5000)"]
-        BLLService["Business Logic Layer (Services & Validation)"]
-        SecurityEngine["JWT Auth & Role-based Authorization"]
-        DALRepo["Data Access Layer (Unit of Work & Generic Repo)"]
-        
-        APIController --> SecurityEngine
-        APIController --> BLLService
-        BLLService --> DALRepo
+        Controllers["Bộ Điều Khiển Tiếp Nhận Yêu Cầu"]
+        Security["Kiểm Tra Quyền và Mã Xác Thực"]
+        Services["Xử Lý Nghiệp Vụ và Kiểm Tra Tồn Kho"]
+        Controllers --> Security --> Services
     end
 
-    subgraph DatabaseLayer ["4. Tầng Dữ Liệu & Lưu Trữ"]
-        MSSQL[("Microsoft SQL Server (Port 1433)")]
-        LocalStore[("Trình duyệt LocalStorage: Cart State")]
+    subgraph Database ["3. Lưu Trữ Dữ Liệu"]
+        SQL[("Cơ Sở Dữ Liệu SQL Server 2022<br/>(Cổng 1433)")]
+        LocalStore[("Bộ Nhớ Tạm Trình Duyệt<br/>(Lưu Giỏ Hàng Offline)")]
     end
 
-    WebBrowser -->|HTTP Request / DOM Render| AppRouter
-    ContextSys <-->|Đồng bộ giỏ hàng offline| LocalStore
-    ServiceLayer -->|RESTful API Calls / Bearer JWT| APIController
-    DALRepo -->|Entity Framework Core 10| MSSQL
+    Client -->|Gửi yêu cầu và Xem trang| WebApp
+    Contexts <-->|Lưu trữ và Khôi phục| LocalStore
+    WebApp -->|Gọi dữ liệu API| Controllers
+    Services -->|Đọc và Ghi dữ liệu| SQL
 ```
+</details>
 
 ---
 
-## 🏛️ II. KIẾN TRÚC CODE (SOFTWARE DESIGN & CODE ARCHITECTURE)
+## 🏛️ II. KIẾN TRÚC PHẦN MỀM (SOFTWARE ARCHITECTURE)
 
-### 1. Kiến trúc Backend (.NET Clean Architecture / 3-Tier Pattern)
-Mã nguồn Backend được tổ chức thành 4 phân tầng độc lập nhằm đảm bảo tính đơn nhiệm (Single Responsibility), dễ bảo trì và dễ mở rộng:
+### 1. Kiến trúc Backend 4 Tầng Phân Lập
+Mã nguồn máy chủ được phân chia thành 4 tầng riêng biệt nhằm đảm bảo nguyên lý đơn nhiệm và tính bảo trì cao:
 
-```mermaid
-flowchart LR
-    API["Ecommerce.API<br/>(Presentation Layer)"]
-    BLL["Ecommerce.BLL<br/>(Business Logic Layer)"]
-    DAL["Ecommerce.DAL<br/>(Data Access Layer)"]
-    Common["Ecommerce.Common<br/>(Domain & Shared Layer)"]
+![Biểu đồ Kiến Trúc Backend 4 Tầng](./docs/diagrams/02_kien_truc_backend_4tier.png)
 
-    API -->|Phụ thuộc| BLL
-    API -->|Phụ thuộc| Common
-    BLL -->|Phụ thuộc| DAL
-    BLL -->|Phụ thuộc| Common
-    DAL -->|Phụ thuộc| Common
-```
-
-* **`Ecommerce.API` (Presentation Layer)**:
-  - Tiếp nhận các HTTP Request, điều phối routing, xác thực JWT Token qua Middleware.
-  - Các Controllers: `AuthController`, `ProductsController`, `OrdersController`, `InventoryAndStatsControllers`, `StoresAndSeedControllers`.
-  - Kiểm soát lỗi tập trung thông qua Custom Exception Middleware và tích hợp Swagger OpenAPI.
-* **`Ecommerce.BLL` (Business Logic Layer)**:
-  - Chứa đựng toàn bộ luật nghiệp vụ (Business Rules), tính toán tồn kho, kiểm tra chống bán khống, xử lý đối soát tài chính và trợ lý thời trang `AIService`.
-  - Các Services: `AuthService`, `ProductService`, `OrderService`, `InventoryService`, `StatisticsService`, `StoreService`, `AIService`.
-  - Chuyển đổi dữ liệu tự động giữa Entity và DTO thông qua **AutoMapper**.
-* **`Ecommerce.DAL` (Data Access Layer)**:
-  - Tương tác với cơ sở dữ liệu qua **Entity Framework Core**.
-  - Triển khai mẫu thiết kế **Generic Repository Pattern** (`IGenericRepository<T>`) và **Unit of Work Pattern** (`IUnitOfWork`) giúp quản lý Transaction nguyên tử (ACID).
-  - Cấu hình quan hệ bảng, chỉ mục (Index), khóa ngoại (Foreign Key) bằng Fluent API trong `EntityConfigurations.cs`.
-* **`Ecommerce.Common` (Domain Entities & Shared)**:
-  - Khai báo các thực thể cốt lõi: `User`, `Store`, `Product`, `ProductVariant`, `Category`, `Order`, `OrderItem`, `TransactionRecord`.
-  - Định nghĩa Enums (`UserRole`, `OrderStatus`, `PaymentStatus`, `StockStatus`) và các DTOs trao đổi dữ liệu.
-
----
-
-### 2. Kiến trúc Frontend (Next.js 15 Component-Driven & Context Architecture)
-Frontend tuân thủ chặt chẽ nguyên lý Component-Driven, phân tách rõ giao diện và tầng kết nối dữ liệu:
-
-```
-frontend/src/
-├── app/                      # App Router (Next.js 15)
-│   ├── page.tsx              # Trang chủ / Lưới sản phẩm & Phân trang
-│   ├── login/                # Màn hình Đăng nhập / Đăng ký / Quên MK
-│   ├── product-detail/[id]/  # Trang chi tiết sản phẩm chuẩn Boutique
-│   ├── shop-profile/         # Trang hồ sơ thương hiệu Flagship
-│   ├── orders/               # Phân hệ quản lý đơn hàng của Seller
-│   ├── inventory/            # Phân hệ quản lý tồn kho & hàng hóa
-│   └── income-statistics/    # Phân hệ thống kê doanh thu & tài chính
-├── components/               # Tái sử dụng giao diện
-│   ├── Navbar.tsx            # Thanh điều hướng thích ứng phân quyền
-│   ├── Footer.tsx            # Chân trang Luxury
-│   └── seller/               # Bộ Modal & Drawer (Cart, Checkout, Drawer)
-├── contexts/                 # Quản lý State toàn cục
-│   ├── AuthContext.tsx       # Quản lý phiên JWT, User Info, Phân quyền
-│   ├── CartContext.tsx       # Giỏ hàng toàn cục, đồng bộ LocalStorage
-│   └── ToastContext.tsx      # Thông báo Toast Popup tương tác
-└── services/                 # Tầng giao tiếp RESTful API
-    ├── auth.service.ts
-    ├── product.service.ts
-    └── order.service.ts
-```
-
----
-
-## 📊 III. BIỂU ĐỒ PHÂN RÃ CHỨC NĂNG (FUNCTIONAL DECOMPOSITION DIAGRAM - FDD)
-
-Hệ thống được phân rã thành 4 khối chức năng chính:
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart TD
-    Root["HỆ THỐNG TMĐT THỜI TRANG AETHELGARD MALL"]
+    API["1. Tầng Tiếp Nhận API<br/>(Ecommerce.API)"]
+    BLL["2. Tầng Xử Lý Nghiệp Vụ<br/>(Ecommerce.BLL)"]
+    DAL["3. Tầng Truy Xuất Dữ Liệu<br/>(Ecommerce.DAL)"]
+    Common["4. Tầng Thực Thể Dùng Chung<br/>(Ecommerce.Common)"]
 
-    SubBuyer["Phân Hệ Người Mua<br/>(Customer / Guest)"]
-    SubSeller["Phân Hệ Người Bán<br/>(Seller / Merchant)"]
-    SubAdmin["Phân Hệ Quản Trị<br/>(System Admin)"]
-    SubCommon["Phân Hệ Chung<br/>(Core Services)"]
-
-    Root --> SubBuyer
-    Root --> SubSeller
-    Root --> SubAdmin
-    Root --> SubCommon
-
-    %% Customer Functions
-    F_Catalog["Khám Phá & Tìm Kiếm<br/>(Bộ lọc, Sort, Phân trang 12sp)"]
-    F_Detail["Xem Chi Tiết Boutique<br/>(Size, Màu, AI Stylist)"]
-    F_Cart["Quản Lý Giỏ Hàng<br/>(Thêm/Bớt/Xóa, LocalStorage)"]
-    F_Checkout["Đặt Hàng & Thanh Toán<br/>(COD, Chuyển khoản, Check Kho)"]
-    F_Store["Xem Gian Hàng Đối Tác<br/>(Voucher, Bản đồ Maps)"]
-    SubBuyer --> F_Catalog
-    SubBuyer --> F_Detail
-    SubBuyer --> F_Cart
-    SubBuyer --> F_Checkout
-    SubBuyer --> F_Store
-
-    %% Seller Functions
-    S_Inv["Quản Lý Kho Hàng<br/>(KPI kho, Bảng SKU, Nhập hàng)"]
-    S_Order["Quản Lý Đơn Hàng<br/>(KPI đơn, Drawer vận đơn, Đổi status)"]
-    S_Finance["Báo Cáo Tài Chính<br/>(Biểu đồ tháng, Gauge, Lịch sử)"]
-    S_Brand["Quản Trị Gian Hàng<br/>(Trưng bày bộ sưu tập riêng)"]
-    SubSeller --> S_Inv
-    SubSeller --> S_Order
-    SubSeller --> S_Finance
-    SubSeller --> S_Brand
-
-    %% Admin Functions
-    A_User["Quản Lý Người Dùng<br/>(Phân quyền, Khóa/Mở)"]
-    A_Store["Quản Lý Cửa Hàng & Đối Tác"]
-    A_Category["Quản Lý Danh Mục Sàn"]
-    A_Seed["Khởi Tạo Dữ Liệu Seeder"]
-    SubAdmin --> A_User
-    SubAdmin --> A_Store
-    SubAdmin --> A_Category
-    SubAdmin --> A_Seed
-
-    %% Common Functions
-    C_Auth["Xác Thực JWT & Đăng Nhập"]
-    C_OTP["Khôi Phục Mật Khẩu OTP"]
-    C_Audit["Kiểm Soát Quyền Sở Hữu"]
-    SubCommon --> C_Auth
-    SubCommon --> C_OTP
-    SubCommon --> C_Audit
+    API -->|Điều phối yêu cầu| BLL
+    BLL -->|Đọc và Ghi dữ liệu| DAL
+    API -.->|Tham chiếu thực thể| Common
+    BLL -.->|Tham chiếu thực thể| Common
+    DAL -.->|Cấu hình bảng dữ liệu| Common
 ```
+</details>
+
+* **Tầng Tiếp Nhận API (`Ecommerce.API`)**: Tiếp nhận các yêu cầu gửi đến, điều hướng xử lý, kiểm tra mã xác thực tài khoản và ghi nhận nhật ký lỗi.
+* **Tầng Xử Lý Nghiệp Vụ (`Ecommerce.BLL`)**: Chứa toàn bộ logic kinh doanh, thuật toán đối soát kho hàng, kiểm tra tính hợp lệ của đơn hàng và gợi ý thời trang thông minh.
+* **Tầng Truy Xuất Dữ Liệu (`Ecommerce.DAL`)**: Tương tác trực tiếp với cơ sở dữ liệu qua Entity Framework Core 10, quản lý giao dịch an toàn và tối ưu hóa truy vấn.
+* **Tầng Thực Thể Dùng Chung (`Ecommerce.Common`)**: Khai báo cấu trúc các bảng dữ liệu (`User`, `Product`, `Order`, `Review`, `Store`), mã danh mục và các kiểu dữ liệu trao đổi.
+
+---
+
+### 2. Kiến trúc Thành phần Giao diện Frontend
+Cấu trúc giao diện được tổ chức theo từng lớp chức năng độc lập:
+
+![Biểu đồ Kiến Trúc Thành Phần Frontend](./docs/diagrams/03_kien_truc_frontend_components.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
+
+```mermaid
+flowchart TD
+    subgraph Pages ["1. Các Màn Hình Giao Diện"]
+        direction LR
+        P1["Trang Chủ"]
+        P2["Chi Tiết SP"]
+        P3["Đăng Nhập"]
+        P4["Quản Lý Đơn"]
+        P5["Quản Lý Kho"]
+        P6["Báo Cáo Doanh Thu"]
+    end
+
+    subgraph Components ["2. Các Khối Giao Diện Dùng Lại"]
+        C1["Thanh Điều Hướng và Menu"]
+        C2["Thanh Tìm Kiếm và Gợi Ý"]
+        C3["Khay Chi Tiết Sản Phẩm"]
+        C4["Khay Giỏ Hàng và Cửa Sổ Đặt Hàng"]
+        C5["Chuông Thông Báo Theo Vai Trò"]
+    end
+
+    subgraph Contexts ["3. Quản Lý Trạng Thái Toàn Cục"]
+        X1["Trạng Thái Tài Khoản và Vai Trò"]
+        X2["Trạng Thái Giỏ Hàng Mua Sắm"]
+        X3["Danh Sách Yêu Thích và Đã Xem"]
+        X4["Hộp Thông Báo Nổi Tức Thì"]
+    end
+
+    subgraph Services ["4. Kết Nối Dịch Vụ Máy Chủ"]
+        S1["Dịch Vụ Tài Khoản"]
+        S2["Dịch Vụ Sản Phẩm"]
+        S3["Dịch Vụ Đơn Hàng"]
+    end
+
+    Pages --> Components
+    Components --> Contexts
+    Contexts --> Services
+```
+</details>
+
+---
+
+### 3. Luồng Quản lý Trạng thái Toàn cục
+Biểu đồ mô tả cách dữ liệu được chia sẻ và đồng bộ giữa các màn hình:
+
+![Biểu đồ Luồng Trạng Thái Toàn Cục](./docs/diagrams/04_luong_state_toan_cuc.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
+
+```mermaid
+flowchart TD
+    Action["Thao Tác Của Người Dùng<br/>(Xem hàng, Chọn mua, Đặt hàng)"]
+
+    subgraph StateManager ["Bộ Quản Lý Trạng Thái Ứng Dụng"]
+        UserCtx["Tài Khoản và Quyền Hạn<br/>(Lưu phiên làm việc, Phân biệt vai trò)"]
+        CartCtx["Giỏ Hàng Mua Sắm<br/>(Số lượng, Tính tiền, Tự lưu vào máy)"]
+        ShopperCtx["Sở Thích Mua Sắm<br/>(Danh sách yêu thích, Hàng đã xem)"]
+        ToastCtx["Thông Báo Nổi<br/>(Báo thành công, Báo lỗi thao tác)"]
+    end
+
+    subgraph ViewLayer ["Giao Diện Tương Tác Trực Tiếp"]
+        CartDrawer["Khay Trượt Giỏ Hàng"]
+        CheckoutModal["Khung Điền Thông Tin Nhận Hàng"]
+        SuccessModal["Hộp Báo Đặt Hàng Thành Công"]
+    end
+
+    Action --> UserCtx
+    Action --> CartCtx
+    Action --> ShopperCtx
+    CartCtx --> CartDrawer --> CheckoutModal --> SuccessModal
+    UserCtx --> CheckoutModal
+    CheckoutModal --> ToastCtx
+```
+</details>
+
+---
+
+## 📊 III. BIỂU ĐỒ PHÂN RÃ CHỨC NĂNG (FDD)
+
+Toàn bộ hệ thống được phân rã cân đối thành 4 nhóm nghiệp vụ chính:
+
+![Biểu đồ Phân Rã Chức Năng](./docs/diagrams/05_phan_ra_chuc_nang_fdd.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
+
+```mermaid
+flowchart TD
+    Root["HỆ THỐNG THƯƠNG MẠI ĐIỆN TỬ AETHELGARD"]
+
+    Col1["1. PHÂN HỆ KHÁCH HÀNG"]
+    Col2["2. PHÂN HỆ NGƯỜI BÁN"]
+    Col3["3. PHÂN HỆ QUẢN TRỊ"]
+    Col4["4. HẠ TẦNG và BẢO MẬT"]
+
+    Root --> Col1
+    Root --> Col2
+    Root --> Col3
+    Root --> Col4
+
+    B1["Tìm Kiếm và Gợi Ý Sản Phẩm"]
+    B2["Xem Chi Tiết và Phối Đồ AI"]
+    B3["Quản Lý Giỏ Hàng và Đặt Hàng"]
+    B4["Theo Dõi Lộ Trình Giao Hàng"]
+    Col1 --> B1 --> B2 --> B3 --> B4
+
+    S1["Quản Lý Tồn Kho và Nhập Hàng"]
+    S2["Xử Lý và Chuyển Trạng Thái Đơn"]
+    S3["Báo Cáo Doanh Thu và Dòng Tiền"]
+    S4["Quản Trị Hồ Sơ Gian Hàng"]
+    Col2 --> S1 --> S2 --> S3 --> S4
+
+    A1["Quản Trị Tài Khoản và Phân Quyền"]
+    A2["Quản Trị Danh Mục và Cửa Hàng"]
+    A3["Khởi Tạo Dữ Liệu Mẫu Hệ Thống"]
+    A4["Giám Sát Vận Hành Toàn Sàn"]
+    Col3 --> A1 --> A2 --> A3 --> A4
+
+    C1["Xác Thực Tài Khoản Bằng JWT"]
+    C2["Kiểm Soát Quyền Theo Vai Trò"]
+    C3["Đóng Gói Ứng Dụng Docker"]
+    C4["Đồng Bộ và Bảo Toàn Dữ Liệu"]
+    Col4 --> C1 --> C2 --> C3 --> C4
+```
+</details>
 
 ---
 
 ## 🎯 IV. CÁC BIỂU ĐỒ USE CASE (USE CASE DIAGRAMS)
 
 ### 1. Biểu đồ Use Case Tổng quát Toàn Hệ thống
-Xác định 3 tác nhân chính: **Khách hàng (Customer)**, **Người bán (Seller)**, và **Quản trị viên (Admin)**.
+Hệ thống phục vụ 3 nhóm tác nhân chính: **Khách hàng**, **Người bán**, và **Quản trị viên**.
+
+![Biểu đồ Use Case Tổng Quát](./docs/diagrams/06_usecase_tong_quat.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart LR
-    %% Actors
-    ActorBuyer(("Khách Hàng<br/>(Customer)"))
-    ActorSeller(("Người Bán<br/>(Seller)"))
-    ActorAdmin(("Quản Trị Viên<br/>(Admin)"))
+    Buyer(("Khách Hàng"))
+    Seller(("Người Bán"))
+    Admin(("Quản Trị Viên"))
 
-    subgraph BoundarySystem ["HỆ THỐNG THƯƠNG MẠI ĐIỆN TỬ AETHELGARD MALL"]
-        UC_Auth(["Đăng ký / Đăng nhập / Quên MK"])
-        UC_Search(["Tìm kiếm, Lọc & Xem Sản Phẩm"])
-        UC_AI(["Tư vấn phối đồ AI Stylist"])
-        UC_Cart(["Quản lý Giỏ hàng"])
-        UC_Order(["Đặt hàng & Thanh toán (Check Tồn)"])
-        UC_ShopProfile(["Xem Hồ sơ Shop & Lấy Voucher"])
+    subgraph System ["HỆ THỐNG THƯƠNG MẠI ĐIỆN TỬ AETHELGARD"]
+        UC_Auth(["Đăng ký, Đăng nhập, Đổi mật khẩu"])
+        UC_Search(["Tìm kiếm sản phẩm và Gợi ý tự động"])
+        UC_AI(["Tư vấn phối đồ thời trang thông minh"])
+        UC_Cart(["Quản lý giỏ hàng và Đặt hàng"])
+        UC_Track(["Theo dõi lộ trình giao hàng"])
 
-        UC_ManageInv(["Quản lý Tồn kho & Nhập thêm hàng"])
-        UC_ManageOrder(["Quản lý & Cập nhật Trạng thái Đơn"])
-        UC_ViewStats(["Xem Thống kê Doanh thu & Dòng tiền"])
+        UC_Inv(["Quản lý kho hàng và Nhập thêm hàng"])
+        UC_Order(["Xử lý đơn và Đổi trạng thái giao"])
+        UC_Finance(["Xem thống kê doanh thu và Dòng tiền"])
 
-        UC_ManageUsers(["Quản lý Người dùng & Phân quyền"])
-        UC_ManageStores(["Quản trị Cửa hàng & Danh mục"])
-        UC_SystemSeed(["Khởi tạo Dữ liệu Mẫu (Seeder)"])
+        UC_Users(["Quản lý tài khoản và Phân quyền"])
+        UC_Category(["Quản lý danh mục và Cửa hàng"])
+        UC_DataSeed(["Khởi tạo dữ liệu mẫu sàn"])
     end
 
-    ActorBuyer --> UC_Auth
-    ActorBuyer --> UC_Search
-    ActorBuyer --> UC_AI
-    ActorBuyer --> UC_Cart
-    ActorBuyer --> UC_Order
-    ActorBuyer --> UC_ShopProfile
+    Buyer --> UC_Auth
+    Buyer --> UC_Search
+    Buyer --> UC_AI
+    Buyer --> UC_Cart
+    Buyer --> UC_Track
 
-    ActorSeller --> UC_Auth
-    ActorSeller --> UC_ManageInv
-    ActorSeller --> UC_ManageOrder
-    ActorSeller --> UC_ViewStats
+    Seller --> UC_Auth
+    Seller --> UC_Inv
+    Seller --> UC_Order
+    Seller --> UC_Finance
 
-    ActorAdmin --> UC_Auth
-    ActorAdmin --> UC_ManageUsers
-    ActorAdmin --> UC_ManageStores
-    ActorAdmin --> UC_SystemSeed
-    ActorAdmin --> UC_ManageOrder
+    Admin --> UC_Auth
+    Admin --> UC_Users
+    Admin --> UC_Category
+    Admin --> UC_DataSeed
+    Admin --> UC_Order
 ```
+</details>
 
 ---
 
-### 2. Biểu đồ Use Case Chi tiết Phân hệ Người mua (Customer)
+### 2. Biểu đồ Use Case Chi tiết Phân hệ Khách hàng
+
+![Biểu đồ Use Case Khách Hàng](./docs/diagrams/07_usecase_customer.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart LR
     Customer(("Khách Mua Hàng"))
 
-    subgraph ShoppingContext ["Phân Hệ Mua Sắm & Đặt Hàng"]
-        UC1(["Xem danh mục & Lọc giá, danh mục"])
-        UC2(["Xem chi tiết sản phẩm, chọn size & màu"])
-        UC3(["Nhận gợi ý phối đồ từ AI Stylist"])
+    subgraph BuyerUseCase ["Nghiệp Vụ Mua Sắm và Đặt Hàng"]
+        UC1(["Tìm kiếm với gợi ý tự động"])
+        UC2(["Xem chi tiết sản phẩm, kích cỡ, màu sắc"])
+        UC3(["Nhận tư vấn phối đồ từ trợ lý thông minh"])
         UC4(["Thêm sản phẩm vào giỏ hàng"])
-        UC5(["Điều chỉnh số lượng & Xóa giỏ hàng"])
-        UC6(["Tiến hành Đặt hàng (Checkout)"])
-        UC7(["Kiểm tra số lượng tồn kho khả dụng"])
-        UC8(["Tạo đơn hàng & Nhận mã đơn AG-XXXX"])
-        UC9(["Xem bản đồ & Lấy mã Voucher"])
+        UC5(["Điều chỉnh số lượng hoặc xóa món hàng"])
+        UC6(["Tiến hành đặt hàng và thanh toán"])
+        UC7(["Kiểm tra số lượng còn trong kho"])
+        UC8(["Tạo mã đơn hàng và xuất vận đơn"])
 
-        UC6 -.->|<< include >>| UC7
-        UC6 -.->|<< include >>| UC8
-        UC2 -.->|<< extend >>| UC3
+        UC6 -.->|Bao gồm| UC7
+        UC6 -.->|Bao gồm| UC8
+        UC2 -.->|Mở rộng| UC3
     end
 
     Customer --> UC1
@@ -253,347 +298,456 @@ flowchart LR
     Customer --> UC4
     Customer --> UC5
     Customer --> UC6
-    Customer --> UC9
 ```
+</details>
 
 ---
 
-### 3. Biểu đồ Use Case Chi tiết Phân hệ Người bán (Seller)
+### 3. Biểu đồ Use Case Chi tiết Phân hệ Người bán
+
+![Biểu đồ Use Case Người Bán](./docs/diagrams/08_usecase_seller.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart LR
-    Seller(("Người Bán (Seller)"))
+    Seller(("Người Bán"))
 
-    subgraph SellerContext ["Phân Hệ Vận Hành Kinh Doanh"]
-        S_UC1(["Xem 4 KPI Kho hàng & Bảng SKU"])
-        S_UC2(["Nhập thêm hàng hóa (Restock Modal)"])
-        S_UC3(["Xem 4 KPI Đơn hàng & Bảng đơn"])
-        S_UC4(["Mở Drawer tra cứu hành trình vận đơn"])
-        S_UC5(["Cập nhật trạng thái đơn hàng"])
-        S_UC6(["Kiểm tra quyền sở hữu đơn hàng"])
-        S_UC7(["Xem Ma trận Doanh thu & Lịch sử giao dịch"])
+    subgraph SellerUseCase ["Nghiệp Vụ Quản Lý và Vận Hành Gian Hàng"]
+        S1(["Theo dõi chỉ số tồn kho từng mặt hàng"])
+        S2(["Nhập bổ sung thêm hàng vào kho"])
+        S3(["Tra cứu và lọc danh sách đơn hàng"])
+        S4(["Xem chi tiết lộ trình vận chuyển"])
+        S5(["Chuyển trạng thái giao hàng"])
+        S6(["Kiểm tra quyền quản lý đơn của gian hàng"])
+        S7(["Xem báo cáo doanh số và dòng tiền"])
 
-        S_UC2 -.->|<< include >>| S_UC1
-        S_UC5 -.->|<< include >>| S_UC6
+        S2 -.->|Bao gồm| S1
+        S5 -.->|Bao gồm| S6
     end
 
-    Seller --> S_UC1
-    Seller --> S_UC2
-    Seller --> S_UC3
-    Seller --> S_UC4
-    Seller --> S_UC5
-    Seller --> S_UC7
+    Seller --> S1
+    Seller --> S2
+    Seller --> S3
+    Seller --> S4
+    Seller --> S5
+    Seller --> S7
 ```
+</details>
 
 ---
 
-## 🗄️ V. BIỂU ĐỒ THỰC THỂ QUAN HỆ (ENTITY RELATIONSHIP DIAGRAM - ERD)
+## 🗄️ V. BIỂU ĐỒ THỰC THỂ QUAN HỆ (ERD)
 
-Mô hình dữ liệu quan hệ được chuẩn hóa theo chuẩn 3NF, cấu hình bằng EF Core Fluent API:
+Mô hình dữ liệu quan hệ được chuẩn hóa theo chuẩn 3NF:
+
+![Biểu đồ Thực Thể Quan Hệ ERD](./docs/diagrams/09_erd_co_so_du_lieu.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 erDiagram
     USERS ||--o{ ORDERS : "places"
+    USERS ||--o{ PRODUCTS : "sells"
+    USERS ||--o{ REVIEWS : "writes"
     CATEGORIES ||--o{ PRODUCTS : "contains"
     PRODUCTS ||--o{ PRODUCT_VARIANTS : "has"
     PRODUCTS ||--o{ ORDER_ITEMS : "included_in"
+    PRODUCTS ||--o{ REVIEWS : "receives"
     ORDERS ||--|{ ORDER_ITEMS : "consists_of"
 
     USERS {
         int Id PK
-        string FullName
-        string Email
-        string PasswordHash
-        int Role "Customer=1, Seller=2, Admin=3"
-        string PhoneNumber
-        string AvatarUrl
-        bool IsEmailVerified
-        string ResetOtp
-        datetime ResetOtpExpiry
-        datetime CreatedAt
+        string FullName "Họ và tên"
+        string Email "Email đăng nhập"
+        string PasswordHash "Mật khẩu mã hóa"
+        int Role "1: Khách, 2: Shop, 3: Admin"
+        string PhoneNumber "Số điện thoại"
+        string AvatarUrl "Ảnh đại diện"
+        bool IsEmailVerified "Trạng thái xác thực"
+        datetime CreatedAt "Ngày tạo"
     }
 
     CATEGORIES {
         int Id PK
-        string Name
-        string Slug
-        string Description
-        string ImageUrl
-        datetime CreatedAt
+        string Name "Tên danh mục"
+        string Slug "Đường dẫn định danh"
+        string Description "Mô tả danh mục"
+        string ImageUrl "Ảnh đại diện"
+        datetime CreatedAt "Ngày tạo"
     }
 
     PRODUCTS {
         int Id PK
-        int SellerId "FK -> Users.Id"
-        int CategoryId FK
-        string Name
-        string Slug
-        string Sku
-        string CollectionName
-        string Description
-        decimal BasePrice
-        decimal OriginalPrice
-        int DiscountPercent
-        string ImageUrl
-        int StockQuantity
-        int StockStatus "InStock=1, LowStock=2, OutOfStock=3"
-        double Rating
-        int ReviewCount
-        bool IsActive
-        datetime CreatedAt
+        int SellerId FK "Khóa ngoại Người bán"
+        int CategoryId FK "Khóa ngoại Danh mục"
+        string Name "Tên sản phẩm"
+        string Sku "Mã sản phẩm"
+        string CollectionName "Bộ sưu tập"
+        decimal BasePrice "Giá bán hiện tại"
+        decimal OriginalPrice "Giá niêm yết gốc"
+        int StockQuantity "Số lượng trong kho"
+        int StockStatus "1: Còn hàng, 2: Sắp hết, 3: Hết"
+        string Material "Chất liệu"
+        string CountryOfOrigin "Xuất xứ"
+        datetime CreatedAt "Ngày tạo"
     }
 
     PRODUCT_VARIANTS {
         int Id PK
-        int ProductId FK
-        string Size
-        string Color
-        string Sku
-        decimal Price
-        int StockQuantity
-        datetime CreatedAt
+        int ProductId FK "Khóa ngoại Sản phẩm"
+        string Size "Kích thước"
+        string Color "Màu sắc"
+        string Sku "Mã phân loại"
+        decimal Price "Giá riêng"
+        int StockQuantity "Tồn kho phân loại"
+    }
+
+    REVIEWS {
+        int Id PK
+        int ProductId FK "Khóa ngoại Sản phẩm"
+        int UserId FK "Khóa ngoại Người dùng"
+        string CustomerName "Tên người đánh giá"
+        int Rating "Số sao đánh giá (1-5)"
+        string Comment "Nội dung nhận xét"
     }
 
     ORDERS {
         int Id PK
-        string OrderCode "UK: AG-2026-XXXX"
-        int UserId "FK -> Users.Id (Nullable)"
-        string CustomerName
-        string CustomerEmail
-        string CustomerPhone
-        string ShippingAddress
-        string PaymentMethod
-        int Status "Pending=1, Confirmed=2, Shipped=3, Delivered=4, Cancelled=5"
-        int PaymentStatus "Unpaid=1, Paid=2"
-        string Carrier "FedEx Logistics"
-        string TrackingCode
-        int ProgressStep
-        decimal Subtotal
-        decimal TotalAmount
-        datetime CreatedAt
+        string OrderCode UK "Mã đơn hàng AG-2026-XXXX"
+        int UserId FK "Khóa ngoại Người mua"
+        string CustomerName "Tên người nhận"
+        string CustomerPhone "Số điện thoại nhận"
+        string ShippingAddress "Địa chỉ giao hàng"
+        string PaymentMethod "Hình thức thanh toán"
+        int Status "1: Chờ xử lý, 2: Xác nhận, 3: Đang giao, 4: Đã giao, 5: Hủy"
+        int PaymentStatus "1: Chưa trả, 2: Đã thanh toán"
+        string Carrier "Đơn vị vận chuyển"
+        string TrackingCode "Mã vận đơn"
+        decimal TotalAmount "Tổng tiền thanh toán"
+        datetime CreatedAt "Ngày đặt hàng"
     }
 
     ORDER_ITEMS {
         int Id PK
-        int OrderId FK
-        int ProductId FK
-        string ProductName
-        string Specs
-        string ImageUrl
-        decimal Price
-        int Quantity
-        decimal Subtotal
-        datetime CreatedAt
+        int OrderId FK "Khóa ngoại Đơn hàng"
+        int ProductId FK "Khóa ngoại Sản phẩm"
+        string ProductName "Tên sản phẩm tại thời điểm mua"
+        decimal Price "Đơn giá mua"
+        int Quantity "Số lượng mua"
+        decimal Subtotal "Thành tiền"
     }
 
     STORES {
         int Id PK
-        string StoreCode "UK"
-        string BrandId
-        string StoreName
-        string StoreType
-        string City
-        string Address
-        double Latitude
-        double Longitude
-        string OperatingHours
-        datetime CreatedAt
+        string StoreCode UK "Mã định danh gian hàng"
+        string BrandId "Tên thương hiệu"
+        string StoreName "Tên gian hàng"
+        string StoreType "Loại cửa hàng"
+        string City "Tỉnh/Thành phố"
+        string Address "Địa chỉ chi tiết"
+        string OperatingHours "Giờ mở cửa"
     }
 
     TRANSACTION_RECORDS {
         int Id PK
-        string TransactionCode "UK"
-        string CustomerName
-        string ProductName
-        string Status
-        int Quantity
-        decimal UnitPrice
-        decimal TotalAmount
-        datetime CreatedAt
+        string TransactionCode UK "Mã giao dịch tài chính"
+        string CustomerName "Tên khách hàng"
+        string ProductName "Tên sản phẩm"
+        string Status "Trạng thái giao dịch"
+        decimal TotalAmount "Tổng tiền đối soát"
     }
 ```
+</details>
 
 ---
 
 ## ⏱️ VI. CÁC BIỂU ĐỒ TUẦN TỰ (SEQUENCE DIAGRAMS)
 
-### 1. Luồng Xác thực & Đăng nhập Người dùng (JWT Authentication)
-Minh họa quá trình đăng nhập và gắn quyền truy cập:
+### 1. Luồng Xác thực Đăng nhập và Phân quyền
+
+![Biểu đồ Tuần Tự Đăng Nhập](./docs/diagrams/10_sequence_auth_jwt.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User as Người Dùng
-    participant UI as Giao Diện Web (Next.js)
-    participant AuthContext as React AuthContext
-    participant AuthAPI as AuthController (.NET)
-    participant AuthService as AuthService (BLL)
-    participant DB as SQL Server Database
+    participant UI as Giao Diện Web
+    participant AuthAPI as Máy Chủ Xác Thực
+    participant DB as Cơ Sở Dữ Liệu
 
-    User->>UI: Nhập Email & Mật khẩu
-    UI->>AuthAPI: POST /api/auth/login {email, password}
-    AuthAPI->>AuthService: LoginAsync(email, password)
-    AuthService->>DB: Tìm kiếm User theo Email
-    DB-->>AuthService: Trả về bản ghi User (PasswordHash, Role)
+    User->>UI: Nhập Email và Mật khẩu
+    UI->>AuthAPI: Gửi yêu cầu đăng nhập
+    AuthAPI->>DB: Tìm kiếm tài khoản theo Email
+    DB-->>AuthAPI: Trả về thông tin tài khoản và mật khẩu mã hóa
     
-    alt Sai email hoặc mật khẩu
-        AuthService-->>AuthAPI: Quăng UnauthorizedException
-        AuthAPI-->>UI: HTTP 401 Unauthorized
-        UI-->>User: Hiển thị thông báo "Email hoặc mật khẩu không đúng"
-    else Xác thực thành công
-        AuthService->>AuthService: Verify BCrypt hash & Sinh JWT Token (Claims: sub, role, email)
-        AuthService-->>AuthAPI: Trả về Token + UserDto
-        AuthAPI-->>UI: HTTP 200 OK {token, user}
-        UI->>AuthContext: Lưu token vào LocalStorage & cập nhật User State
-        AuthContext-->>UI: Cập nhật giao diện theo Role (Seller/Admin/Customer)
-        UI-->>User: Đăng nhập thành công, chuyển hướng trang
+    alt Sai mật khẩu hoặc không tồn tại tài khoản
+        AuthAPI-->>UI: Báo lỗi thông tin đăng nhập không đúng
+        UI-->>User: Hiển thị thông báo kiểm tra lại tài khoản
+    else Đăng nhập thành công
+        AuthAPI->>AuthAPI: Kiểm tra mã băm và tạo mã phiên làm việc Token
+        AuthAPI-->>UI: Trả về Token và thông tin vai trò
+        UI->>UI: Lưu Token vào máy và cập nhật trạng thái
+        UI-->>User: Mở giao diện tương ứng theo vai trò Khách hàng, Shop hoặc Admin
     end
 ```
+</details>
 
 ---
 
-### 2. Luồng Khách hàng Đặt hàng & Khóa tồn kho chống bán khống (Order Checkout & Anti-Overselling Guard)
-Đây là nghiệp vụ quan trọng nhất bảo vệ tính toàn vẹn kho hàng của sàn thương mại điện tử:
+### 2. Luồng Tìm kiếm Thời gian thực và Gợi ý Thông minh
+
+![Biểu đồ Tuần Tự Tìm Kiếm](./docs/diagrams/11_sequence_search_autocomplete.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer as Khách Hàng
+    participant SearchBar as Ô Tìm Kiếm
+    participant Dropdown as Danh Sách Gợi Ý
+    participant Router as Bộ Điều Hướng Trang
+
+    Customer->>SearchBar: Gõ từ khóa tìm kiếm
+    SearchBar->>Dropdown: Tự động lọc sản phẩm khớp tên, mã, thương hiệu
+    Dropdown-->>Customer: Hiển thị ngay ảnh, tên, giá và tình trạng còn hàng
+
+    alt Khách hàng bấm chọn một sản phẩm trong danh sách
+        Customer->>Dropdown: Nhấp chọn sản phẩm mong muốn
+        Dropdown->>Router: Chuyển hướng sang trang chi tiết sản phẩm
+        Router-->>Customer: Hiển thị trang sản phẩm hoàn chỉnh
+    else Khách hàng nhấn Enter để xem tất cả
+        Customer->>Dropdown: Nhấn Enter hoặc nút Tìm kiếm
+        Dropdown-->>Customer: Cuộn màn hình xuống lưới sản phẩm bên dưới
+    end
+```
+</details>
+
+---
+
+### 3. Luồng Khách hàng Đặt hàng và Khóa Tồn kho Chống Bán Khống
+
+![Biểu đồ Tuần Tự Đặt Hàng](./docs/diagrams/12_sequence_anti_overselling_checkout.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor Customer as Khách Mua Hàng
-    participant Modal as CheckoutModal (React)
-    participant OrderAPI as OrdersController
-    participant OrderService as OrderService (BLL)
-    participant UnitOfWork as IUnitOfWork (DAL)
-    participant DB as SQL Server (MSSQL)
+    participant CheckoutUI as Khung Đặt Hàng
+    participant OrderService as Bộ Xử Lý Đơn Hàng
+    participant DB as Cơ Sở Dữ Liệu
 
-    Customer->>Modal: Bấm "Xác Nhận Thanh Toán"
-    Modal->>OrderAPI: POST /api/orders (CreateOrderRequest + CartItems)
-    OrderAPI->>OrderService: CreateOrderAsync(dto, currentUserId)
+    Customer->>CheckoutUI: Bấm nút Xác Nhận Đặt Hàng
+    CheckoutUI->>OrderService: Gửi thông tin đơn hàng và danh sách sản phẩm
     
-    critical Kiểm tra & Khóa tồn kho (Transaction)
-        OrderService->>UnitOfWork: Bắt đầu Database Transaction
-        loop Cho từng sản phẩm trong giỏ hàng
-            OrderService->>DB: Lấy Product & ProductVariants (Khóa bản ghi)
-            DB-->>OrderService: Trả về số lượng StockQuantity khả dụng
-            
-            alt Tồn kho < Số lượng khách mua (Bán khống)
-                OrderService-->>OrderAPI: Quăng InvalidOperationException: "Vượt quá tồn kho"
-                OrderAPI-->>Modal: HTTP 400 Bad Request ("Sản phẩm chỉ còn X sp trong kho")
-                Modal-->>Customer: Báo lỗi đỏ, từ chối giao dịch
-            else Đủ tồn kho
-                OrderService->>OrderService: Trừ Product.StockQuantity -= Quantity
-                OrderService->>OrderService: Trừ ProductVariant.StockQuantity -= Quantity
-                OrderService->>OrderService: Cập nhật StockStatus (IN_STOCK / LOW_STOCK / OUT_OF_STOCK)
-            end
+    rect rgb(240, 248, 255)
+        note over OrderService, DB: Mở giao dịch an toàn để kiểm tra kho
+        OrderService->>DB: Khóa tạm thời và kiểm tra số lượng tồn kho
+        DB-->>OrderService: Trả về số lượng thực tế trong kho
+        
+        alt Số lượng mua vượt quá tồn kho thực tế
+            OrderService-->>CheckoutUI: Từ chối đơn, báo số lượng còn lại trong kho
+            CheckoutUI-->>Customer: Báo lỗi hết hàng và mời chọn lại số lượng
+        else Số lượng trong kho đủ đáp ứng
+            OrderService->>DB: Trừ trực tiếp số lượng trong kho
+            OrderService->>DB: Cập nhật lại trạng thái còn hàng hay hết hàng
+            OrderService->>DB: Tạo đơn hàng mới và lưu vào hệ thống
+            OrderService->>DB: Xác nhận hoàn tất giao dịch
         end
-
-        OrderService->>DB: Tạo bản ghi Order (#AG-2026-XXXX) & OrderItems
-        OrderService->>DB: Lưu các thay đổi (SaveChangesAsync)
-        OrderService->>UnitOfWork: Commit Transaction thành công
     end
 
-    OrderService-->>OrderAPI: Trả về OrderDto hoàn chỉnh
-    OrderAPI-->>Modal: HTTP 201 Created {orderCode: "AG-2026-XXXX"}
-    Modal->>Modal: Xóa giỏ hàng LocalStorage (clearCart)
-    Modal-->>Customer: Hiển thị Toast thông báo đặt hàng thành công kèm mã vận đơn!
+    OrderService-->>CheckoutUI: Trả về mã đơn hàng thành công
+    CheckoutUI->>CheckoutUI: Làm trống giỏ hàng
+    CheckoutUI-->>Customer: Hiển thị cửa sổ báo đặt hàng thành công kèm mã vận đơn
 ```
+</details>
 
 ---
 
-### 3. Luồng Người bán Nhập thêm hàng vào kho (Restock Inventory)
+### 4. Luồng Người bán Nhập thêm hàng vào kho
+
+![Biểu đồ Tuần Tự Nhập Thêm Hàng](./docs/diagrams/13_sequence_restock_inventory.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Seller as Chủ Shop (Seller)
-    participant InvUI as Trang Kho Hàng (/inventory)
-    participant InvAPI as InventoryAndStatsControllers
-    participant InvService as InventoryService (BLL)
-    participant DB as SQL Server Database
+    actor Seller as Chủ Gian Hàng
+    participant InvUI as Trang Quản Lý Kho
+    participant Modal as Khung Nhập Số Lượng
+    participant InvService as Bộ Xử Lý Kho Hàng
+    participant DB as Cơ Sở Dữ Liệu
 
-    Seller->>InvUI: Bấm nút "+ Nhập Thêm" trên dòng sản phẩm
-    InvUI-->>Seller: Mở Modal nhập số lượng (Restock Modal)
-    Seller->>InvUI: Nhập số lượng cần thêm (ví dụ: +50) và Xác nhận
-    InvUI->>InvAPI: POST /api/inventory/restock {productId, additionalQuantity: 50}
+    Seller->>InvUI: Bấm nút Nhập Thêm trên dòng sản phẩm
+    InvUI->>Modal: Mở khung điền số lượng bổ sung
+    Seller->>Modal: Điền số lượng muốn nhập và bấm Xác nhận
+    Modal->>InvService: Gửi yêu cầu cộng thêm số lượng
     
-    note over InvAPI: Middleware kiểm tra JWT Bearer Token (Phải là Role: Seller hoặc Admin)
-    InvAPI->>InvService: RestockProductAsync(productId, 50)
-    InvService->>DB: Tìm Product theo Id
-    DB-->>InvService: Bản ghi Product hiện tại
+    note over InvService: Kiểm tra quyền quản trị của gian hàng
+    InvService->>DB: Tìm sản phẩm và cộng dồn số lượng mới
+    InvService->>DB: Chuyển trạng thái sản phẩm sang Còn Hàng
+    DB-->>InvService: Lưu thành công vào cơ sở dữ liệu
     
-    InvService->>InvService: StockQuantity += 50
-    InvService->>InvService: Cập nhật StockStatus = InStock
-    InvService->>DB: SaveChangesAsync()
-    DB-->>InvService: Cập nhật thành công
-    
-    InvService-->>InvAPI: Trả về InventoryItemDto mới
-    InvAPI-->>InvUI: HTTP 200 OK
-    InvUI->>InvUI: Cập nhật bảng kiểm kê & các chỉ số KPI kho tức thì
-    InvUI-->>Seller: Hiển thị thông báo "Đã nhập thêm +50 sản phẩm vào kho!"
+    InvService-->>Modal: Báo hoàn tất
+    Modal-->>InvUI: Đóng khung nhập và tải lại dữ liệu mới
+    InvUI-->>Seller: Bảng kho và các chỉ số tồn kho được cập nhật ngay lập tức
 ```
+</details>
 
 ---
 
-### 4. Luồng Cập nhật Trạng thái Đơn hàng & Tra cứu Vận chuyển
+### 5. Luồng Cập nhật Trạng thái Đơn hàng và Tra cứu Vận chuyển
+
+![Biểu đồ Tuần Tự Cập Nhật Vận Đơn](./docs/diagrams/14_sequence_order_status_tracking.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Seller as Chủ Shop
-    participant OrdersUI as Trang Đơn Hàng (/orders)
-    participant Drawer as Drawer Tra Cứu Vận Đơn
-    participant OrderAPI as OrdersController
-    participant OrderService as OrderService (BLL)
-    participant DB as SQL Server Database
+    actor Seller as Chủ Gian Hàng
+    participant OrdersUI as Trang Quản Lý Đơn
+    participant Drawer as Khay Chi Tiết Đơn
+    participant OrderService as Bộ Xử Lý Đơn Hàng
+    participant DB as Cơ Sở Dữ Liệu
 
-    Seller->>OrdersUI: Click chọn đơn hàng #AG-2026-7179
-    OrdersUI->>Drawer: Mở khay trượt chi tiết hành trình vận chuyển
-    Seller->>Drawer: Bấm nút "Giao Cho Vận Chuyển" (Chuyển sang SHIPPED)
-    Drawer->>OrderAPI: PUT /api/orders/7179/status {status: "SHIPPED"}
+    Seller->>OrdersUI: Bấm vào mã đơn hàng cần xử lý
+    OrdersUI->>Drawer: Trượt khay xem chi tiết và lộ trình vận chuyển
+    Seller->>Drawer: Bấm nút Chuyển Sang Giao Hàng
+    Drawer->>OrderService: Gửi yêu cầu đổi trạng thái đơn sang Đang Giao
     
-    note over OrderAPI: Kiểm tra Authorization (Role: Seller/Admin & Quyền sở hữu)
-    OrderAPI->>OrderService: UpdateOrderStatusAsync(orderId, "SHIPPED")
-    OrderService->>DB: Truy vấn đơn hàng kèm các mục sản phẩm
-    DB-->>OrderService: Thông tin Order
+    note over OrderService: Kiểm tra đơn hàng có đúng thuộc gian hàng này không
+    OrderService->>DB: Cập nhật trạng thái Đang Giao và mốc thời gian mới
+    DB-->>OrderService: Lưu thành công
     
-    OrderService->>OrderService: Cập nhật Status = Shipped, ProgressStep = 3
-    OrderService->>OrderService: Ghi nhận vị trí LastUpdateLocation
-    OrderService->>DB: SaveChangesAsync()
-    DB-->>OrderService: Hoàn tất cập nhật
-    
-    OrderService-->>OrderAPI: Trả về OrderDto cập nhật
-    OrderAPI-->>Drawer: HTTP 200 OK
-    Drawer->>Drawer: Cập nhật Timeline xanh lá (In Transit)
-    Drawer-->>Seller: Đổi nhãn trạng thái sang "Đang Giao"
+    OrderService-->>Drawer: Trả về thông tin đơn mới nhất
+    Drawer->>Drawer: Cập nhật thanh tiến trình lộ trình vận chuyển
+    Drawer-->>Seller: Đổi nhãn trạng thái đơn thành công
 ```
+</details>
 
 ---
 
-## 🌐 VII. BIỂU ĐỒ KIẾN TRÚC TRIỂN KHAI (DEPLOYMENT DIAGRAM)
+## 🌐 VII. KIẾN TRÚC TRIỂN KHAI DOCKER (CONTAINER ARCHITECTURE)
 
-Mô hình kiến trúc triển khai trên môi trường máy chủ vật lý / máy phát triển cục bộ:
+Hệ thống được đóng gói hoàn chỉnh thành các dịch vụ Docker độc lập và điều phối bằng **Docker Compose**:
+
+![Biểu đồ Triển Khai Docker](./docs/diagrams/15_kien_truc_trien_khai_docker.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
 
 ```mermaid
 flowchart TD
-    subgraph ClientDevice ["Thiết Bị Người Dùng (Client Machine)"]
-        Browser["Trình Duyệt Web (Chrome / Safari / Edge)<br/>Chạy giao diện HTML5, CSS3, JavaScript"]
+    subgraph ClientHost ["Thiết Bị Người Dùng và Quản Trị"]
+        UserBrowser["Trình Duyệt Khách Hàng (Máy tính / Điện thoại)"]
+        AdminBrowser["Trình Duyệt Quản Trị / Chủ Shop"]
     end
 
-    subgraph HostServer ["Máy Chủ Ứng Dụng (Application Host)"]
-        subgraph NodeRuntime ["Node.js Runtime Engine"]
-            NextServer["Next.js 15 Server (Port 3001)<br/>• SSR Page Rendering<br/>• Static Asset Serving<br/>• Proxy Routing"]
+    subgraph DockerHost ["Hạ Tầng Ảo Hóa Docker Compose (Mạng nội bộ)"]
+        subgraph WebContainer ["Máy Chủ Giao Diện Web"]
+            direction TB
+            NextEngine["Ứng Dụng Next.js<br/>Cổng nội bộ: 3000<br/>Cổng kết nối ngoài: 3001"]
         end
 
-        subgraph DotNetRuntime [".NET 10 CLR Runtime Engine"]
-            Kestrel["Kestrel Web Server (Port 5000)<br/>• ASP.NET Core Web API<br/>• JWT Authentication Filter<br/>• Swagger UI Docs (/swagger)"]
+        subgraph ApiContainer ["Máy Chủ Dịch Vụ API"]
+            direction TB
+            DotNetEngine["Dịch Vụ ASP.NET Core API<br/>Cổng nội bộ: 5000<br/>Cổng kết nối ngoài: 5000<br/>Trang tài liệu: /swagger"]
         end
 
-        subgraph DatabaseInstance ["Cơ Sở Dữ Liệu Quan Hệ"]
-            MSSQLServer["Microsoft SQL Server (Port 1433)<br/>• Database: EcommerceAethelgardDb<br/>• Tables: Users, Products, Orders...<br/>• ACID Transactions & Indexing"]
+        subgraph DbContainer ["Máy Chủ Cơ Sở Dữ Liệu"]
+            direction TB
+            MssqlEngine["Hệ Quản Trị SQL Server 2022<br/>Cổng nội bộ: 1433<br/>Cổng kết nối ngoài: 1433"]
+        end
+
+        subgraph StorageVolume ["Ổ Đĩa Lưu Trữ Bền Vững"]
+            VolData[("Thư mục lưu trữ mssql_data<br/>Giữ nguyên vẹn dữ liệu khi khởi động lại")]
         end
     end
 
-    Browser <-->|HTTP / WebSocket (Port 3001)| NextServer
-    Browser <-->|AJAX / RESTful API (Port 5000)| Kestrel
-    Kestrel <-->|TCP/IP ADO.NET Connection (Port 1433)| MSSQLServer
+    UserBrowser -->|Truy cập trang mua sắm / Cổng 3001| NextEngine
+    AdminBrowser -->|Truy cập trang quản trị / Cổng 3001| NextEngine
+    UserBrowser -->|Gửi yêu cầu trực tiếp / Cổng 5000| DotNetEngine
+    NextEngine -->|Giao tiếp nội bộ qua mạng Docker| DotNetEngine
+    DotNetEngine -->|Kết nối đọc ghi dữ liệu / Cổng 1433| MssqlEngine
+    MssqlEngine --- VolData
 ```
+</details>
 
+### Bảng cấu hình các dịch vụ Docker Compose:
+| Tên Dịch Vụ | Ảnh Mẫu (Image) | Cổng Kết Nối (Máy chủ : Ảo) | Vai Trò Chức Năng | Phụ Thuộc |
+|---|---|---|---|---|
+| **`ecommerce-db`** | `mcr.microsoft.com/mssql/server:2022-latest` | `1433:1433` | Cơ sở dữ liệu quan hệ SQL Server, gắn ổ đĩa `mssql_data` | Không |
+| **`ecommerce-api`** | ASP.NET Core 10 Web API | `5000:5000` | Cung cấp dịch vụ API, tự động khởi tạo bảng và dữ liệu | `ecommerce-db` |
+| **`ecommerce-web`** | Ứng dụng Next.js 15 Standalone | `3001:3000` | Cung cấp giao diện thời trang và quản trị bán hàng | `ecommerce-api` |
+
+---
+
+## 🛡️ VIII. HÀNG RÀO BẢO MẬT PHÂN QUYỀN (RBAC GUARD)
+
+Hệ thống thiết lập hàng rào bảo mật 3 lớp chặt chẽ giữa Khách hàng, Chủ shop và Quản trị viên:
+
+![Biểu đồ Hàng Rào Phân Quyền RBAC](./docs/diagrams/16_hang_rao_phan_quyen_rbac.png)
+
+<details>
+<summary>👁️ Nhấn vào đây để xem / chỉnh sửa mã nguồn Mermaid</summary>
+
+```mermaid
+flowchart LR
+    Request["Yêu Cầu Từ Người Dùng"]
+    
+    subgraph GuardLayer ["Hàng Rào Kiểm Tra Bảo Mật 3 Lớp"]
+        TokenCheck{"Có mã xác thực hợp lệ?"}
+        RoleCheck{"Kiểm tra vai trò người dùng"}
+        OwnerCheck{"Kiểm tra quyền sở hữu"}
+    end
+
+    subgraph Targets ["Khu Vực Phân Quyền"]
+        PublicRes["Tài Nguyên Công Khai<br/>(Xem sản phẩm, Danh mục, Đặt hàng)"]
+        SellerRes["Tài Nguyên Dành Riêng Cho Shop<br/>(Quản lý kho, Quản lý đơn, Doanh thu)"]
+        AdminRes["Tài Nguyên Quản Trị Hệ Thống<br/>(Quản lý tài khoản, Tạo dữ liệu mẫu)"]
+    end
+
+    Request --> TokenCheck
+    TokenCheck -- "Không" --> PublicRes
+    TokenCheck -- "Có" --> RoleCheck
+    
+    RoleCheck -- "Khách Hàng" --> PublicRes
+    RoleCheck -- "Chủ Shop" --> OwnerCheck
+    OwnerCheck -- "Đúng gian hàng của mình" --> SellerRes
+    OwnerCheck -- "Không đúng gian hàng" --> Deny["Từ chối truy cập (Báo lỗi 403)"]
+    RoleCheck -- "Quản Trị Viên" --> AdminRes
+    RoleCheck -- "Quản Trị Viên" --> SellerRes
+```
+</details>
+
+### Bảng Ma trận Phân quyền Chi tiết:
+
+| Chức Năng Hệ Thống | Khách Vãng Lai | Khách Đã Đăng Ký | Chủ Gian Hàng | Quản Trị Viên |
+|---|:---:|:---:|:---:|:---:|
+| **Xem sản phẩm và Tìm kiếm thông minh** | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép |
+| **Xem chi tiết sản phẩm và Phối đồ AI** | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép |
+| **Thêm vào giỏ và Đặt mua hàng** | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép | ✅ Cho phép |
+| **Nhận thông báo cá nhân** | ❌ Chặn | ✅ Thông báo Khách | ✅ Thông báo Shop | ✅ Toàn quyền |
+| **Quản lý kho hàng (`/inventory`)** | ❌ Chặn | ❌ Chặn | ✅ Hàng của Shop | ✅ Xem mọi kho |
+| **Nhập thêm hàng hóa vào kho** | ❌ Chặn | ❌ Chặn | ✅ Hàng của Shop | ✅ Mọi sản phẩm |
+| **Chuyển trạng thái đơn (`/orders`)** | ❌ Chặn | ❌ Chặn | ✅ Đơn thuộc Shop | ✅ Mọi đơn hàng |
+| **Xem báo cáo doanh số (`/stats`)** | ❌ Chặn | ❌ Chặn | ✅ Doanh thu Shop | ✅ Toàn hệ thống |
+| **Quản trị tài khoản và Khởi tạo dữ liệu** | ❌ Chặn | ❌ Chặn | ❌ Chặn | ✅ Toàn quyền |
+
+---
+
+*Tài liệu thiết kế kiến trúc hệ thống Aethelgard Mall — Bản cập nhật trực quan.*
