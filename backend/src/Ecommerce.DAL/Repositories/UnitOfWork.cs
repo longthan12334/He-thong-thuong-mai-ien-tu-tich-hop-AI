@@ -1,6 +1,7 @@
-﻿using Ecommerce.Common.Entities;
+using Ecommerce.Common.Entities;
 using Ecommerce.DAL.Context;
 using Ecommerce.DAL.Interfaces;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Ecommerce.DAL.Repositories;
 
@@ -15,6 +16,7 @@ public class UnitOfWork : IUnitOfWork
     private IGenericRepository<OrderItem>? _orderItems;
     private IGenericRepository<Store>? _stores;
     private IGenericRepository<TransactionRecord>? _transactions;
+    private IGenericRepository<Review>? _reviews;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -29,6 +31,12 @@ public class UnitOfWork : IUnitOfWork
     public IGenericRepository<OrderItem> OrderItems => _orderItems ??= new GenericRepository<OrderItem>(_context);
     public IGenericRepository<Store> Stores => _stores ??= new GenericRepository<Store>(_context);
     public IGenericRepository<TransactionRecord> Transactions => _transactions ??= new GenericRepository<TransactionRecord>(_context);
+    public IGenericRepository<Review> Reviews => _reviews ??= new GenericRepository<Review>(_context);
+
+    public Task<IDbContextTransaction> BeginTransactionAsync(CancellationToken cancellationToken = default)
+    {
+        return _context.Database.BeginTransactionAsync(cancellationToken);
+    }
 
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
