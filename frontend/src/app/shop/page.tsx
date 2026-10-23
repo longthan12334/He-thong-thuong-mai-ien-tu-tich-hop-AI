@@ -146,7 +146,12 @@ function ShopPageContent() {
 
   return (
     <>
-      <HeroSection searchTerm={searchTerm} onSearchTermChange={setSearchTerm} onScrollToCatalog={scrollToCatalog} />
+      <HeroSection
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        onScrollToCatalog={scrollToCatalog}
+        products={products}
+      />
 
       <section className="page-section shop-section" id="catalog">
         <div className="customer-shop-topbar">
