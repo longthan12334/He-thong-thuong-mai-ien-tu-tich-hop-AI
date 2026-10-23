@@ -108,6 +108,17 @@ npm run dev
 
 ## 🔑 4. Danh Sách Tài Khoản Dùng Thử (Pre-seeded Accounts)
 
+Mật khẩu dùng chung cho tất cả tài khoản mẫu: **`Password123@`**
+
+| Vai Trò (Role) | Email Đăng Nhập | Họ & Tên | Quyền Hạn & Tính Năng Trải Nghiệm |
+| :--- | :--- | :--- | :--- |
+| **Seller (Chủ shop)** | `ducmanh@gmail.com` | Nguyễn Đức Mạnh | Quản lý 20 sản phẩm riêng, quản lý tồn kho SKU, duyệt & đổi trạng thái đơn hàng, xem ma trận doanh thu |
+| **Admin (Quản trị)** | `admin@gmail.com` | Aethelgard Admin | Toàn quyền kiểm soát tài khoản, duyệt gian hàng, danh mục và đơn hàng toàn sàn |
+| **Customer (Khách mua)** | `esther.howard@example.com` | Esther Howard | Mua sắm sản phẩm, tư vấn phối đồ AI Stylist, Giỏ hàng toàn cục, Đặt hàng thanh toán COD |
+| **Boutique Seller (Dior)** | `dior@gmail.com` | Christian Dior Official | Cửa hàng đối tác chính hãng thương hiệu Dior |
+| **Boutique Seller (Gucci)** | `gucci@gmail.com` | Gucci Official | Cửa hàng đối tác chính hãng thương hiệu Gucci |
+| **Boutique Seller (Adidas)** | `adidas@gmail.com` | Adidas Official | Cửa hàng đối tác chính hãng thương hiệu Adidas |
+
 ---
 
 ## 🧪 5. Kiểm Thử Hệ Thống (Automated Testing)
