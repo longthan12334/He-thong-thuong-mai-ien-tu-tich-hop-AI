@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { statisticsService } from '@/services/statistics.service';
 import type { IncomeSummary } from '@/types';
 import { useToast } from '@/hooks/useToast';
+import { useSellerGuard } from '@/hooks/useSellerGuard';
 
 // Dữ liệu theo tháng cho biểu đồ ma trận khối (Tháng 1 - Tháng 12)
 interface MatrixMonthItem {
@@ -87,6 +88,7 @@ const initialTransactions: Transaction[] = [
 ];
 
 export default function IncomeStatisticsPage() {
+  const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop');
   const { showToast } = useToast();
   const [activeMonth, setActiveMonth] = useState<string>('JUN');
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
@@ -99,6 +101,7 @@ export default function IncomeStatisticsPage() {
 
   // Lấy dữ liệu thống kê từ API thực tế của backend
   useEffect(() => {
+    if (!isAuthorized) return;
     const fetchApiStats = async () => {
       try {
         setLoading(true);
@@ -113,7 +116,9 @@ export default function IncomeStatisticsPage() {
       }
     };
     fetchApiStats();
-  }, []);
+  }, [isAuthorized]);
+
+
 
   // Tính toán số liệu doanh thu hiển thị linh hoạt
   const totalRevenueDisplay = useMemo(() => {
@@ -182,6 +187,17 @@ export default function IncomeStatisticsPage() {
       showToast('Đã thêm giao dịch thử nghiệm mới thành công.');
     }
   };
+
+  if (isGuardLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400 font-medium">Đang xác thực quyền truy cập báo cáo tài chính...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="income-dashboard-wrap">

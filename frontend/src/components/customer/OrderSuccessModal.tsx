@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import type { Order } from '@/types';
 import { Modal } from '@/components/ui';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { orderService } from '@/services/order.service';
 import { formatVND } from '@/lib/utils';
 
 interface OrderSuccessModalProps {
@@ -16,12 +17,29 @@ interface OrderSuccessModalProps {
 
 /**
  * Màn hình xác nhận đặt hàng thành công: giữ lại mã đơn để khách tra cứu,
- * hướng dẫn chuyển khoản khi chọn thanh toán trực tuyến.
+ * tích hợp Cổng thanh toán trực tuyến VNPay Sandbox.
  */
 export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, payment, onClose }) => {
   const { token } = useAuth();
   const { showToast } = useToast();
+  const [isRedirectingVnpay, setIsRedirectingVnpay] = useState(false);
   if (!order) return null;
+
+  const handlePayWithVnpay = async () => {
+    setIsRedirectingVnpay(true);
+    try {
+      const url = await orderService.getVnpayUrl(order.id);
+      if (url) {
+        window.location.href = url;
+      } else {
+        showToast('Không lấy được URL thanh toán VNPay.');
+      }
+    } catch {
+      showToast('Lỗi kết nối cổng thanh toán VNPay Sandbox.');
+    } finally {
+      setIsRedirectingVnpay(false);
+    }
+  };
 
   const trackHref = token
     ? `/shop/my-orders?code=${encodeURIComponent(order.orderCode)}`
@@ -75,17 +93,46 @@ export const OrderSuccessModal: React.FC<OrderSuccessModalProps> = ({ order, pay
         </div>
 
         {payment === 'ONLINE' && (
-          <div className="customer-transfer-box">
-            <p className="customer-transfer-title">Hướng dẫn chuyển khoản (môi trường demo)</p>
-            <p>
-              Nội dung chuyển khoản: <strong>{order.orderCode}</strong>
+          <div className="customer-transfer-box" style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: '1.25rem' }}>💳</span>
+              <strong style={{ color: '#0369A1', fontSize: '0.95rem' }}>Cổng Thanh Toán VNPay Sandbox</strong>
+            </div>
+            <p style={{ fontSize: '0.82rem', color: '#0C4A6E', marginBottom: 12 }}>
+              Đơn hàng của bạn đã được khởi tạo. Bạn có thể thanh toán trực tuyến ngay qua thẻ ATM nội địa hoặc quét mã QR VNPay Sandbox.
             </p>
-            <p>
-              Số tiền: <strong>{formatVND(order.totalAmount || 0)}</strong>
-            </p>
-            <p className="customer-transfer-note">
-              Cổng thanh toán tự động (VNPay / MoMo / VietQR) sẽ được tích hợp ở giai đoạn sau. Đơn hàng được giữ trong 24 giờ.
-            </p>
+
+            <button
+              type="button"
+              onClick={handlePayWithVnpay}
+              disabled={isRedirectingVnpay}
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                background: isRedirectingVnpay ? '#94A3B8' : '#0284C7',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                fontWeight: 700,
+                cursor: isRedirectingVnpay ? 'not-allowed' : 'pointer',
+                marginBottom: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)',
+              }}
+            >
+              {isRedirectingVnpay ? 'Đang chuyển hướng sang VNPay...' : '🚀 Thanh Toán Ngay Qua VNPay Sandbox'}
+            </button>
+
+            <div style={{ fontSize: '0.78rem', color: '#475569', background: '#fff', padding: 10, borderRadius: 8, border: '1px dashed #CBD5E1' }}>
+              <strong style={{ display: 'block', color: '#0F172A', marginBottom: 4 }}>Thẻ Thử Nghiệm Sandbox VNPay:</strong>
+              <div>• Ngân hàng: <strong>NCB</strong></div>
+              <div>• Số thẻ: <strong>9704198526191432198</strong></div>
+              <div>• Tên chủ thẻ: <strong>NGUYEN VAN A</strong></div>
+              <div>• Ngày phát hành: <strong>07/15</strong> | OTP: <strong>123456</strong></div>
+            </div>
           </div>
         )}
 
