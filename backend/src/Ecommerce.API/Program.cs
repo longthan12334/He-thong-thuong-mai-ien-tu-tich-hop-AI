@@ -1,4 +1,5 @@
 using Ecommerce.API.Configurations;
+using Ecommerce.API.Hubs;
 using Ecommerce.API.Middlewares;
 using Ecommerce.DAL.Context;
 using Ecommerce.DAL.Seed;
@@ -30,11 +31,13 @@ if (app.Environment.IsDevelopment() || true)
 }
 
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 // Tự động nạp dữ liệu CSDL khi ứng dụng khởi động
 using (var scope = app.Services.CreateScope())

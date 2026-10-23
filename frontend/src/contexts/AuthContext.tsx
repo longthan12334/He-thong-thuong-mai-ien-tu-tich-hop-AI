@@ -53,9 +53,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pathname.startsWith('/shop/wishlist') ||
       pathname.startsWith('/product-detail');
 
+    const isSellerOnlyPage =
+      pathname === '/inventory' ||
+      pathname === '/orders' ||
+      pathname === '/income-statistics';
+
     if (!token && !isLoginPage && !isPublicShopperPage) {
       sessionStorage.setItem(STORAGE_KEYS.REDIRECT_PATH, pathname);
       router.replace('/login');
+    } else if (token && user?.role === 'Customer' && isSellerOnlyPage) {
+      router.replace(pathname === '/orders' ? '/shop/my-orders' : '/shop');
     } else if (token && isLoginPage) {
       const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
       const redirect = saved || (user?.role === 'Customer' ? '/shop' : '/');

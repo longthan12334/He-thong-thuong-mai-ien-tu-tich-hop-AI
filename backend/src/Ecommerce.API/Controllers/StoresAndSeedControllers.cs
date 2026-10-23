@@ -3,6 +3,7 @@ using Ecommerce.Common.DTOs;
 using Ecommerce.DAL.Context;
 using Ecommerce.DAL.Seed;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Ecommerce.API.Controllers;
 
@@ -33,7 +34,7 @@ public class StoresController : ControllerBase
     }
 
     [HttpPut("{storeCode}")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Seller,Admin")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public async Task<ActionResult<StoreDto>> UpdateStore(string storeCode, [FromBody] UpdateStoreDto dto)
     {
         var updated = await _storeService.UpdateStoreAsync(storeCode, dto);
@@ -44,6 +45,7 @@ public class StoresController : ControllerBase
 
 [ApiController]
 [Route("api/[controller]")]
+[EnableRateLimiting("AiLimiter")]
 public class AIController : ControllerBase
 {
     private readonly IAIService _aiService;
@@ -58,6 +60,18 @@ public class AIController : ControllerBase
     {
         var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query, productId);
         return Ok(new { recommendation });
+    }
+
+    [HttpPost("generate-description")]
+    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProductName))
+        {
+            return BadRequest(new { message = "Tên sản phẩm không được để trống." });
+        }
+
+        var result = await _aiService.GenerateProductDescriptionAsync(request);
+        return Ok(result);
     }
 }
 
@@ -75,6 +89,7 @@ public class SeedController : ControllerBase
     }
 
     [HttpPost("run")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public async Task<IActionResult> RunSeeder()
     {
         _logger.LogInformation("Kích hoạt nạp dữ liệu bản phác thảo E-Commerce...");
