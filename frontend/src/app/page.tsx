@@ -205,6 +205,7 @@ export default function HomePage() {
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onScrollToCatalog={scrollToCatalog}
+        products={products}
       />
 
       {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
