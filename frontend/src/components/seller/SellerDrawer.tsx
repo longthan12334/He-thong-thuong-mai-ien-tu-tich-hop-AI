@@ -85,7 +85,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
           </div>
 
           <div className="seller-panel-body">
-            {/* Inventory Overview */}
+            {/* Tổng quan tồn kho */}
             <div className="inventory-stats-grid">
               <div className="inv-stat-card avail">
                 <span className="inv-val">{product.stockQuantity ?? 30}</span>
@@ -101,7 +101,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
               </div>
             </div>
 
-            {/* Inventory Progress Bar */}
+            {/* Thanh tiến độ tồn kho */}
             <div className="inv-progress-wrap">
               <div className="inv-progress-bar">
                 <div
@@ -115,7 +115,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
               </div>
             </div>
 
-            {/* Variants table */}
+            {/* Bảng biến thể */}
             <div className="seller-section-box">
               <div className="seller-section-title">
                 Phân Loại Phiên Bản
@@ -155,7 +155,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
               </div>
             </div>
 
-            {/* Shipping specs */}
+            {/* Thông số vận chuyển */}
             <div className="seller-section-box">
               <div className="seller-section-title">Thông Số Lưu Kho & Đóng Gói</div>
               <div className="shipping-spec-list">
@@ -210,7 +210,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
           </div>
 
           <div className="seller-panel-body">
-            {/* Hero overview */}
+            {/* Tổng quan sản phẩm */}
             <div className="seller-product-hero">
               <div className="seller-hero-img-box">
                 <img
@@ -274,7 +274,7 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
                   <span>-{formatVND(financials.platformFee)}</span>
                 </div>
                 <div className="ledger-row">
-                  <span>- Thuế GTGT VAT khấu trừ (8%):</span>
+                  <span>- Thuế GTGT (VAT) khấu trừ (8%):</span>
                   <span>-{formatVND(financials.vatFee)}</span>
                 </div>
                 <div className="ledger-row total-net">

@@ -21,7 +21,7 @@ const sizeClasses: Record<string, string> = {
 };
 
 export function Modal({ isOpen, onClose, title, children, size = 'md', className }: ModalProps) {
-  // Escape key to close
+  // Nhấn phím Escape để đóng
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();

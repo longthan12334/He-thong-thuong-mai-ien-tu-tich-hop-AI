@@ -1,4 +1,4 @@
-/** Statistics Type Definitions */
+/** Định nghĩa kiểu dữ liệu Thống kê */
 
 export interface MonthlyData {
   month: string;
