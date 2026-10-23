@@ -36,7 +36,7 @@ public static class DatabaseSeeder
         await context.Database.MigrateAsync();
 
         // ==========================================
-        // 1. SEED USERS (23 Users)
+        // 1. NẠP NGƯỜI DÙNG (23 tài khoản)
         // ==========================================
         if (!await context.Users.AnyAsync())
         {
@@ -71,7 +71,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 2. SEED CATEGORIES (4 Categories)
+        // 2. NẠP DANH MỤC (4 danh mục)
         // ==========================================
         if (!await context.Categories.AnyAsync())
         {
@@ -87,7 +87,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 3. SEED STORES (23 Stores)
+        // 3. NẠP GIAN HÀNG (23 cửa hàng)
         // ==========================================
         if (!await context.Stores.AnyAsync())
         {
@@ -122,7 +122,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 4. SEED PRODUCTS & VARIANTS
+        // 4. NẠP SẢN PHẨM & BIẾN THỂ
         // ==========================================
         if (!await context.Products.AnyAsync())
         {
@@ -134,7 +134,7 @@ public static class DatabaseSeeder
 
             var dbUsers = await context.Users.ToListAsync();
 
-            // Lookup brand sellers for initial classic products
+            // Tra cứu người bán theo thương hiệu cho các sản phẩm kinh điển ban đầu
             var earlyAdidas = dbUsers.First(u => u.Email == "adidas@gmail.com");
             var earlyBalenciaga = dbUsers.First(u => u.Email == "balenciaga@gmail.com");
             var earlyGucci = dbUsers.First(u => u.Email == "gucci@gmail.com");
@@ -5087,7 +5087,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 5. SEED ORDERS & TRANSACTIONS
+        // 5. NẠP ĐƠN HÀNG & GIAO DỊCH
         // ==========================================
         if (!await context.Orders.AnyAsync())
         {

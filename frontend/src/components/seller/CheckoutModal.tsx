@@ -56,7 +56,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         customerEmail: customerEmail.trim() || user?.email || 'customer@example.com',
         customerPhone: customerPhone.trim() || '+84 988 000 111',
         shippingAddress: address.trim() + (note ? ` (Ghi chú: ${note.trim()})` : ''),
-        paymentMethod: paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán trực tuyến (Online Gateway)',
+        paymentMethod: paymentMethod === 'COD' ? 'Thanh toán khi nhận hàng (COD)' : 'Thanh toán trực tuyến (Cổng thanh toán)',
         items: cart.map((item) => ({
           productId: item.product.id,
           specs: 'Tiêu chuẩn',
@@ -202,7 +202,7 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                   onChange={() => setPaymentMethod('ONLINE')}
                 />
                 <div className="radio-content">
-                  <strong style={{ fontSize: '0.9rem' }}>Thanh toán trực tuyến (Online Gateway)</strong>
+                  <strong style={{ fontSize: '0.9rem' }}>Thanh toán trực tuyến (Cổng thanh toán)</strong>
                   <p style={{ margin: 0, fontSize: '0.78rem', color: '#64748B' }}>
                     Thanh toán qua cổng tự động (Xác nhận tức thì)
                   </p>

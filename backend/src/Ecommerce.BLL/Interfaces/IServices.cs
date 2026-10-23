@@ -30,6 +30,7 @@ public interface IOrderService
     Task<OrderDto> GetOrderByCodeAsync(string orderCode);
     Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null);
     Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null);
+    Task<OrderDto> CancelOrderByCustomerAsync(int id, int userId);
 }
 
 public interface IInventoryService

@@ -19,7 +19,7 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // 1. Database Context
+        // 1. Ngữ cảnh CSDL (DbContext)
         var provider = configuration["DatabaseProvider"] ?? "SqlServer";
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -41,7 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 
-        // 3. Business Services
+        // 3. Dịch vụ nghiệp vụ
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IProductService, ProductService>();
         services.AddScoped<IOrderService, OrderService>();
@@ -50,7 +50,7 @@ public static class DependencyInjection
         services.AddScoped<IStoreService, StoreService>();
         services.AddScoped<IAIService, AIService>();
 
-        // 4. AutoMapper Setup
+        // 4. Cấu hình AutoMapper
         var config = new MapperConfiguration(cfg =>
         {
             cfg.AddProfile<MappingProfile>();
@@ -62,7 +62,7 @@ public static class DependencyInjection
         services.AddScoped<IValidator<RegisterRequestDto>, RegisterRequestValidator>();
         services.AddScoped<IValidator<CreateProductDto>, CreateProductValidator>();
 
-        // 6. JWT Authentication
+        // 6. Xác thực JWT
         var jwtKey = configuration["Jwt:Key"] ?? "AethelgardSuperSecretKey2026NguyenDucManh9999!";
         var jwtIssuer = configuration["Jwt:Issuer"] ?? "AethelgardMall";
         var jwtAudience = configuration["Jwt:Audience"] ?? "AethelgardMallClients";
@@ -84,7 +84,7 @@ public static class DependencyInjection
 
         services.AddAuthorization();
 
-        // 7. CORS policy for Next.js Frontend
+        // 7. Chính sách CORS cho Frontend Next.js
         services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>
