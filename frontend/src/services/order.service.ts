@@ -27,6 +27,11 @@ export const orderService = {
     return res.data;
   },
 
+  async getVnpayUrl(orderId: number, returnUrl?: string): Promise<string> {
+    const res = await apiClient.post(`/orders/${orderId}/vnpay-url`, { returnUrl });
+    return res.data.paymentUrl;
+  },
+
   /**
    * [Customer] Đơn hàng của khách đang đăng nhập.
    * Backend tự lọc theo UserId khi role = Customer. Không dùng dữ liệu mẫu dự phòng

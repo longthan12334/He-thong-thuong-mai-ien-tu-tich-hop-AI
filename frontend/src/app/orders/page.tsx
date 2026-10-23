@@ -5,6 +5,7 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { orderService } from '@/services/order.service';
 import type { Order } from '@/types';
 import { useToast } from '@/hooks/useToast';
+import { useSellerGuard } from '@/hooks/useSellerGuard';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   OrderKpiCards,
@@ -13,6 +14,7 @@ import {
   OrderTrackingDrawer,
 } from '@/components/seller/orders';
 import { RefreshCw, Printer } from 'lucide-react';
+import { signalRService } from '@/services/signalr.service';
 
 const defaultOrders: Order[] = [
   {
@@ -117,6 +119,7 @@ const defaultOrders: Order[] = [
 ];
 
 export default function OrdersPage() {
+  const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop/my-orders');
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
 
@@ -143,8 +146,17 @@ export default function OrdersPage() {
   }, []);
 
   useEffect(() => {
+    if (!isAuthorized) return;
     loadOrders();
-  }, [loadOrders]);
+    const unsubscribe = signalRService.subscribe((notif) => {
+      if (notif.type === 'ORDER_CREATED' || notif.type === 'ORDER_STATUS' || notif.type === 'PAYMENT_CONFIRMED') {
+        loadOrders();
+      }
+    });
+    return () => unsubscribe();
+  }, [loadOrders, isAuthorized]);
+
+
 
   // Lọc đơn hàng theo tab và từ khóa
   const filteredOrders = useMemo(() => {
@@ -221,6 +233,17 @@ export default function OrdersPage() {
       delivered: orders.filter((o) => o.status === 'DELIVERED').length,
     };
   }, [orders]);
+
+  if (isGuardLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400 font-medium">Đang xác thực quyền quản trị đơn hàng...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="orders-container">

@@ -1,4 +1,4 @@
-﻿using Ecommerce.Common.Enums;
+using Ecommerce.Common.Enums;
 
 namespace Ecommerce.Common.Entities;
 
@@ -30,4 +30,5 @@ public class Product : BaseEntity
 
     public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
 }

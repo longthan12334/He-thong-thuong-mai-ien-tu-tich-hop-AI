@@ -1,5 +1,6 @@
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
+using Ecommerce.Common.Exceptions;
 using Ecommerce.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,12 @@ public class StatisticsService : IStatisticsService
 
     public async Task<IncomeSummaryDto> GetIncomeStatisticsAsync(int? sellerId = null, string? role = null)
     {
+        // Chặn quyền truy cập nếu là tài khoản Khách hàng
+        if (role == "Customer")
+        {
+            throw new UnauthorizedException("Khách mua hàng không có quyền xem báo cáo thống kê doanh thu gian hàng.");
+        }
+
         var transactions = await _unitOfWork.Transactions.Query()
             .OrderByDescending(t => t.Id)
             .Take(20)
