@@ -33,7 +33,12 @@ public class InventoryController : ControllerBase
     [Authorize(Roles = "Seller,Admin")]
     public async Task<IActionResult> Restock([FromBody] RestockRequestDto request)
     {
-        var success = await _inventoryService.RestockProductAsync(request);
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var success = await _inventoryService.RestockProductAsync(request, userId, roleClaim);
         return Ok(new { success, message = "Đã nhập hàng thành công vào hệ thống tồn kho sàn." });
     }
 }

@@ -19,4 +19,28 @@ export const aiService = {
       };
     }
   },
+
+  async generateProductDescription(data: {
+    productName: string;
+    categoryName?: string;
+    brand?: string;
+    keywords?: string;
+  }): Promise<{
+    seoTitle: string;
+    description: string;
+    material: string;
+    careInstructions: string;
+  }> {
+    try {
+      const res = await apiClient.post('/ai/generate-description', data);
+      return res.data;
+    } catch {
+      return {
+        seoTitle: `${data.productName} — Bộ Sưu Tập Thời Trang Cao Cấp Aethelgard`,
+        description: `Tuyệt phẩm ${data.productName} mang đến sự kết hợp hoàn mỹ giữa chất liệu thượng hạng và phong cách thanh lịch đương đại, khẳng định đẳng cấp độc bản của chủ nhân.`,
+        material: 'Vải dệt cao cấp tuyển chọn đạt chuẩn chất lượng quốc tế',
+        careInstructions: 'Bảo quản nơi thoáng mát, tránh ánh nắng trực tiếp và hóa chất tẩy rửa mạnh.',
+      };
+    }
+  },
 };

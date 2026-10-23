@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using AutoMapper;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.BLL.Mappings;
@@ -10,6 +11,7 @@ using Ecommerce.DAL.Interfaces;
 using Ecommerce.DAL.Repositories;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -49,6 +51,8 @@ public static class DependencyInjection
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IStoreService, StoreService>();
         services.AddScoped<IAIService, AIService>();
+        services.AddScoped<IVnpayService, VnpayService>();
+        services.AddHttpClient();
 
         // 4. Cấu hình AutoMapper
         var config = new MapperConfiguration(cfg =>
@@ -84,14 +88,32 @@ public static class DependencyInjection
 
         services.AddAuthorization();
 
-        // 7. Chính sách CORS cho Frontend Next.js
+        // 7. Chính sách CORS cho Frontend Next.js & SignalR
         services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", policy =>
             {
-                policy.AllowAnyOrigin()
+                policy.SetIsOriginAllowed(_ => true)
                       .AllowAnyHeader()
-                      .AllowAnyMethod();
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
+
+        // 8. Real-time SignalR Hub
+        services.AddSignalR();
+
+        // 8. In-Memory Cache & Rate Limiting chống spam AI
+        services.AddMemoryCache();
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddFixedWindowLimiter("AiLimiter", opt =>
+            {
+                opt.PermitLimit = 15;
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+                opt.QueueLimit = 2;
             });
         });
 
