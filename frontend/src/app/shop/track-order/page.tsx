@@ -86,6 +86,44 @@ function TrackOrderContent() {
         <ShopSubnav />
       </div>
 
+      {searchParams.get('vnpay') === 'success' && (
+        <div style={{
+          background: '#ECFDF5',
+          border: '1px solid #6EE7B7',
+          color: '#065F46',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(16, 185, 129, 0.1)',
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>🎉</span>
+          <div>
+            <strong style={{ display: 'block', fontSize: '1rem', marginBottom: '2px' }}>
+              Thanh Toán Qua Cổng VNPay Sandbox Thành Công!
+            </strong>
+            <span style={{ fontSize: '0.88rem' }}>
+              Hệ thống đã tự động ghi nhận thanh toán và cập nhật trạng thái đơn hàng sang <strong>Đang chuẩn bị hàng</strong>.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {searchParams.get('vnpay') === 'cancel' && (
+        <div style={{
+          background: '#FFFBEB',
+          border: '1px solid #FCD34D',
+          color: '#92400E',
+          padding: '14px 18px',
+          borderRadius: '12px',
+          marginBottom: '20px',
+        }}>
+          ⚠️ Giao dịch qua cổng thanh toán VNPay đã bị hủy hoặc chưa hoàn tất. Bạn có thể tra cứu trạng thái đơn hàng bên dưới.
+        </div>
+      )}
+
       <form
         className="customer-track-form"
         onSubmit={(e) => {

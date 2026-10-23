@@ -81,9 +81,11 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
   return (
     <section className="customer-ai-panel" aria-labelledby="ai-stylist-title">
       <div className="customer-ai-header">
-        <span className="customer-ai-badge">✦ Trợ lý AI</span>
-        <h2 id="ai-stylist-title">Trợ Lý Phối Đồ Thông Minh</h2>
-        <p>Cho AI biết bạn định mặc vào dịp nào, trợ lý sẽ gợi ý cách phối cùng sản phẩm này.</p>
+        <span className="customer-ai-badge" style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #8b5cf6 100%)', boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)' }}>
+          ✦ AI Stylist · Powered by Google Gemini
+        </span>
+        <h2 id="ai-stylist-title">Trợ Lý Phối Đồ Cá Nhân Hóa (Gemini AI)</h2>
+        <p>Hỏi ý kiến trợ lý AI được tích hợp mô hình Google Gemini để nhận gợi ý phối đồ chuẩn phong cách thời thượng.</p>
       </div>
 
       <form
@@ -133,6 +135,11 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
           <>
             {askedFor && <p className="customer-ai-question">“{askedFor}”</p>}
             <p>{answer}</p>
+            {!isFallback && Boolean(answer) && (
+              <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4f46e5', fontWeight: 600 }}>
+                <span>✨ Gợi ý thời trang tạo bởi Google Gemini 3.0 Flash</span>
+              </div>
+            )}
             {isFallback && <p className="customer-ai-note">Đang dùng gợi ý ngoại tuyến do chưa kết nối được máy chủ AI.</p>}
           </>
         )}

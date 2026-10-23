@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { fallbackProducts, fallbackCategories } from '@/lib/mock-data';
 import type { Product, Category } from '@/types';
 import { productService } from '@/services/product.service';
@@ -19,6 +20,7 @@ import {
 } from '@/components/seller';
 
 export default function HomePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -121,6 +123,11 @@ export default function HomePage() {
   }, [products, categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
 
   const openSellerDrawer = (p: Product) => {
+    // Nếu là khách hàng hoặc khách vãng lai: chuyển đến trang chi tiết sản phẩm khách hàng
+    if (!isSellerRole) {
+      router.push(`/product-detail/${p.id}`);
+      return;
+    }
     setDrawerProduct(p);
     setIsDrawerOpen(true);
   };
@@ -262,14 +269,16 @@ export default function HomePage() {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleOpenCreateModal}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Thêm Sản Phẩm Mới</span>
-                </button>
+                {isSellerRole && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateModal}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Thêm Sản Phẩm Mới</span>
+                  </button>
+                )}
               </div>
             </div>
 

@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useShopper } from '@/contexts/ShopperContext';
 import { SELLER_NAV_LINKS } from '@/lib/constants';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -126,8 +127,11 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Khối Actions: Nút Giỏ hàng & Đăng nhập / User info */}
+        {/* Khối Actions: Nút Giỏ hàng, Thông báo & Đăng nhập / User info */}
         <div className="nav-actions flex items-center gap-3">
+          {/* Chuông Thông Báo Thời Gian Thực (SignalR) */}
+          <NotificationBell />
+
           {/* Nút Danh sách yêu thích (Khách hàng) */}
           <Link
             href="/shop/wishlist"

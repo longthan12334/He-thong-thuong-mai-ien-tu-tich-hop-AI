@@ -415,27 +415,29 @@ export default function ShopProfilePage() {
               <a href="#boutiques-section" className="btn-view-boutique-jump">
                 <span>📍 2 Cửa Hàng Boutique</span>
               </a>
-              <button
-                type="button"
-                onClick={handleOpenEditModal}
-                className="btn-edit-shop-profile"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '9px 16px',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-                  color: '#ffffff',
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  border: '1px solid #334155',
-                  cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}
-              >
-                <span>⚙ Sửa Hồ Sơ Gian Hàng</span>
-              </button>
+              {isSellerUser && (
+                <button
+                  type="button"
+                  onClick={handleOpenEditModal}
+                  className="btn-edit-shop-profile"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '9px 16px',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+                    color: '#ffffff',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    border: '1px solid #334155',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  <span>⚙ Sửa Hồ Sơ Gian Hàng</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -83,4 +83,22 @@ public class ProductsController : ControllerBase
         if (!success) return NotFound();
         return NoContent();
     }
+
+    [HttpGet("{id:int}/reviews")]
+    public async Task<ActionResult<List<ReviewDto>>> GetReviews(int id)
+    {
+        var reviews = await _productService.GetProductReviewsAsync(id);
+        return Ok(reviews);
+    }
+
+    [HttpPost("{id:int}/reviews")]
+    public async Task<ActionResult<ReviewDto>> CreateReview(int id, [FromBody] CreateReviewDto request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var review = await _productService.AddProductReviewAsync(id, request, userId);
+        return CreatedAtAction(nameof(GetReviews), new { id }, review);
+    }
 }
