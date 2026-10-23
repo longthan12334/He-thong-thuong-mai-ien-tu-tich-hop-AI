@@ -299,7 +299,7 @@ export default function TransactionsPage() {
                 <span className="font-bold text-slate-900">3.5% / đơn</span>
               </div>
               <div className="flex justify-between pb-2 border-b border-slate-100">
-                <span>Thuế GTGT VAT khấu trừ:</span>
+                <span>Thuế GTGT (VAT) khấu trừ:</span>
                 <span className="font-bold text-slate-900">8.0%</span>
               </div>
               <div className="flex justify-between">
@@ -454,7 +454,7 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Confirm Dialog */}
+      {/* Hộp thoại xác nhận */}
       {confirmDialog}
     </div>
   );

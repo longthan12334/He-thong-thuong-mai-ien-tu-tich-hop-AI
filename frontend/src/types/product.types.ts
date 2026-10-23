@@ -1,4 +1,4 @@
-/** Product Type Definitions */
+/** Định nghĩa kiểu dữ liệu Sản phẩm */
 
 export interface Product {
   id: number;

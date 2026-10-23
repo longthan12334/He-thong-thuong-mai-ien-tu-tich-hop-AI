@@ -64,6 +64,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         fullName: fullName.trim(),
         email: email.trim(),
         password,
+        role: 'Customer',
       });
 
       if (res && res.token) {
@@ -90,7 +91,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
       <div>
-        <label className="input-label">Full Name</label>
+        <label className="input-label">Họ và tên</label>
         <input
           type="text"
           required
@@ -102,7 +103,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       </div>
 
       <div>
-        <label className="input-label">Email Address</label>
+        <label className="input-label">Địa chỉ Email</label>
         <input
           type="email"
           required
@@ -114,7 +115,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       </div>
 
       <div>
-        <label className="input-label">Password</label>
+        <label className="input-label">Mật khẩu</label>
         <div className="input-wrapper relative">
           <input
             type={showPassword ? 'text' : 'password'}
@@ -134,7 +135,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           </button>
         </div>
 
-        {/* Minimalist Password Strength Bar */}
+        {/* Thanh độ mạnh mật khẩu tối giản */}
         {password && (
           <div className="mt-2.5 transition-all duration-300">
             <div className="flex items-center justify-between mb-1 text-xs">
@@ -159,7 +160,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
         disabled={isLoading}
         className="w-full py-3.5 px-4 bg-[#8065c9] hover:opacity-90 text-white rounded-lg font-bold text-sm transition-all shadow-md mt-4 cursor-pointer border-0"
       >
-        {isLoading ? 'Đang tạo tài khoản...' : 'Create Account'}
+        {isLoading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản'}
       </button>
     </form>
   );

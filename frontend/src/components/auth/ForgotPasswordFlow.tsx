@@ -52,7 +52,7 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
         otpInputsRef.current[0]?.focus();
       }, 100);
     } catch {
-      // Fallback demo mode
+      // Chế độ demo dự phòng
       onShowToast(`Đã gửi OTP xác thực tới ${email} (Mã mặc định: 000000)`);
       setStep(2);
       setResendActive(true);
@@ -122,7 +122,7 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
 
   return (
     <div className="my-auto py-2 transition-all duration-300">
-      {/* SCREEN 1: Forgot password email */}
+      {/* MÀN HÌNH 1: Nhập email quên mật khẩu */}
       {step === 1 && (
         <div>
           <div className="text-left mb-2">
@@ -133,7 +133,7 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
               title="Quay lại"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back to Login</span>
+              <span>Quay lại đăng nhập</span>
             </button>
           </div>
 
@@ -146,9 +146,9 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
             </svg>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5 text-center">Forgot your password ?</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5 text-center">Quên mật khẩu?</h2>
           <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-6 text-center">
-            Enter your email to receive a 6-digit verification code.
+            Nhập email để nhận mã xác thực gồm 6 chữ số.
           </p>
 
           <form onSubmit={handleSendOtp} className="space-y-4">
@@ -159,17 +159,17 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="sketch-input"
-                placeholder="Enter your email address"
+                placeholder="Nhập địa chỉ email của bạn"
               />
             </div>
             <button type="submit" disabled={isLoading} className="sketch-btn-purple">
-              {isLoading ? 'Sending...' : 'Send Verification Code'}
+              {isLoading ? 'Đang gửi...' : 'Gửi mã xác thực'}
             </button>
           </form>
         </div>
       )}
 
-      {/* SCREEN 2: OTP Verification */}
+      {/* MÀN HÌNH 2: Xác thực OTP */}
       {step === 2 && (
         <div className="text-center">
           <div className="text-left mb-2">
@@ -177,16 +177,16 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
               type="button"
               onClick={() => setStep(1)}
               className="sketch-back-btn"
-              title="Back"
+              title="Quay lại"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>Quay lại</span>
             </button>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Enter Verification Code</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5">Nhập mã xác thực</h2>
           <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-6">
-            We sent a 6-digit code to <strong className="text-slate-800">{email}</strong>
+            Chúng tôi đã gửi mã 6 chữ số tới <strong className="text-slate-800">{email}</strong>
           </p>
 
           <div className="flex justify-center gap-2 mb-6">
@@ -207,7 +207,7 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
           </div>
 
           <div className="flex items-center justify-between text-xs mb-4 px-2">
-            <span className="text-slate-400">Didn&apos;t receive the code?</span>
+            <span className="text-slate-400">Chưa nhận được mã?</span>
             <button
               type="button"
               disabled={resendActive}
@@ -218,7 +218,7 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
               }}
               className="font-bold text-[#8065c9] hover:underline disabled:opacity-50 cursor-pointer bg-transparent border-0"
             >
-              {resendActive ? `Resend in ${resendSeconds}s` : 'Resend Code'}
+              {resendActive ? `Gửi lại sau ${resendSeconds}s` : 'Gửi lại mã'}
             </button>
           </div>
 
@@ -234,12 +234,12 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
             }}
             className="sketch-btn-purple w-full"
           >
-            Verify OTP & Continue
+            Xác thực OTP & Tiếp tục
           </button>
         </div>
       )}
 
-      {/* SCREEN 3: Reset password */}
+      {/* MÀN HÌNH 3: Đặt lại mật khẩu */}
       {step === 3 && (
         <div>
           <div className="text-left mb-2">
@@ -247,16 +247,16 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
               type="button"
               onClick={() => setStep(2)}
               className="sketch-back-btn"
-              title="Back"
+              title="Quay lại"
             >
               <ArrowLeft className="w-4 h-4" />
-              <span>Back</span>
+              <span>Quay lại</span>
             </button>
           </div>
 
-          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5 text-center">Reset your password</h2>
+          <h2 className="text-2xl font-extrabold text-slate-800 mb-1.5 text-center">Đặt lại mật khẩu</h2>
           <p className="text-xs text-slate-500 leading-relaxed max-w-xs mx-auto mb-6 text-center">
-            What would you like your new password to be ?
+            Bạn muốn đặt mật khẩu mới là gì?
           </p>
 
           <form onSubmit={handleResetPassword} className="space-y-4">
@@ -267,13 +267,13 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="sketch-input pr-12"
-                placeholder="New Password"
+                placeholder="Mật khẩu mới"
               />
               <button
                 type="button"
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 className="toggle-eye"
-                aria-label="Toggle password"
+                aria-label="Hiện/ẩn mật khẩu"
               >
                 {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -286,20 +286,20 @@ export const ForgotPasswordFlow: React.FC<ForgotPasswordFlowProps> = ({
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="sketch-input pr-12"
-                placeholder="Confirm Password"
+                placeholder="Xác nhận mật khẩu"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="toggle-eye"
-                aria-label="Toggle password"
+                aria-label="Hiện/ẩn mật khẩu"
               >
                 {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
 
             <button type="submit" disabled={isLoading} className="sketch-btn-purple w-full">
-              {isLoading ? 'Saving...' : 'Save Password'}
+              {isLoading ? 'Đang lưu...' : 'Lưu mật khẩu'}
             </button>
           </form>
         </div>

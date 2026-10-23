@@ -7,14 +7,17 @@ import '@/styles/income-statistics.css';
 import '@/styles/shop-profile.css';
 import '@/styles/profile-shoppe.css';
 import '@/styles/login-sketch.css';
+import '@/styles/customer.css';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ToastProvider } from '@/contexts/ToastContext';
 import { CartProvider } from '@/contexts/CartContext';
+import { ShopperProvider } from '@/contexts/ShopperContext';
+import { CustomerCommerceLayer } from '@/components/customer/CustomerCommerceLayer';
 
 export const metadata: Metadata = {
-  title: 'Aethelgard Shopping Mall — AI Powered Luxury Fashion',
+  title: 'Aethelgard Mall — Sàn Thời Trang Cao Cấp Tích Hợp AI',
   description: 'Sàn thương mại điện tử thời trang & sneaker cao cấp tích hợp AI thông minh',
 };
 
@@ -37,9 +40,13 @@ export default function RootLayout({
         <AuthProvider>
           <ToastProvider>
             <CartProvider>
-              <Navbar />
-              <div className="flex-1">{children}</div>
-              <Footer />
+              <ShopperProvider>
+                <Navbar />
+                <div className="flex-1">{children}</div>
+                <Footer />
+                {/* Giỏ hàng → Thanh toán → Đặt hàng thành công: dùng chung mọi trang */}
+                <CustomerCommerceLayer />
+              </ShopperProvider>
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

@@ -1,5 +1,5 @@
 import apiClient from './api-client';
-import type { Order, UpdateOrderStatus } from '@/types';
+import type { Order, UpdateOrderStatus, CreateOrderRequest } from '@/types';
 import { fallbackOrders } from '@/lib/mock-data';
 
 export const orderService = {
@@ -22,8 +22,24 @@ export const orderService = {
     return res.data;
   },
 
-  async createOrder(data: any): Promise<Order> {
+  async createOrder(data: CreateOrderRequest): Promise<Order> {
     const res = await apiClient.post('/orders', data);
+    return res.data;
+  },
+
+  /**
+   * [Customer] Đơn hàng của khách đang đăng nhập.
+   * Backend tự lọc theo UserId khi role = Customer. Không dùng dữ liệu mẫu dự phòng
+   * để khách không nhìn thấy đơn hàng không phải của mình.
+   */
+  async getMyOrders(): Promise<Order[]> {
+    const res = await apiClient.get('/orders');
+    return res.data;
+  },
+
+  /** [Customer] Hủy đơn của chính mình khi đơn còn Chờ xác nhận */
+  async cancelMyOrder(id: number): Promise<Order> {
+    const res = await apiClient.patch(`/orders/${id}/cancel`);
     return res.data;
   },
 

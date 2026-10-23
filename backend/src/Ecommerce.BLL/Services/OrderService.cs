@@ -182,6 +182,61 @@ public class OrderService : IOrderService
         return await GetOrderByIdAsync(order.Id);
     }
 
+    /// <summary>
+    /// [Customer] Khách hàng tự hủy đơn của chính mình khi đơn còn ở trạng thái Chờ xác nhận (Pending).
+    /// Hoàn trả tồn kho sản phẩm cha và biến thể tương ứng đã bị trừ lúc đặt hàng.
+    /// Dùng BadRequestException (400) thay vì 401 để không làm frontend tự đăng xuất người dùng.
+    /// </summary>
+    public async Task<OrderDto> CancelOrderByCustomerAsync(int id, int userId)
+    {
+        var order = await _unitOfWork.Orders.Query()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+            throw new NotFoundException("Đơn hàng", id);
+
+        if (order.UserId != userId)
+            throw new BadRequestException("Bạn chỉ có thể hủy đơn hàng do chính mình đặt.");
+
+        if (order.Status != OrderStatus.Pending)
+            throw new BadRequestException("Đơn hàng đã được shop xác nhận nên không thể tự hủy. Vui lòng liên hệ shop để được hỗ trợ.");
+
+        foreach (var item in order.Items)
+        {
+            if (!item.ProductId.HasValue) continue;
+
+            var product = await _unitOfWork.Products.Query()
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId.Value);
+            if (product == null) continue;
+
+            product.StockQuantity += item.Quantity;
+            product.StockStatus = product.StockQuantity > 10
+                ? StockStatus.InStock
+                : (product.StockQuantity > 0 ? StockStatus.LowStock : StockStatus.OutOfStock);
+
+            if (product.Variants != null && product.Variants.Any() && !string.IsNullOrWhiteSpace(item.Specs))
+            {
+                var matchedVariant = product.Variants.FirstOrDefault(v =>
+                    item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
+                if (matchedVariant != null)
+                    matchedVariant.StockQuantity += item.Quantity;
+            }
+
+            _unitOfWork.Products.Update(product);
+        }
+
+        order.Status = OrderStatus.Cancelled;
+        order.LastUpdateLocation = "Khách hàng đã hủy đơn hàng";
+
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<OrderDto>(order);
+    }
+
     public async Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null)
     {
         if (role != null && role != "Admin" && role != "Seller")

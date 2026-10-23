@@ -20,12 +20,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       </div>
 
       <div className="hero-content-wrapper">
-        <h2 className="hero-tagline">Give All You Need</h2>
+        <h2 className="hero-tagline">Mọi Thứ Bạn Cần</h2>
         <p className="hero-subtitle">
           Khám phá bộ sưu tập thời trang, sneaker & phụ kiện cao cấp tích hợp AI
         </p>
 
-        {/* SEARCH BAR FLOATING CARD */}
+        {/* THẺ THANH TÌM KIẾM NỔI */}
         <div className="search-floating-card">
           <div className="search-box">
             <input

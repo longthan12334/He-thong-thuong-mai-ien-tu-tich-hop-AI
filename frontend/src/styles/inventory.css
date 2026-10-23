@@ -12,7 +12,7 @@
   box-sizing: border-box;
 }
 
-/* Page Header */
+/* Tiêu đề trang */
 .inv-page-header {
   display: flex;
   justify-content: space-between;
@@ -73,7 +73,7 @@
   border-color: #9CA3AF;
 }
 
-/* KPI Cards - Flat, Clean, Crisp */
+/* Thẻ KPI - phẳng, gọn, sắc nét */
 .inv-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -184,7 +184,7 @@
   margin-left: 8px;
 }
 
-/* Table - Sharp, Responsive and Precision */
+/* Bảng - sắc nét, co giãn & chính xác */
 .inv-table-wrap {
   background: #FFFFFF;
   border: 1px solid #E5E7EB;

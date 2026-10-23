@@ -27,7 +27,7 @@ public class ProductService : IProductService
             .Include(p => p.Variants)
             .Where(p => p.IsActive);
 
-        // Search text
+        // Tìm kiếm theo từ khóa
         if (!string.IsNullOrWhiteSpace(filter.Search))
         {
             var search = filter.Search.Trim().ToLower();
@@ -37,19 +37,19 @@ public class ProductService : IProductService
                                      p.Description.ToLower().Contains(search));
         }
 
-        // Seller filter
+        // Lọc theo người bán
         if (filter.SellerId.HasValue && filter.SellerId.Value > 0)
         {
             query = query.Where(p => p.SellerId == filter.SellerId.Value);
         }
 
-        // Category filter
+        // Lọc theo danh mục
         if (filter.CategoryId.HasValue && filter.CategoryId.Value > 0)
         {
             query = query.Where(p => p.CategoryId == filter.CategoryId.Value);
         }
 
-        // Price range
+        // Lọc theo khoảng giá
         if (filter.MinPrice.HasValue)
         {
             query = query.Where(p => p.BasePrice >= filter.MinPrice.Value);
