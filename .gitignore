@@ -39,8 +39,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Lock files
+# Lock files & SQLite temporary files
 *.lock.db
+*.db-shm
+*.db-wal
 
 # Java / Maven
 *.class
