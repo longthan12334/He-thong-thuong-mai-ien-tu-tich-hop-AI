@@ -50,11 +50,11 @@ export const SellerCommandHub: React.FC<SellerCommandHubProps> = ({
     return 'Chào buổi tối';
   };
 
-  // AI Insights calculation
+  // Tính toán phân tích AI
   const aiInsights = useMemo(() => {
     const list = [];
 
-    // 1. Best seller
+    // 1. Sản phẩm bán chạy
     const sorted = [...products].sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
     if (sorted.length > 0) {
       const top = sorted[0];
@@ -70,7 +70,7 @@ export const SellerCommandHub: React.FC<SellerCommandHubProps> = ({
       });
     }
 
-    // 2. Dynamic Pricing / Promotion
+    // 2. Định giá linh hoạt / Khuyến mãi
     const nonDiscounted = products.filter((p) => !p.discountPercent || p.discountPercent === 0);
     if (nonDiscounted.length > 0) {
       const candidate = nonDiscounted[0];
@@ -86,7 +86,7 @@ export const SellerCommandHub: React.FC<SellerCommandHubProps> = ({
       });
     }
 
-    // 3. Basket size
+    // 3. Giá trị giỏ hàng
     if (products.length > 0) {
       const avgPrice = products.reduce((sum, p) => sum + p.basePrice, 0) / products.length;
       list.push({
@@ -119,7 +119,7 @@ export const SellerCommandHub: React.FC<SellerCommandHubProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="shop-title-text">{getGreeting()}, <span className="shop-highlight">{shopName}</span></h2>
-                  <span className="mall-partner-tag">Mall Official</span>
+                  <span className="mall-partner-tag">Đối Tác Chính Thức</span>
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="live-status-dot" />
@@ -234,11 +234,11 @@ export const SellerCommandHub: React.FC<SellerCommandHubProps> = ({
             </div>
             <div className="ai-live-indicator">
               <span className="ai-live-dot-ping" />
-              <span>AI Engine Active</span>
+              <span>AI Đang Hoạt Động</span>
             </div>
           </div>
 
-          {/* AI Insights Content */}
+          {/* Nội dung phân tích AI */}
           <div className="ai-insights-stack">
             {aiInsights.map((item) => {
               const IconComp = item.icon;

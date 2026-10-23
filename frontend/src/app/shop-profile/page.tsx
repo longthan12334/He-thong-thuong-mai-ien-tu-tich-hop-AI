@@ -27,7 +27,7 @@ const initialProducts: Product[] = [
     priceFormatted: '5.200.000₫',
     sales: 620,
     rating: '★ 5.0',
-    badge: 'Gucci Iconic',
+    badge: 'Biểu Tượng Gucci',
     discount: '-10%',
     image: '/img/products/gucci-sneaker.jpg'
   },
@@ -40,7 +40,7 @@ const initialProducts: Product[] = [
     priceFormatted: '8.650.000₫',
     sales: 340,
     rating: '★ 5.0',
-    badge: 'Runway Collection',
+    badge: 'BST Runway',
     discount: '-15%',
     image: '/img/products/gucci-runway.jpg'
   },
@@ -53,20 +53,20 @@ const initialProducts: Product[] = [
     priceFormatted: '1.450.000₫',
     sales: 1240,
     rating: '★ 4.8',
-    badge: 'New Drop',
+    badge: 'Mới Ra Mắt',
     discount: '-33%',
     image: '/img/products/sample-velora.jpg'
   },
   {
     id: '4',
     name: 'Balenciaga Track 4.0 Triple Black Futuristic Sneaker',
-    category: 'Chunky Sneaker',
+    category: 'Giày Sneaker Đế Dày',
     price: 4850000,
     originalPrice: '5.700.000₫',
     priceFormatted: '4.850.000₫',
     sales: 640,
     rating: '★ 5.0',
-    badge: 'Kering High-end',
+    badge: 'Cao Cấp Kering',
     discount: '-15%',
     image: '/img/products/balenciaga-track-beige.jpg'
   },
@@ -79,7 +79,7 @@ const initialProducts: Product[] = [
     priceFormatted: '3.650.000₫',
     sales: 420,
     rating: '★ 4.8',
-    badge: 'High Fashion',
+    badge: 'Thời Trang Cao Cấp',
     discount: '-25%',
     image: '/img/products/balenciaga-ripped-jacket.jpg'
   },
@@ -92,20 +92,20 @@ const initialProducts: Product[] = [
     priceFormatted: '1.890.000₫',
     sales: 890,
     rating: '★ 4.9',
-    badge: 'Special Drop',
+    badge: 'Phiên Bản Đặc Biệt',
     discount: '-20%',
     image: '/img/products/adidas-sakura-hoodie.jpg'
   },
   {
     id: '7',
     name: 'Adidas Samba OG Classic Leather White Black Gum Sole',
-    category: 'Sneaker & Footwear',
+    category: 'Giày Sneaker & Giày Dép',
     price: 2490000,
     originalPrice: '3.050.000₫',
     priceFormatted: '2.490.000₫',
     sales: 1520,
     rating: '★ 4.9',
-    badge: 'Top Trending',
+    badge: 'Đang Thịnh Hành',
     discount: '-18%',
     image: '/img/products/adidas-samba.jpg'
   },
@@ -118,24 +118,24 @@ const initialProducts: Product[] = [
     priceFormatted: '2.890.000₫',
     sales: 760,
     rating: '★ 4.8',
-    badge: 'New Arrival',
+    badge: 'Hàng Mới Về',
     discount: '-22%',
     image: "/img/products/nike-summer-sneaker.jpg"
   }
 ];
 
 const BRAND_META: Record<string, { name: string; code: string; slogan: string; origin: string }> = {
-  dior: { name: 'DIOR Official Flagship Store', code: 'CD', slogan: '@dior_vietnam • Authentic French Haute Couture, Luxury Leather Goods & Beauty', origin: 'Pháp (Từ năm 1946)' },
-  gucci: { name: 'GUCCI Official Store', code: 'GG', slogan: '@gucci_vietnam • Authentic Italian High-End Fashion, Leather Goods & Footwear', origin: 'Ý (Từ năm 1921)' },
-  adidas: { name: 'ADIDAS Official Flagship Store', code: 'ADI', slogan: '@adidas_vietnam • Through Sport, We Have The Power To Change Lives', origin: 'Đức (Từ năm 1949)' },
-  nike: { name: 'NIKE Official Flagship Store', code: 'NK', slogan: '@nike_vietnam • Just Do It — Innovations for Athletes Worldwide', origin: 'Mỹ (Từ năm 1964)' },
-  louisvuitton: { name: 'LOUIS VUITTON Flagship Store', code: 'LV', slogan: '@louisvuitton • Master of Luxury Travel & Iconic Leather Craftsmanship', origin: 'Pháp (Từ năm 1854)' },
-  chanel: { name: 'CHANEL Haute Couture Boutique', code: 'CC', slogan: '@chanel_official • Timeless Elegance, Fragrance & High Fashion', origin: 'Pháp (Từ năm 1910)' },
-  prada: { name: 'PRADA Milano Official Boutique', code: 'PR', slogan: '@prada • Contemporary Luxury & Avant-Garde Italian Craft', origin: 'Ý (Từ năm 1913)' },
-  balenciaga: { name: 'BALENCIAGA Paris Flagship', code: 'BL', slogan: '@balenciaga • Boundary-Pushing Luxury Streetwear & Footwear', origin: 'Tây Ban Nha (Từ năm 1919)' },
-  hermes: { name: 'HERMÈS Paris Flagship Boutique', code: 'H', slogan: '@hermes • Handcrafted Leather Goods, Silk Carré & High Luxury', origin: 'Pháp (Từ năm 1837)' },
-  versace: { name: 'VERSACE Official Boutique', code: 'VER', slogan: '@versace • Bold Italian Glamour, Medusa Head & High Fashion', origin: 'Ý (Từ năm 1978)' },
-  burberry: { name: 'BURBERRY London Flagship', code: 'BB', slogan: '@burberry • British Luxury Heritage, Trench Coats & Vintage Check', origin: 'Anh Quốc (Từ năm 1856)' }
+  dior: { name: 'DIOR Official Flagship Store', code: 'CD', slogan: '@dior_vietnam • Thời trang cao cấp Pháp, đồ da xa xỉ & mỹ phẩm chính hãng', origin: 'Pháp (Từ năm 1946)' },
+  gucci: { name: 'GUCCI Official Store', code: 'GG', slogan: '@gucci_vietnam • Thời trang cao cấp Ý, đồ da & giày dép chính hãng', origin: 'Ý (Từ năm 1921)' },
+  adidas: { name: 'ADIDAS Official Flagship Store', code: 'ADI', slogan: '@adidas_vietnam • Thể thao có sức mạnh thay đổi cuộc sống', origin: 'Đức (Từ năm 1949)' },
+  nike: { name: 'NIKE Official Flagship Store', code: 'NK', slogan: '@nike_vietnam • Just Do It — Đổi mới vì vận động viên toàn cầu', origin: 'Mỹ (Từ năm 1964)' },
+  louisvuitton: { name: 'LOUIS VUITTON Flagship Store', code: 'LV', slogan: '@louisvuitton • Bậc thầy hành lý du lịch xa xỉ & nghệ thuật chế tác da', origin: 'Pháp (Từ năm 1854)' },
+  chanel: { name: 'CHANEL Haute Couture Boutique', code: 'CC', slogan: '@chanel_official • Thanh lịch vượt thời gian, nước hoa & thời trang cao cấp', origin: 'Pháp (Từ năm 1910)' },
+  prada: { name: 'PRADA Milano Official Boutique', code: 'PR', slogan: '@prada • Xa xỉ đương đại & tay nghề tiên phong của Ý', origin: 'Ý (Từ năm 1913)' },
+  balenciaga: { name: 'BALENCIAGA Paris Flagship', code: 'BL', slogan: '@balenciaga • Streetwear & giày cao cấp phá cách', origin: 'Tây Ban Nha (Từ năm 1919)' },
+  hermes: { name: 'HERMÈS Paris Flagship Boutique', code: 'H', slogan: '@hermes • Đồ da thủ công, khăn lụa Carré & xa xỉ đỉnh cao', origin: 'Pháp (Từ năm 1837)' },
+  versace: { name: 'VERSACE Official Boutique', code: 'VER', slogan: '@versace • Phong cách Ý quyến rũ, biểu tượng Medusa & thời trang cao cấp', origin: 'Ý (Từ năm 1978)' },
+  burberry: { name: 'BURBERRY London Flagship', code: 'BB', slogan: '@burberry • Di sản xa xỉ Anh Quốc, áo trench coat & họa tiết kẻ cổ điển', origin: 'Anh Quốc (Từ năm 1856)' }
 };
 
 export default function ShopProfilePage() {
@@ -153,7 +153,7 @@ export default function ShopProfilePage() {
   const [shopInfo, setShopInfo] = useState({
     name: 'DIOR Official Flagship Store',
     code: 'CD',
-    slogan: '@dior_vietnam • Authentic French Haute Couture, Luxury Leather Goods & Beauty',
+    slogan: '@dior_vietnam • Thời trang cao cấp Pháp, đồ da xa xỉ & mỹ phẩm chính hãng',
     origin: 'Pháp (Từ năm 1946)',
     phoneHn: '(024) 3936 8899',
     addressHn: 'Tầng 1 & 2, TTTM Tràng Tiền Plaza, 24 Hai Bà Trưng, P. Tràng Tiền, Q. Hoàn Kiếm, Hà Nội',
@@ -179,7 +179,7 @@ export default function ShopProfilePage() {
             const meta = BRAND_META[brandKey] || {
               name: user.fullName || `${brandKey.toUpperCase()} Official Store`,
               code: brandKey.slice(0, 3).toUpperCase(),
-              slogan: `@${brandKey}_official • Authentic High Fashion & Iconic Luxury Collections`,
+              slogan: `@${brandKey}_official • Thời trang cao cấp chính hãng & các bộ sưu tập biểu tượng`,
               origin: 'Quốc Tế',
             };
             setShopInfo((prev) => ({
@@ -209,7 +209,7 @@ export default function ShopProfilePage() {
 
       fetch(url)
         .then((res) => {
-          if (!res.ok) throw new Error('Network error');
+          if (!res.ok) throw new Error('Lỗi kết nối máy chủ');
           return res.json();
         })
         .then((data) => {
@@ -278,7 +278,7 @@ export default function ShopProfilePage() {
     showToast('Đã lưu và cập nhật hồ sơ gian hàng thành công!');
   };
 
-  // Follow toggle
+  // Bật/tắt theo dõi
   const handleFollowToggle = () => {
     if (isFollowing) {
       setIsFollowing(false);
@@ -291,12 +291,12 @@ export default function ShopProfilePage() {
     }
   };
 
-  // Chat shop
+  // Nhắn tin với shop
   const handleChatShop = () => {
     showToast(`Đang kết nối phiên tư vấn bảo mật riêng với Quản lý Boutique ${shopInfo.name}...`);
   };
 
-  // Claim voucher
+  // Lưu mã giảm giá
   const handleClaimVoucher = (code: string) => {
     if (!claimedVouchers.includes(code)) {
       setClaimedVouchers([...claimedVouchers, code]);
@@ -304,12 +304,12 @@ export default function ShopProfilePage() {
     }
   };
 
-  // Book appointment
+  // Đặt lịch hẹn
   const handleBookAppointment = (boutiqueName: string) => {
     showToast(`Đã mở yêu cầu đặt lịch hẹn VIP tại ${boutiqueName}. Chuyên viên sẽ gọi xác nhận trong 10 phút.`);
   };
 
-  // Tab switch
+  // Chuyển tab
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
     if (tab === 'locations') {
@@ -318,19 +318,19 @@ export default function ShopProfilePage() {
     }
   };
 
-  // Filter & Sort products
+  // Lọc & sắp xếp sản phẩm
   let displayProducts = [...shopProducts];
 
-  // Tab filter
+  // Lọc theo tab
   if (activeTab === 'new') {
     displayProducts = displayProducts.filter(
-      p => p.badge.includes('New') || p.badge.includes('Runway')
+      p => p.badge.includes('Mới') || p.badge.includes('Runway')
     );
   } else if (activeTab === 'bestseller') {
     displayProducts = displayProducts.filter(p => p.sales >= 600);
   }
 
-  // Search filter
+  // Lọc theo từ khóa
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase();
     displayProducts = displayProducts.filter(
@@ -351,32 +351,32 @@ export default function ShopProfilePage() {
     <main className="shop-profile-container">
       {/* BREADCRUMBS */}
       <nav className="breadcrumb-nav" style={{ marginTop: '20px', marginBottom: 0 }}>
-        <Link href="/">Aethelgard Mall</Link>
+        <Link href="/">Trang chủ Aethelgard Mall</Link>
         <span className="breadcrumb-separator">/</span>
-        <span style={{ color: 'var(--text-muted)' }}>Gian Hàng Thương Hiệu Xa Xỉ (Luxury Flagship)</span>
+        <span style={{ color: 'var(--text-muted)' }}>Gian Hàng Thương Hiệu Xa Xỉ</span>
         <span className="breadcrumb-separator">/</span>
         <span className="breadcrumb-current">{shopInfo.name}</span>
       </nav>
 
-      {/* 1. LUXURY COVER BANNER */}
+      {/* 1. ẢNH BÌA GIAN HÀNG */}
       <section className="shop-cover-banner">
         <div className="shop-cover-watermark">{shopInfo.code}</div>
         <div className="shop-cover-headline">
-          <div className="brand-badge-pill">⚖ CERTIFIED LUXURY BOUTIQUE</div>
+          <div className="brand-badge-pill">⚖ BOUTIQUE CAO CẤP ĐƯỢC CHỨNG NHẬN</div>
           <h2>{shopInfo.name.toUpperCase()}</h2>
           <p>
-            {shopInfo.slogan} • Gian hàng Flagship chính hãng phân phối trực tiếp tại sàn Aethelgard Luxury Mall
+            {shopInfo.slogan} • Gian hàng chính hãng phân phối trực tiếp tại sàn Aethelgard Mall
           </p>
         </div>
       </section>
 
-      {/* 2. SHOP IDENTITY CARD (FLOATING HEADER OVERLAY) */}
+      {/* 2. THẺ NHẬN DIỆN GIAN HÀNG (NỔI TRÊN ẢNH BÌA) */}
       <section className="shop-identity-card">
-        {/* Main Shop Details & Actions */}
+        {/* Thông tin chính & thao tác của shop */}
         <div className="shop-main-identity">
           <div className="shop-avatar-box">
             <span>{shopInfo.code}</span>
-            <span className="shop-mall-badge">FLAGSHIP</span>
+            <span className="shop-mall-badge">CHÍNH HÃNG</span>
           </div>
 
           <div className="shop-details-col">
@@ -410,7 +410,7 @@ export default function ShopProfilePage() {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
                 </svg>
-                <span>Chat Chuyên Viên VIP</span>
+                <span>Nhắn Tin Chuyên Viên VIP</span>
               </button>
               <a href="#boutiques-section" className="btn-view-boutique-jump">
                 <span>📍 2 Cửa Hàng Boutique</span>
@@ -440,7 +440,7 @@ export default function ShopProfilePage() {
           </div>
         </div>
 
-        {/* Shop Performance Stats Grid */}
+        {/* Lưới chỉ số hoạt động của shop */}
         <div className="shop-stats-grid">
           <div className="stat-metric-item">
             <span className="stat-label-row">Đánh Giá Gian Hàng</span>
@@ -577,7 +577,7 @@ export default function ShopProfilePage() {
         </div>
       </section>
 
-      {/* 4. EXCLUSIVE SHOP VOUCHERS BAR */}
+      {/* 4. DẢI MÃ GIẢM GIÁ ĐỘC QUYỀN */}
       <section className="shop-vouchers-section">
         <div className="section-label-bar">
           <h3>🎁 Đặc Quyền Voucher Giảm Giá Từ Gucci Mall</h3>
@@ -622,7 +622,7 @@ export default function ShopProfilePage() {
           {/* Voucher 3 */}
           <div className="voucher-ticket-card">
             <div className="voucher-info-col">
-              <h4>WHITE GLOVE FREESHIP</h4>
+              <h4>MIỄN PHÍ GIAO HÀNG VIP</h4>
               <p className="voucher-condition-text">Miễn phí giao hàng xe riêng bọc găng tay trắng</p>
               <span className="voucher-expiry-tag">HSD: 30/11/2026</span>
             </div>
@@ -637,7 +637,7 @@ export default function ShopProfilePage() {
         </div>
       </section>
 
-      {/* 5. SHOP NAVIGATION TABS */}
+      {/* 5. TAB ĐIỀU HƯỚNG GIAN HÀNG */}
       <nav className="shop-tabs-nav-bar">
         <button
           className={`shop-tab-item ${activeTab === 'storefront' ? 'active' : ''}`}
@@ -683,7 +683,7 @@ export default function ShopProfilePage() {
         </button>
       </nav>
 
-      {/* 6. SHOP SEARCH & FILTER TOOLBAR */}
+      {/* 6. THANH TÌM KIẾM & LỌC */}
       <div className="shop-toolbar-row">
         <div className="shop-search-box">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -741,7 +741,7 @@ export default function ShopProfilePage() {
         </div>
       </div>
 
-      {/* 7. SHOP PRODUCT CATALOG GRID */}
+      {/* 7. LƯỚI SẢN PHẨM CỦA SHOP */}
       <section className="shop-product-grid" id="shop-product-grid">
         {displayProducts.map((p) => (
           <Link
@@ -776,7 +776,7 @@ export default function ShopProfilePage() {
         ))}
       </section>
 
-      {/* 8. GUCCI LUXURY GUARANTEES BANNER */}
+      {/* 8. DẢI CAM KẾT CỦA THƯƠNG HIỆU */}
       <section className="shop-guarantee-banner">
         <div className="guarantee-box">
           <div className="guarantee-icon-wrapper">🛡</div>
@@ -797,7 +797,7 @@ export default function ShopProfilePage() {
         <div className="guarantee-box">
           <div className="guarantee-icon-wrapper">🚗</div>
           <div>
-            <h4>White Glove VIP Delivery</h4>
+            <h4>Giao Hàng VIP Tận Tay</h4>
             <p>Giao hàng bằng xe riêng chuyên dụng, nhân viên đeo găng tay trắng bàn giao.</p>
           </div>
         </div>
@@ -806,12 +806,12 @@ export default function ShopProfilePage() {
           <div className="guarantee-icon-wrapper">🎁</div>
           <div>
             <h4>Đóng Hộp Quà Tặng Luxury</h4>
-            <p>Hộp quà cao cấp nguyên seal kèm túi giấy, ruy băng và thư cảm ơn.</p>
+            <p>Hộp quà cao cấp nguyên tem niêm phong kèm túi giấy, ruy băng và thư cảm ơn.</p>
           </div>
         </div>
       </section>
 
-      {/* Toast Notification Container */}
+      {/* Khung thông báo nổi */}
       {toastMessage && (
         <div id="toast-container" className="toast-container">
           <div className="toast">{toastMessage}</div>

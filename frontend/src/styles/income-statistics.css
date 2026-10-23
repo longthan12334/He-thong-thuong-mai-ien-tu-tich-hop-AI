@@ -56,7 +56,7 @@ body {
   text-transform: uppercase;
 }
 
-/* Mini Sparkline Bar Chart */
+/* Biểu đồ cột nhỏ */
 .sparkline-bars {
   display: flex;
   align-items: flex-end;
@@ -161,7 +161,7 @@ body {
   cursor: pointer;
 }
 
-/* Sales Trend Controls */
+/* Điều khiển biểu đồ xu hướng doanh số */
 .sales-trend-toolbar {
   display: flex;
   justify-content: space-between;
@@ -218,7 +218,7 @@ body {
   background: #111827;
 }
 
-/* Time Pills */
+/* Nút chọn thời gian */
 .time-pill-selector {
   display: flex;
   background: #F3F4F6;
@@ -276,7 +276,7 @@ body {
   height: 100%;
 }
 
-/* Dotted Horizontal Guidelines */
+/* Đường kẻ ngang dạng chấm */
 .matrix-guidelines {
   position: absolute;
   top: 0;
@@ -294,7 +294,7 @@ body {
   border-top: 1px dashed #E5E7EB;
 }
 
-/* Month Columns Container */
+/* Khung chứa các cột tháng */
 .matrix-columns-container {
   display: flex;
   justify-content: space-between;
@@ -316,7 +316,7 @@ body {
   position: relative;
 }
 
-/* Block Stack (Grid of mini square blocks) */
+/* Chồng khối (lưới các ô vuông nhỏ) */
 .blocks-stack {
   display: flex;
   flex-direction: column-reverse;
@@ -343,7 +343,7 @@ body {
   box-shadow: 0 0 0 1px #111827;
 }
 
-/* Hover Tooltip on Active Month (e.g. JUN) */
+/* Chú thích khi rê chuột vào tháng đang chọn (VD: Tháng 6) */
 .matrix-tooltip-pin {
   position: absolute;
   top: 10px;
@@ -386,7 +386,7 @@ body {
   z-index: 1;
 }
 
-/* X-Axis Month Labels */
+/* Nhãn tháng trên trục X */
 .matrix-x-axis {
   display: flex;
   justify-content: space-between;
@@ -449,7 +449,7 @@ body {
   margin-bottom: 12px;
 }
 
-/* AI Insight Banner Button */
+/* Nút banner phân tích AI */
 .btn-ai-insight {
   width: 100%;
   background: #F9FAFB;
@@ -477,7 +477,7 @@ body {
   gap: 6px;
 }
 
-/* Vertical Needle Breakdown Bars */
+/* Các thanh kim dọc phân rã doanh thu */
 .needle-chart-container {
   display: flex;
   align-items: flex-end;
@@ -592,7 +592,7 @@ body {
   background: #F9FAFB;
 }
 
-/* Recent Transactions Table */
+/* Bảng giao dịch gần đây */
 .tx-table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -627,7 +627,7 @@ body {
   background: #F9FAFB;
 }
 
-/* Checkbox Style */
+/* Kiểu ô chọn */
 .tx-checkbox {
   width: 14px;
   height: 14px;
@@ -651,7 +651,7 @@ body {
   color: #4B5563;
 }
 
-/* Status Pill with dot */
+/* Nhãn trạng thái có chấm màu */
 .tx-status-badge {
   display: inline-flex;
   align-items: center;

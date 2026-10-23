@@ -19,7 +19,7 @@ export const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
     <section className="page-section recommendations-section">
       <div className="section-container">
         <div className="section-header">
-          <h2>Explore our recommendations</h2>
+          <h2>Gợi Ý Dành Cho Bạn</h2>
           <div className="carousel-controls">
             <button
               className="carousel-btn"

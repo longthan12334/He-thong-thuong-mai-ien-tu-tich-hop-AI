@@ -36,7 +36,7 @@ export const productService = {
       return res.data;
     } catch {
       const found = fallbackProducts.find(p => p.id === id);
-      if (!found) throw new Error('Product not found');
+      if (!found) throw new Error('Không tìm thấy sản phẩm');
       return found;
     }
   },

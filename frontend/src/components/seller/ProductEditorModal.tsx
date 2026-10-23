@@ -33,13 +33,13 @@ export function ProductEditorModal({
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [error, setError] = useState('');
 
-  // Form states
+  // Trạng thái form
   const [name, setName] = useState('');
   const [categoryId, setCategoryId] = useState<number>(categories[0]?.id || 1);
   const [sku, setSku] = useState('');
-  const [collectionName, setCollectionName] = useState('Fall/Winter 2026');
-  const [countryOfOrigin, setCountryOfOrigin] = useState('Italy');
-  const [material, setMaterial] = useState('100% Genuine Leather');
+  const [collectionName, setCollectionName] = useState('Thu/Đông 2026');
+  const [countryOfOrigin, setCountryOfOrigin] = useState('Ý');
+  const [material, setMaterial] = useState('100% da thật');
   const [careInstructions, setCareInstructions] = useState('Lau bằng khăn ẩm mềm, tránh ánh nắng trực tiếp.');
   const [basePrice, setBasePrice] = useState<number>(2500000);
   const [originalPrice, setOriginalPrice] = useState<number>(3000000);
@@ -78,8 +78,8 @@ export function ProductEditorModal({
       setName('');
       setCategoryId(categories[0]?.id || 1);
       setSku(`AG-${Date.now().toString().slice(-5)}`);
-      setCollectionName('Fall/Winter 2026');
-      setCountryOfOrigin('Italy');
+      setCollectionName('Thu/Đông 2026');
+      setCountryOfOrigin('Ý');
       setMaterial('Cotton cao cấp / Da thuộc Ý');
       setCareInstructions('Bảo quản nơi khô ráo, tránh nhiệt độ cao.');
       setBasePrice(1850000);
@@ -198,7 +198,7 @@ export function ProductEditorModal({
           </button>
         </div>
 
-        {/* Stepper Navigation */}
+        {/* Điều hướng các bước */}
         <div className="grid grid-cols-4 gap-2 my-4">
           {STEPS.map((step) => {
             const Icon = step.icon;
@@ -231,7 +231,7 @@ export function ProductEditorModal({
           </div>
         )}
 
-        {/* Form Body */}
+        {/* Nội dung form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto pr-1 space-y-4">
           {/* BƯỚC 1: THÔNG TIN CƠ BẢN */}
           {currentStep === 1 && (
@@ -292,7 +292,7 @@ export function ProductEditorModal({
                     type="text"
                     value={collectionName}
                     onChange={(e) => setCollectionName(e.target.value)}
-                    placeholder="VD: Spring/Summer 2026"
+                    placeholder="VD: Xuân/Hè 2026"
                     className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
@@ -305,7 +305,7 @@ export function ProductEditorModal({
                     type="text"
                     value={countryOfOrigin}
                     onChange={(e) => setCountryOfOrigin(e.target.value)}
-                    placeholder="VD: Italy, France, Vietnam"
+                    placeholder="VD: Ý, Pháp, Việt Nam"
                     className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
@@ -475,7 +475,7 @@ export function ProductEditorModal({
                     type="text"
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
-                    placeholder="VD: 100% Wool, Cotton Spandex..."
+                    placeholder="VD: 100% len, cotton pha spandex..."
                     className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   />
                 </div>
@@ -547,7 +547,7 @@ export function ProductEditorModal({
             </div>
           )}
 
-          {/* Navigation Controls */}
+          {/* Nút điều hướng */}
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
             {currentStep > 1 ? (
               <button

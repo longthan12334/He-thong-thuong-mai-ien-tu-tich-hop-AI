@@ -82,7 +82,7 @@ export const SellerLaunchpad: React.FC<SellerLaunchpadProps> = ({ shopName, prod
   return (
     <section className="seller-launchpad-section">
       <div className="launchpad-container">
-        {/* Greeting Header */}
+        {/* Lời chào đầu trang */}
         <div className="launchpad-greeting">
           <div className="greeting-text-group">
             <h2 className="greeting-title">
@@ -98,7 +98,7 @@ export const SellerLaunchpad: React.FC<SellerLaunchpadProps> = ({ shopName, prod
           </div>
         </div>
 
-        {/* Pulse Metric Cards */}
+        {/* Thẻ chỉ số nhanh */}
         <div className="pulse-grid">
           {pulseCards.map((card, idx) => {
             const IconComponent = card.icon;

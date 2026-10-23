@@ -134,7 +134,7 @@ export const BrandCinematicShowcase: React.FC<BrandCinematicShowcaseProps> = ({
           type="button"
           onClick={triggerPrev}
           disabled={isSliding}
-          aria-label="Previous image"
+          aria-label="Ảnh trước"
           className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/80 hover:text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all opacity-0 hover:opacity-100 focus:opacity-100 cursor-pointer disabled:opacity-0"
         >
           <ChevronLeft size={26} />
@@ -145,7 +145,7 @@ export const BrandCinematicShowcase: React.FC<BrandCinematicShowcaseProps> = ({
           type="button"
           onClick={triggerNext}
           disabled={isSliding}
-          aria-label="Next image"
+          aria-label="Ảnh tiếp theo"
           className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-black/30 hover:bg-black/60 text-white/80 hover:text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all opacity-0 hover:opacity-100 focus:opacity-100 cursor-pointer disabled:opacity-0"
         >
           <ChevronRight size={26} />
