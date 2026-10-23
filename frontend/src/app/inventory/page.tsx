@@ -98,7 +98,7 @@ export default function InventoryPage() {
       await inventoryService.restock({
         productId: restockTarget.id,
         additionalQuantity: restockQty,
-        note: `Nhập bổ sung kho sàn qua Seller Hub +${restockQty}`,
+        note: `Nhập bổ sung kho sàn qua Kênh Người Bán +${restockQty}`,
       });
 
       setInventoryList((prev) =>
@@ -126,7 +126,7 @@ export default function InventoryPage() {
 
   return (
     <main className="inventory-container">
-      {/* PAGE HEADER */}
+      {/* TIÊU ĐỀ TRANG */}
       <div className="inv-page-header">
         <div className="inv-header-titles">
           <h1>Quản Lý Tồn Kho & Hàng Hóa</h1>
@@ -159,7 +159,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* KPI STATS CARDS */}
+      {/* THẺ CHỈ SỐ KPI */}
       <div className="inv-kpi-grid">
         <div className="inv-kpi-card">
           <span className="label">Tổng Mã SKU</span>
@@ -233,13 +233,13 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* INVENTORY TABLE */}
+      {/* BẢNG TỒN KHO */}
       <div className="inv-table-wrapper">
         <table className="inv-table">
           <thead>
             <tr>
               <th>Sản Phẩm & Phân Loại</th>
-              <th>Mã SKU / Barcode</th>
+              <th>Mã SKU / Mã vạch</th>
               <th>Tồn Khả Dụng</th>
               <th>Đang Chờ Giao</th>
               <th>Ngưỡng An Toàn</th>
@@ -315,7 +315,7 @@ export default function InventoryPage() {
         </table>
       </div>
 
-      {/* RESTOCK MODAL */}
+      {/* HỘP THOẠI NHẬP HÀNG */}
       {restockTarget && (
         <div className="inv-modal-backdrop active">
           <div className="inv-modal-card animate-fade-in">
