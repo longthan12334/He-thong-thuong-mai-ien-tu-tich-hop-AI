@@ -5,8 +5,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { statisticsService } from '@/services/statistics.service';
 import type { IncomeSummary } from '@/types';
 import { useToast } from '@/hooks/useToast';
+import { useSellerGuard } from '@/hooks/useSellerGuard';
 
-// Monthly Data for the Block Matrix Chart (JAN - DEC)
+// Dữ liệu theo tháng cho biểu đồ ma trận khối (Tháng 1 - Tháng 12)
 interface MatrixMonthItem {
   month: string;
   existing: number;
@@ -15,6 +16,19 @@ interface MatrixMonthItem {
   newText?: string;
   existText?: string;
 }
+
+/** Nhãn tháng hiển thị tiếng Việt (giữ nguyên khóa dữ liệu JAN..DEC) */
+const MONTH_LABELS: Record<string, string> = {
+  JAN: 'TH1', FEB: 'TH2', MAR: 'TH3', APR: 'TH4', MAY: 'TH5', JUN: 'TH6',
+  JUL: 'TH7', AUG: 'TH8', SEP: 'TH9', OCT: 'TH10', NOV: 'TH11', DEC: 'TH12',
+};
+
+/** Nhãn trạng thái giao dịch (giữ nguyên giá trị gốc để dùng làm class CSS) */
+const TX_STATUS_LABELS: Record<string, string> = {
+  Success: 'Thành công',
+  Pending: 'Đang xử lý',
+  Refunded: 'Đã hoàn tiền',
+};
 
 const defaultMatrixChartData: MatrixMonthItem[] = [
   { month: 'JAN', existing: 4, newUsers: 3, valTotal: '14k' },
@@ -74,6 +88,7 @@ const initialTransactions: Transaction[] = [
 ];
 
 export default function IncomeStatisticsPage() {
+  const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop');
   const { showToast } = useToast();
   const [activeMonth, setActiveMonth] = useState<string>('JUN');
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
@@ -86,6 +101,7 @@ export default function IncomeStatisticsPage() {
 
   // Lấy dữ liệu thống kê từ API thực tế của backend
   useEffect(() => {
+    if (!isAuthorized) return;
     const fetchApiStats = async () => {
       try {
         setLoading(true);
@@ -100,7 +116,9 @@ export default function IncomeStatisticsPage() {
       }
     };
     fetchApiStats();
-  }, []);
+  }, [isAuthorized]);
+
+
 
   // Tính toán số liệu doanh thu hiển thị linh hoạt
   const totalRevenueDisplay = useMemo(() => {
@@ -112,9 +130,9 @@ export default function IncomeStatisticsPage() {
 
   const totalOrdersDisplay = useMemo(() => {
     if (apiData && apiData.totalOrders > 0) {
-      return `${apiData.totalOrders.toLocaleString()} Orders`;
+      return `${apiData.totalOrders.toLocaleString()} Đơn hàng`;
     }
-    return '10,320 Orders';
+    return '10,320 Đơn hàng';
   }, [apiData]);
 
   const growthDisplay = useMemo(() => {
@@ -124,10 +142,10 @@ export default function IncomeStatisticsPage() {
     return '+0,94';
   }, [apiData]);
 
-  // Period total calculation
+  // Tính tổng theo kỳ
   const trendTotal = period === 'weekly' ? '$5,240' : period === 'yearly' ? '$248,500' : totalRevenueDisplay;
 
-  // Filtered transactions
+  // Danh sách giao dịch sau khi lọc
   const filteredTransactions = transactions.filter((tx) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
@@ -170,16 +188,27 @@ export default function IncomeStatisticsPage() {
     }
   };
 
+  if (isGuardLoading || !isAuthorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-slate-400 font-medium">Đang xác thực quyền truy cập báo cáo tài chính...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="income-dashboard-wrap">
       {/* ============================================================
            ROW 1: 4 TOP METRIC CARDS (SPARKLINES MONO)
            ============================================================ */}
       <div className="metric-cards-grid">
-        {/* 1. Total Revenue */}
+        {/* 1. Tổng doanh thu */}
         <div className="kpi-stat-box">
           <div className="kpi-top-row">
-            <span className="kpi-title-mono">TOTAL REVENUE</span>
+            <span className="kpi-title-mono">TỔNG DOANH THU</span>
             <div className="sparkline-bars">
               <div className="spark-bar" style={{ height: '12px' }}></div>
               <div className="spark-bar" style={{ height: '18px' }}></div>
@@ -194,15 +223,15 @@ export default function IncomeStatisticsPage() {
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Chi tiết doanh thu">ⓘ</span>
             <span className="kpi-growth-tag">
-              {growthDisplay} <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>last year</span>
+              {growthDisplay} <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
             </span>
           </div>
         </div>
 
-        {/* 2. Total Orders */}
+        {/* 2. Tổng đơn hàng */}
         <div className="kpi-stat-box">
           <div className="kpi-top-row">
-            <span className="kpi-title-mono">TOTAL ORDERS</span>
+            <span className="kpi-title-mono">TỔNG ĐƠN HÀNG</span>
             <div className="sparkline-bars">
               <div className="spark-bar" style={{ height: '14px' }}></div>
               <div className="spark-bar" style={{ height: '10px' }}></div>
@@ -219,15 +248,15 @@ export default function IncomeStatisticsPage() {
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Thống kê đơn hàng">ⓘ</span>
             <span className="kpi-growth-tag">
-              +1,25 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>last year</span>
+              +1,25 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
             </span>
           </div>
         </div>
 
-        {/* 3. New Customers */}
+        {/* 3. Khách hàng mới */}
         <div className="kpi-stat-box">
           <div className="kpi-top-row">
-            <span className="kpi-title-mono">NEW CUSTOMERS</span>
+            <span className="kpi-title-mono">KHÁCH HÀNG MỚI</span>
             <div className="sparkline-bars">
               <div className="spark-bar" style={{ height: '16px' }}></div>
               <div className="spark-bar" style={{ height: '20px' }}></div>
@@ -239,20 +268,20 @@ export default function IncomeStatisticsPage() {
             </div>
           </div>
           <div className="kpi-big-num">
-            4,305 <span className="kpi-subtext">New Users</span>
+            4,305 <span className="kpi-subtext">Người dùng mới</span>
           </div>
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Khách hàng mới">ⓘ</span>
             <span className="kpi-growth-tag">
-              +0,94 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>last year</span>
+              +0,94 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
             </span>
           </div>
         </div>
 
-        {/* 4. Conversion Rate */}
+        {/* 4. Tỷ lệ chuyển đổi */}
         <div className="kpi-stat-box">
           <div className="kpi-top-row">
-            <span className="kpi-title-mono">CONVERSION RATE</span>
+            <span className="kpi-title-mono">TỶ LỆ CHUYỂN ĐỔI</span>
             <div className="sparkline-bars">
               <div className="spark-bar" style={{ height: '10px' }}></div>
               <div className="spark-bar" style={{ height: '14px' }}></div>
@@ -267,21 +296,21 @@ export default function IncomeStatisticsPage() {
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Tỷ lệ chuyển đổi">ⓘ</span>
             <span className="kpi-growth-tag">
-              +0,42 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>last year</span>
+              +0,42 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
             </span>
           </div>
         </div>
       </div>
 
       {/* ============================================================
-           ROW 2: SALES TREND & REVENUE BREAKDOWN
+           HÀNG 2: XU HƯỚNG DOANH SỐ & CƠ CẤU DOANH THU
            ============================================================ */}
       <div className="analytics-two-col-grid">
         {/* Cột Trái: SALES TREND (PIXEL / MATRIX BLOCK BAR CHART) */}
         <div className="dash-card">
           <div className="dash-card-header">
             <div className="dash-card-title-group">
-              <span>SALES TREND</span>
+              <span>XU HƯỚNG DOANH SỐ</span>
               <span>ⓘ</span>
             </div>
             <span className="dash-card-action-icon" onClick={() => showToast('Cập nhật dữ liệu xu hướng doanh số')}>⋯</span>
@@ -290,16 +319,16 @@ export default function IncomeStatisticsPage() {
           <div className="sales-trend-toolbar">
             <div className="trend-stat-left">
               <div className="trend-total-label">
-                Total Revenue : <strong id="trend-total-amount">{trendTotal}</strong>
+                Tổng doanh thu : <strong id="trend-total-amount">{trendTotal}</strong>
               </div>
               <div className="trend-legend">
                 <div className="trend-legend-item">
                   <span className="legend-square-new"></span>
-                  <span>NEW USER</span>
+                  <span>KHÁCH MỚI</span>
                 </div>
                 <div className="trend-legend-item">
                   <span className="legend-square-existing"></span>
-                  <span>EXISTING USER</span>
+                  <span>KHÁCH QUEN</span>
                 </div>
               </div>
             </div>
@@ -310,21 +339,21 @@ export default function IncomeStatisticsPage() {
                 onClick={() => setPeriod('weekly')}
                 type="button"
               >
-                Weekly
+                Theo tuần
               </button>
               <button
                 className={`time-pill-btn ${period === 'monthly' ? 'active' : ''}`}
                 onClick={() => setPeriod('monthly')}
                 type="button"
               >
-                Monthly
+                Theo tháng
               </button>
               <button
                 className={`time-pill-btn ${period === 'yearly' ? 'active' : ''}`}
                 onClick={() => setPeriod('yearly')}
                 type="button"
               >
-                Yearly
+                Theo năm
               </button>
             </div>
           </div>
@@ -368,17 +397,17 @@ export default function IncomeStatisticsPage() {
                       {isActive && (
                         <>
                           <div className="matrix-tooltip-pin">
-                            <div className="tt-title">{item.month} 2025</div>
+                            <div className="tt-title">{MONTH_LABELS[item.month] || item.month} 2025</div>
                             <div className="tt-row">
                               <span className="legend-square-new"></span>
                               <span>
-                                New User <strong>{item.newText || item.valTotal}</strong>
+                                Khách mới <strong>{item.newText || item.valTotal}</strong>
                               </span>
                             </div>
                             <div className="tt-row">
                               <span className="legend-square-existing"></span>
                               <span>
-                                Existing User <strong>{item.existText || '18k'}</strong>
+                                Khách quen <strong>{item.existText || '18k'}</strong>
                               </span>
                             </div>
                           </div>
@@ -394,7 +423,7 @@ export default function IncomeStatisticsPage() {
                             className={`matrix-block existing ${isActive ? 'highlight' : ''}`}
                           ></div>
                         ))}
-                        {/* Khối New Users (Xám nhạt) */}
+                        {/* Khối Người dùng mới (Xám nhạt) */}
                         {Array.from({ length: item.newUsers }).map((_, idx) => (
                           <div key={`new-${idx}`} className="matrix-block new"></div>
                         ))}
@@ -413,7 +442,7 @@ export default function IncomeStatisticsPage() {
                     onClick={() => setActiveMonth(item.month)}
                     style={{ cursor: 'pointer' }}
                   >
-                    {item.month}
+                    {MONTH_LABELS[item.month] || item.month}
                   </span>
                 ))}
               </div>
@@ -425,16 +454,16 @@ export default function IncomeStatisticsPage() {
         <div className="dash-card">
           <div className="dash-card-header">
             <div className="dash-card-title-group">
-              <span>REVENUE BREAKDOWN</span>
+              <span>CƠ CẤU DOANH THU</span>
               <span>ⓘ</span>
             </div>
             <span className="dash-card-action-icon" onClick={() => showToast('Phân rã theo danh mục kinh doanh')}>⋯</span>
           </div>
 
           <div className="breakdown-top-meta">
-            <span className="breakdown-cat-title">Revenue by Category</span>
+            <span className="breakdown-cat-title">Doanh thu theo danh mục</span>
             <div className="breakdown-date-pill">
-              <span>📅 Jan 1 - Dec 31</span>
+              <span>📅 01/01 - 31/12</span>
               <span style={{ fontSize: '0.65rem' }}>▼</span>
             </div>
           </div>
@@ -451,7 +480,7 @@ export default function IncomeStatisticsPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path>
               </svg>
-              Get AI insight for better analysis
+              Nhận phân tích chuyên sâu từ AI
             </span>
             <span>›</span>
           </button>
@@ -467,19 +496,19 @@ export default function IncomeStatisticsPage() {
           </div>
 
           <div className="needle-axis-labels">
-            <span>1 JAN</span>
-            <span>31 DEC 2025</span>
+            <span>01 THG 1</span>
+            <span>31 THG 12, 2025</span>
           </div>
         </div>
       </div>
 
       {/* ============================================================
-           ROW 3: RECENT TRANSACTIONS TABLE
+           HÀNG 3: BẢNG GIAO DỊCH GẦN ĐÂY
            ============================================================ */}
       <div className="dash-card" style={{ padding: '18px 20px' }}>
         <div className="recent-tx-header">
           <div className="dash-card-title-group">
-            <span>RECENT TRANSACTIONS</span>
+            <span>GIAO DỊCH GẦN ĐÂY</span>
             <span>ⓘ</span>
           </div>
 
@@ -492,13 +521,13 @@ export default function IncomeStatisticsPage() {
               <input
                 type="text"
                 id="tx-search-input"
-                placeholder="Search transactions..."
+                placeholder="Tìm kiếm giao dịch..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <button className="btn-add-tx" onClick={handleAddNewTx} type="button">
-              + Add Transaction
+              + Thêm giao dịch
             </button>
             <button
               className="btn-more-options"
@@ -523,14 +552,14 @@ export default function IncomeStatisticsPage() {
                     onChange={handleSelectAll}
                   />
                 </th>
-                <th>ID ↕</th>
-                <th>CUSTOMER ↕</th>
-                <th>PRODUCT ↕</th>
-                <th>STATUS ↕</th>
-                <th>QTY ↕</th>
-                <th>UNIT PRICE ↕</th>
-                <th>TOTAL REVENUE ↕</th>
-                <th style={{ textAlign: 'right' }}>ACTIONS</th>
+                <th>MÃ ↕</th>
+                <th>KHÁCH HÀNG ↕</th>
+                <th>SẢN PHẨM ↕</th>
+                <th>TRẠNG THÁI ↕</th>
+                <th>SL ↕</th>
+                <th>ĐƠN GIÁ ↕</th>
+                <th>TỔNG DOANH THU ↕</th>
+                <th style={{ textAlign: 'right' }}>THAO TÁC</th>
               </tr>
             </thead>
             <tbody id="tx-table-body">
@@ -561,7 +590,7 @@ export default function IncomeStatisticsPage() {
                       <span className="tx-product-name">{tx.product}</span>
                     </td>
                     <td>
-                      <span className={`tx-status-badge ${tx.status}`}>{tx.status}</span>
+                      <span className={`tx-status-badge ${tx.status}`}>{TX_STATUS_LABELS[tx.status] || tx.status}</span>
                     </td>
                     <td>
                       <span style={{ fontWeight: 650, color: '#111827' }}>{tx.qty}</span>
@@ -589,7 +618,7 @@ export default function IncomeStatisticsPage() {
         </div>
       </div>
 
-      {/* AI Insight Modal Dialog */}
+      {/* Hộp thoại phân tích AI */}
       {showAiModal && (
         <div
           style={{
@@ -617,7 +646,7 @@ export default function IncomeStatisticsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <span style={{ fontSize: '24px' }}>✨</span>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#111827' }}>
-                AI Business Insights & Analysis
+                AI Phân Tích & Đánh Giá Kinh Doanh
               </h3>
             </div>
             <div style={{ fontSize: '14px', lineHeight: '1.7', color: '#4B5563' }}>
