@@ -172,13 +172,13 @@ export default function LoginPage() {
     setActiveTab('login');
     if (role === 'Admin') {
       setLoginEmail('admin@gmail.com');
-      setLoginPassword('Password123@');
+      setLoginPassword('123456789');
     } else if (role === 'Seller') {
-      setLoginEmail('dior@gmail.com');
-      setLoginPassword('Password123@');
+      setLoginEmail('gucci@gmail.com');
+      setLoginPassword('123456789');
     } else {
       setLoginEmail('esther.howard@example.com');
-      setLoginPassword('Password123@');
+      setLoginPassword('123456789');
     }
   };
 
@@ -356,7 +356,7 @@ export default function LoginPage() {
                       ? 'bg-slate-900 border-slate-900 text-white shadow-sm'
                       : 'bg-white border-slate-200/90 text-slate-700 hover:border-slate-400 hover:bg-slate-50 shadow-[0_1px_2px_rgba(0,0,0,0.04)]'
                   }`}
-                  title="Chọn vai trò Người bán (dior@gmail.com)"
+                  title="Chọn vai trò Người bán (gucci@gmail.com)"
                 >
                   <Store className={`w-3.5 h-3.5 transition-colors ${
                     selectedRole === 'Seller' ? 'text-white' : 'text-slate-400 group-hover:text-slate-700'

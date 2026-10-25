@@ -19,13 +19,61 @@ import {
   SellerRegisterModal,
 } from '@/components/seller';
 
+
+/** Phân loại sản phẩm để điều phối showroom đa dạng phong cách */
+function classifyProductType(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('sunglass') || lower.includes('kính')) return 'sunglasses';
+  if (/shoe|giày|loafer|sneaker|boot|bốt|sandal|dép|mule|heel|derby|oxford|clog|slide/i.test(lower)) return 'shoes';
+  if (/bag|túi|tote|backpack|clutch|wallet|ví|đồ da/i.test(lower)) return 'bags';
+  if (/quần|áo|jacket|t-shirt|shirt|dress|coat|pant|denim|blazer|hoodie|sweater|polo|skirt|vest/i.test(lower)) return 'apparel';
+  return 'accessories';
+}
+
+/** Sắp xếp xen kẽ (round-robin) các danh mục sản phẩm: Quần áo → Giày dép → Túi ví → Kính mắt → Phụ kiện */
+function interleaveShowroomProducts(items: Product[]): Product[] {
+  if (!items || items.length <= 1) return items;
+
+  const groups: Record<string, Product[]> = {
+    apparel: [],
+    shoes: [],
+    bags: [],
+    sunglasses: [],
+    accessories: [],
+  };
+
+  for (const item of items) {
+    const type = classifyProductType(item.name);
+    groups[type].push(item);
+  }
+
+  // Giữ các sản phẩm mới nhất lên đầu trong từng nhóm
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => b.id - a.id);
+  }
+
+  const order = ['apparel', 'shoes', 'bags', 'sunglasses', 'accessories'];
+  const maxLen = Math.max(...order.map((k) => groups[k].length), 0);
+  const result: Product[] = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    for (const key of order) {
+      if (i < groups[key].length) {
+        result.push(groups[key][i]);
+      }
+    }
+  }
+
+  return result;
+}
+
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
 
-  const [products, setProducts] = useState<Product[]>(fallbackProducts);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>(fallbackCategories);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [quickFilterType, setQuickFilterType] = useState<string>('');
@@ -33,10 +81,11 @@ export default function HomePage() {
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('newest');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [displayLimit, setDisplayLimit] = useState<number>(48);
 
   // Modals
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [drawerProduct, setDrawerProduct] = useState<Product | null>(fallbackProducts[0] || null);
+  const [drawerProduct, setDrawerProduct] = useState<Product | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
@@ -59,18 +108,24 @@ export default function HomePage() {
     let isMounted = true;
     const sellerId = user?.userId;
 
+    const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+    const activeSellerId = isSeller && sellerId && sellerId > 0 ? sellerId : undefined;
+
     productService
       .getProducts({
-        sellerId: sellerId && sellerId > 0 ? sellerId : undefined,
-        // Giảm từ 100 → 48: tải đủ sản phẩm hiển thị mà không quá tải DB
-        // Nếu cần thêm, implement infinite scroll / load more
-        pageSize: 48,
+        sellerId: activeSellerId,
+        // Khi Seller đăng nhập quản lý gian hàng: tải toàn bộ kho hàng (tối đa 1000)
+        // Khi xem chung sàn: tải 48 sản phẩm đại diện
+        pageSize: activeSellerId ? 1000 : 48,
       })
       .then((res) => {
-        if (isMounted && res && res.items && res.items.length > 0) {
-          setProducts(res.items);
-          if (!drawerProduct) {
-            setDrawerProduct(res.items[0]);
+        if (isMounted && res && res.items) {
+          const processed = interleaveShowroomProducts(res.items);
+          setProducts(processed);
+          if (processed.length > 0) {
+            setDrawerProduct(processed[0]);
+          } else {
+            setDrawerProduct(null);
           }
         }
       })
@@ -116,11 +171,27 @@ export default function HomePage() {
     } else if (sortOrder === 'price_desc') {
       list.sort((a, b) => b.basePrice - a.basePrice);
     } else {
-      list.sort((a, b) => b.id - a.id);
+      list = interleaveShowroomProducts(list);
     }
 
     return list;
   }, [products, categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
+
+  // Reset giới hạn hiển thị khi thay đổi bộ lọc tìm kiếm
+  useEffect(() => {
+    setDisplayLimit(48);
+  }, [categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder, user]);
+
+  const visibleProducts = useMemo(() => {
+    return filteredProducts.slice(0, displayLimit);
+  }, [filteredProducts, displayLimit]);
+
+  const categoriesWithCount = useMemo(() => {
+    return categories.map((cat) => ({
+      ...cat,
+      productCount: products.filter((p) => p.categoryId === cat.id).length,
+    }));
+  }, [categories, products]);
 
   const openSellerDrawer = (p: Product) => {
     // Nếu là khách hàng hoặc khách vãng lai: chuyển đến trang chi tiết sản phẩm khách hàng
@@ -227,7 +298,7 @@ export default function HomePage() {
       <section className="page-section shop-section" id="catalog">
         <main className="main-layout">
           <ProductFilters
-            categories={categories}
+            categories={categoriesWithCount}
             totalProductsCount={products.length}
             categoryFilter={categoryFilter}
             onCategoryChange={setCategoryFilter}
@@ -283,7 +354,7 @@ export default function HomePage() {
             </div>
 
             <div id="product-grid" className="product-grid">
-              {filteredProducts.map((p) => (
+              {visibleProducts.map((p) => (
                 <SellerProductCard
                   key={p.id}
                   product={p}
@@ -291,6 +362,21 @@ export default function HomePage() {
                 />
               ))}
             </div>
+
+            {displayLimit < filteredProducts.length && (
+              <div className="flex justify-center mt-10 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setDisplayLimit((prev) => prev + 48)}
+                  className="px-7 py-3 rounded-full bg-white border border-slate-200 text-slate-800 text-sm font-bold shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Xem thêm sản phẩm</span>
+                  <span className="text-xs text-slate-400 font-semibold">
+                    (Đang xem {visibleProducts.length} / {filteredProducts.length})
+                  </span>
+                </button>
+              </div>
+            )}
           </section>
         </main>
       </section>
