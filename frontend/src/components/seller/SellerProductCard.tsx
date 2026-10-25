@@ -3,6 +3,7 @@
 import React from 'react';
 import type { Product } from '@/types';
 import { formatVND } from '@/lib/utils';
+import { extractBrand } from '@/lib/customer';
 
 interface SellerProductCardProps {
   product: Product;
@@ -10,9 +11,26 @@ interface SellerProductCardProps {
 }
 
 export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, onClick }) => {
+  const parseProductName = (rawName: string) => {
+    if (rawName && rawName.includes(' - ')) {
+      const idx = rawName.indexOf(' - ');
+      return {
+        brand: rawName.substring(0, idx).trim(),
+        title: rawName.substring(idx + 3).trim(),
+      };
+    }
+    const detected = extractBrand(product);
+    return {
+      brand: detected || '',
+      title: rawName,
+    };
+  };
+
+  const { brand, title } = parseProductName(product.name);
+
   return (
     <div
-      className="product-card cursor-pointer"
+      className="product-card group cursor-pointer"
       onClick={() => onClick(product)}
       role="button"
       tabIndex={0}
@@ -25,7 +43,7 @@ export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, o
       <div className="product-card-top flex justify-between items-center">
         <span className="category-tag-top">{product.categoryName || 'Thời Trang'}</span>
         {product.discountPercent && product.discountPercent > 0 ? (
-          <span className="bg-red-500 text-white text-[0.7rem] font-extrabold px-1.5 py-0.5 rounded">
+          <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
             -{product.discountPercent}%
           </span>
         ) : null}
@@ -43,17 +61,24 @@ export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, o
       </div>
 
       <div className="product-info">
-        <h3 className="product-title">{product.name}</h3>
+        {brand && <div className="product-brand">{brand}</div>}
+        <h3 className="product-title" title={product.name}>
+          {title || product.name}
+        </h3>
         <div className="product-rating-row">
-          <span>★ {product.rating || 5.0}</span>
+          <span>★ {Number(product.rating || 5.0).toFixed(1)}</span>
           <span className="review-count">({product.reviewCount || 40} Đánh giá)</span>
         </div>
         <div className="product-price-row">
           <span className="price-amount">{formatVND(product.basePrice)}</span>
         </div>
         <div className="product-seller-footer">
-          <span className="card-sku-code">SKU: {product.sku}</span>
-          <span className="card-seller-cta">Dữ liệu người bán &rarr;</span>
+          <span className="card-sku-code" title={`SKU: ${product.sku}`}>
+            SKU: {product.sku}
+          </span>
+          <span className="card-seller-cta">
+            Quản lý kho &rarr;
+          </span>
         </div>
       </div>
     </div>
