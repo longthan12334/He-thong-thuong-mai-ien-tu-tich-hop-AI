@@ -19,7 +19,15 @@ interface ProductFiltersProps {
   onReset: () => void;
 }
 
+const PRICE_PRESETS = [
+  { label: 'Dưới 15 triệu', min: '', max: '15000000' },
+  { label: '15 – 30 triệu', min: '15000000', max: '30000000' },
+  { label: '30 – 50 triệu', min: '30000000', max: '50000000' },
+  { label: 'Trên 50 triệu', min: '50000000', max: '' },
+];
+
 export const ProductFilters: React.FC<ProductFiltersProps> = ({
+  categories,
   totalProductsCount,
   categoryFilter,
   onCategoryChange,
@@ -36,29 +44,10 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   return (
     <aside className="sidebar-filters">
       <div className="sidebar-header">
-        <h3>Danh Mục</h3>
+        <h3>Danh Mục Ngành Hàng</h3>
       </div>
 
-      {/* Danh sách chọn danh mục */}
-      <div className="filter-group">
-        <label htmlFor="category-select" className="filter-label">
-          Danh Mục Sản Phẩm
-        </label>
-        <select
-          id="category-select"
-          className="form-control"
-          value={categoryFilter}
-          onChange={(e) => onCategoryChange(e.target.value)}
-        >
-          <option value="">Tất Cả Sản Phẩm ({totalProductsCount})</option>
-          <option value="1">Giày Sneaker & Thể Thao</option>
-          <option value="2">Thời Trang Streetwear & Áo Khoác</option>
-          <option value="3">Quần & Phụ Kiện Thời Trang</option>
-          <option value="4">Gia Dụng & Đời Sống</option>
-        </select>
-      </div>
-
-      {/* Menu danh mục */}
+      {/* Menu danh mục Haute Couture đồng bộ dữ liệu thật */}
       <ul className="category-subnav">
         <li
           className={`subnav-item ${categoryFilter === '' ? 'active' : ''}`}
@@ -68,39 +57,27 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           <span>Tất Cả Sản Phẩm</span>
           <span className="count-tag">{totalProductsCount}</span>
         </li>
-        <li
-          className={`subnav-item ${categoryFilter === '1' ? 'active' : ''}`}
-          onClick={() => onCategoryChange('1')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>Giày Sneaker & Thể Thao</span>
-        </li>
-        <li
-          className={`subnav-item ${categoryFilter === '2' ? 'active' : ''}`}
-          onClick={() => onCategoryChange('2')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>Thời Trang Streetwear & Áo Khoác</span>
-        </li>
-        <li
-          className={`subnav-item ${categoryFilter === '3' ? 'active' : ''}`}
-          onClick={() => onCategoryChange('3')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>Quần & Phụ Kiện Thời Trang</span>
-        </li>
-        <li
-          className={`subnav-item ${categoryFilter === '4' ? 'active' : ''}`}
-          onClick={() => onCategoryChange('4')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>Gia Dụng & Đời Sống</span>
-        </li>
+        {categories.map((c) => (
+          <li
+            key={c.id}
+            className={`subnav-item ${categoryFilter === String(c.id) ? 'active' : ''}`}
+            onClick={() => onCategoryChange(String(c.id))}
+            style={{ cursor: 'pointer' }}
+          >
+            <span>{c.name}</span>
+            <span className="count-tag">{c.productCount ?? 0}</span>
+          </li>
+        ))}
       </ul>
 
       <div className="filter-divider" />
 
-      {/* Lọc nhanh */}
+      {/* Lọc tiêu chí nhanh */}
+      <div className="sidebar-header" style={{ marginBottom: '8px' }}>
+        <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Tiêu Chí Tuyển Chọn
+        </h4>
+      </div>
       <div className="quick-nav-links">
         <button
           type="button"
@@ -112,7 +89,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
             onSortOrderChange('newest');
           }}
         >
-          Hàng Mới Về
+          ✦ Hàng Mới Về
         </button>
         <button
           type="button"
@@ -121,7 +98,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           }`}
           onClick={() => onQuickFilterChange('bestseller')}
         >
-          Bán Chạy Nhất
+          ★ Kiệt Tác Bán Chạy
         </button>
         <button
           type="button"
@@ -130,15 +107,46 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
           }`}
           onClick={() => onQuickFilterChange('discount')}
         >
-          Đang Giảm Giá
+          🏷 Ưu Đãi Đặc Biệt
         </button>
       </div>
 
       <div className="filter-divider" />
 
-      {/* Lọc theo khoảng giá */}
+      {/* Lọc theo phân khúc giá hàng hiệu */}
       <div className="filter-group">
-        <label className="filter-label">Khoảng Giá (VNĐ)</label>
+        <label className="filter-label">Phân Khúc Giá (VNĐ)</label>
+        
+        {/* Nút chọn nhanh khoảng giá */}
+        <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+          {PRICE_PRESETS.map((p) => {
+            const isActive = minPrice === p.min && maxPrice === p.max;
+            return (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => {
+                  if (isActive) {
+                    onMinPriceChange('');
+                    onMaxPriceChange('');
+                  } else {
+                    onMinPriceChange(p.min);
+                    onMaxPriceChange(p.max);
+                  }
+                }}
+                className={`text-[11px] py-1.5 px-2 rounded-lg border font-medium text-center transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Ô nhập tùy chỉnh */}
         <div className="price-inputs">
           <input
             type="number"
@@ -165,23 +173,24 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
       {/* Sắp xếp */}
       <div className="filter-group">
         <label htmlFor="sort-select" className="filter-label">
-          Sắp Xếp Theo
+          Sắp Xếp Showroom
         </label>
         <select
           id="sort-select"
-          className="form-control"
+          className="form-control font-medium"
           value={sortOrder}
           onChange={(e) => onSortOrderChange(e.target.value)}
         >
-          <option value="newest">Hàng mới nhất</option>
+          <option value="newest">Showroom tuyển chọn (Xen kẽ)</option>
           <option value="price_asc">Giá: Thấp đến Cao</option>
           <option value="price_desc">Giá: Cao đến Thấp</option>
+          <option value="bestseller">Được yêu thích nhất</option>
         </select>
       </div>
 
       <button
         id="reset-filters-btn"
-        className="btn-secondary btn-full"
+        className="btn-secondary btn-full cursor-pointer hover:bg-slate-100 transition-colors"
         onClick={onReset}
         type="button"
       >
