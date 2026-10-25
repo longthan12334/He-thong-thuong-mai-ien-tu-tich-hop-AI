@@ -1,7 +1,12 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text;
 using Ecommerce.Common.DTOs;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.IdentityModel.Tokens;
 using Xunit;
 
 namespace Ecommerce.Tests.Integration;
@@ -13,6 +18,35 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
     public ApiIntegrationTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.CreateClient();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestAdminToken());
+    }
+
+    private static string GenerateTestAdminToken()
+    {
+        var jwtKey = "AethelgardSuperSecretKey2026NguyenDucManh9999!";
+        var jwtIssuer = "AethelgardMall";
+        var jwtAudience = "AethelgardMallClients";
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, "1"),
+            new Claim(ClaimTypes.Role, "Admin"),
+            new Claim(JwtRegisteredClaimNames.Sub, "1"),
+            new Claim(JwtRegisteredClaimNames.Email, "admin@aethelgard.com"),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+        var token = new JwtSecurityToken(
+            jwtIssuer,
+            jwtAudience,
+            claims,
+            expires: DateTime.UtcNow.AddHours(2),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     [Fact]

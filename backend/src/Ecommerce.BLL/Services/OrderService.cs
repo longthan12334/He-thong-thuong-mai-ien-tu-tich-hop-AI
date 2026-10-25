@@ -22,6 +22,12 @@ public class OrderService : IOrderService
 
     public async Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null, int? userId = null, string? role = null)
     {
+        // Bảo mật quyền riêng tư: Khách chưa đăng nhập không được xem toàn bộ đơn hàng sàn
+        if (!userId.HasValue && role != "Admin")
+        {
+            return new List<OrderDto>();
+        }
+
         var query = _unitOfWork.Orders.Query()
             .Include(o => o.Items)
             .AsQueryable();
@@ -52,6 +58,12 @@ public class OrderService : IOrderService
 
     public async Task<OrderDto> GetOrderByIdAsync(int id, int? userId = null, string? role = null)
     {
+        // Yêu cầu đăng nhập hoặc quyền Admin để xem chi tiết đơn hàng
+        if (!userId.HasValue && role != "Admin")
+        {
+            throw new UnauthorizedException("Vui lòng đăng nhập để xem thông tin chi tiết đơn hàng.");
+        }
+
         var order = await _unitOfWork.Orders.Query()
             .Include(o => o.Items)
             .FirstOrDefaultAsync(o => o.Id == id);
@@ -60,9 +72,24 @@ public class OrderService : IOrderService
             throw new NotFoundException("Đơn hàng", id);
 
         // Khách hàng chỉ xem được đơn hàng của chính mình
-        if (userId.HasValue && role != "Admin" && role != "Seller" && order.UserId != userId.Value)
+        if (role == "Customer" && order.UserId != userId!.Value)
         {
             throw new UnauthorizedException("Bạn không có quyền truy cập thông tin đơn hàng này.");
+        }
+
+        // Seller chỉ xem được đơn hàng chứa sản phẩm thuộc gian hàng của mình
+        if (role == "Seller")
+        {
+            var sellerProductIds = await _unitOfWork.Products.Query()
+                .Where(p => p.SellerId == userId!.Value)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            var ownsAnyItem = order.Items.Any(item => item.ProductId.HasValue && sellerProductIds.Contains(item.ProductId.Value));
+            if (!ownsAnyItem)
+            {
+                throw new UnauthorizedException("Đơn hàng này không chứa sản phẩm thuộc gian hàng của bạn.");
+            }
         }
 
         return _mapper.Map<OrderDto>(order);
@@ -85,10 +112,13 @@ public class OrderService : IOrderService
         if (request.Items == null || !request.Items.Any())
             throw new BadRequestException("Đơn hàng phải có ít nhất 1 sản phẩm.");
 
-        var orderCode = $"AG-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
-        var trackingCode = $"{Random.Shared.NextInt64(100000000000, 999999999999)}";
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var orderCode = $"AG-{DateTime.UtcNow.Year}-{Random.Shared.Next(1000, 9999)}";
+            var trackingCode = $"{Random.Shared.NextInt64(100000000000, 999999999999)}";
 
-        decimal subtotal = 0;
+            decimal subtotal = 0;
         var orderItems = new List<OrderItem>();
 
         foreach (var item in request.Items)
@@ -178,13 +208,75 @@ public class OrderService : IOrderService
 
         await _unitOfWork.Orders.AddAsync(order);
         await _unitOfWork.SaveChangesAsync();
+        await transaction.CommitAsync();
 
         return await GetOrderByIdAsync(order.Id);
     }
-
-    public async Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null)
+    catch
     {
-        if (role != null && role != "Admin" && role != "Seller")
+        await transaction.RollbackAsync();
+        throw;
+    }
+}
+
+    /// <summary>
+    /// [Customer] Khách hàng tự hủy đơn của chính mình khi đơn còn ở trạng thái Chờ xác nhận (Pending).
+    /// Hoàn trả tồn kho sản phẩm cha và biến thể tương ứng đã bị trừ lúc đặt hàng.
+    /// Dùng BadRequestException (400) thay vì 401 để không làm frontend tự đăng xuất người dùng.
+    /// </summary>
+    public async Task<OrderDto> CancelOrderByCustomerAsync(int id, int userId)
+    {
+        var order = await _unitOfWork.Orders.Query()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+            throw new NotFoundException("Đơn hàng", id);
+
+        if (order.UserId != userId)
+            throw new BadRequestException("Bạn chỉ có thể hủy đơn hàng do chính mình đặt.");
+
+        if (order.Status != OrderStatus.Pending)
+            throw new BadRequestException("Đơn hàng đã được shop xác nhận nên không thể tự hủy. Vui lòng liên hệ shop để được hỗ trợ.");
+
+        foreach (var item in order.Items)
+        {
+            if (!item.ProductId.HasValue) continue;
+
+            var product = await _unitOfWork.Products.Query()
+                .Include(p => p.Variants)
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId.Value);
+            if (product == null) continue;
+
+            product.StockQuantity += item.Quantity;
+            product.StockStatus = product.StockQuantity > 10
+                ? StockStatus.InStock
+                : (product.StockQuantity > 0 ? StockStatus.LowStock : StockStatus.OutOfStock);
+
+            if (product.Variants != null && product.Variants.Any() && !string.IsNullOrWhiteSpace(item.Specs))
+            {
+                var matchedVariant = product.Variants.FirstOrDefault(v =>
+                    item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
+                if (matchedVariant != null)
+                    matchedVariant.StockQuantity += item.Quantity;
+            }
+
+            _unitOfWork.Products.Update(product);
+        }
+
+        order.Status = OrderStatus.Cancelled;
+        order.LastUpdateLocation = "Khách hàng đã hủy đơn hàng";
+
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<OrderDto>(order);
+    }
+
+    public async Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, int? userId = null, string? role = null)
+    {
+        if (role != "Admin" && role != "Seller")
         {
             throw new UnauthorizedException("Chỉ người bán (Seller) hoặc Quản trị viên (Admin) mới có quyền cập nhật trạng thái đơn hàng.");
         }
@@ -195,6 +287,24 @@ public class OrderService : IOrderService
 
         if (order == null)
             throw new NotFoundException("Đơn hàng", id);
+
+        // Seller chỉ được cập nhật trạng thái đơn hàng có chứa sản phẩm của mình
+        if (role == "Seller")
+        {
+            if (!userId.HasValue)
+                throw new UnauthorizedException("Không xác định được danh tính người bán.");
+
+            var sellerProductIds = await _unitOfWork.Products.Query()
+                .Where(p => p.SellerId == userId.Value)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            var ownsAnyItem = order.Items.Any(item => item.ProductId.HasValue && sellerProductIds.Contains(item.ProductId.Value));
+            if (!ownsAnyItem)
+            {
+                throw new UnauthorizedException("Bạn không có quyền cập nhật trạng thái đơn hàng của người bán khác.");
+            }
+        }
 
         order.Status = request.Status;
         if (!string.IsNullOrEmpty(request.Location))

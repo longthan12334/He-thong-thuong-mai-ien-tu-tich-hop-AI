@@ -19,16 +19,24 @@ public static class DatabaseSeeder
 
     public static async Task SeedAsync(ApplicationDbContext context)
     {
-        // ==========================================
-        // FAST-PATH: Kiểm tra 1 lần duy nhất thay vì nhiều round-trips
-        // Nếu DB đã có đủ dữ liệu → thoát sớm, tránh overhead mỗi lần startup
-        // ==========================================
+        await EnsureReviewsTableAsync(context);
+
         bool hasUsers = await context.Users.AnyAsync();
         bool hasProducts = await context.Products.AnyAsync();
 
         if (hasUsers && hasProducts)
         {
-            // DB đã được seed đầy đủ — không cần làm gì thêm
+            try
+            {
+                if (!await context.Reviews.AnyAsync())
+                {
+                    await SeedReviewsAsync(context);
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu bảng reviews gặp vấn đề
+            }
             return;
         }
 
@@ -36,7 +44,7 @@ public static class DatabaseSeeder
         await context.Database.MigrateAsync();
 
         // ==========================================
-        // 1. SEED USERS (23 Users)
+        // 1. NẠP NGƯỜI DÙNG (23 tài khoản)
         // ==========================================
         if (!await context.Users.AnyAsync())
         {
@@ -71,7 +79,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 2. SEED CATEGORIES (4 Categories)
+        // 2. NẠP DANH MỤC (4 danh mục)
         // ==========================================
         if (!await context.Categories.AnyAsync())
         {
@@ -87,7 +95,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 3. SEED STORES (23 Stores)
+        // 3. NẠP GIAN HÀNG (23 cửa hàng)
         // ==========================================
         if (!await context.Stores.AnyAsync())
         {
@@ -122,7 +130,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 4. SEED PRODUCTS & VARIANTS
+        // 4. NẠP SẢN PHẨM & BIẾN THỂ
         // ==========================================
         if (!await context.Products.AnyAsync())
         {
@@ -134,7 +142,7 @@ public static class DatabaseSeeder
 
             var dbUsers = await context.Users.ToListAsync();
 
-            // Lookup brand sellers for initial classic products
+            // Tra cứu người bán theo thương hiệu cho các sản phẩm kinh điển ban đầu
             var earlyAdidas = dbUsers.First(u => u.Email == "adidas@gmail.com");
             var earlyBalenciaga = dbUsers.First(u => u.Email == "balenciaga@gmail.com");
             var earlyGucci = dbUsers.First(u => u.Email == "gucci@gmail.com");
@@ -5087,7 +5095,7 @@ public static class DatabaseSeeder
         }
 
         // ==========================================
-        // 5. SEED ORDERS & TRANSACTIONS
+        // 5. NẠP ĐƠN HÀNG & GIAO DỊCH
         // ==========================================
         if (!await context.Orders.AnyAsync())
         {
@@ -5208,5 +5216,87 @@ public static class DatabaseSeeder
                 await context.SaveChangesAsync();
             }
         }
+
+        if (!await context.Reviews.AnyAsync())
+        {
+            await SeedReviewsAsync(context);
+        }
+    }
+
+    public static async Task EnsureReviewsTableAsync(ApplicationDbContext context)
+    {
+        try
+        {
+            if (context.Database.IsSqlite())
+            {
+                await context.Database.ExecuteSqlRawAsync(
+                    "CREATE TABLE IF NOT EXISTS Reviews (" +
+                    "Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "ProductId INTEGER NOT NULL, " +
+                    "UserId INTEGER NULL, " +
+                    "CustomerName TEXT NOT NULL, " +
+                    "Rating INTEGER NOT NULL, " +
+                    "Comment TEXT NOT NULL, " +
+                    "CreatedAt TEXT NOT NULL, " +
+                    "UpdatedAt TEXT NULL, " +
+                    "FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE);"
+                );
+            }
+        }
+        catch
+        {
+            // Bỏ qua nếu bảng đã tồn tại hoặc CSDL khác
+        }
+    }
+
+    public static async Task SeedReviewsAsync(ApplicationDbContext context)
+    {
+        if (await context.Reviews.AnyAsync()) return;
+
+        var products = await context.Products.Take(10).ToListAsync();
+        if (!products.Any()) return;
+
+        var sampleReviews = new List<Review>
+        {
+            new Review
+            {
+                ProductId = products[0].Id,
+                CustomerName = "Trần Hoàng Nam",
+                Rating = 5,
+                Comment = "Chất liệu da thượng hạng, đường may tinh xảo tuyệt đối. Mang vào rất êm chân và chuẩn phom. Đúng chuẩn xa xỉ Aethelgard!",
+                CreatedAt = DateTime.UtcNow.AddDays(-3)
+            },
+            new Review
+            {
+                ProductId = products[0].Id,
+                CustomerName = "Nguyễn Thùy Linh",
+                Rating = 5,
+                Comment = "Đóng gói cẩn thận 2 lớp hộp, có thẻ bảo hành và túi vải xịn. Nhân viên tư vấn phối đồ AI gợi ý cực kỳ chuẩn.",
+                CreatedAt = DateTime.UtcNow.AddDays(-7)
+            },
+            new Review
+            {
+                ProductId = products[0].Id,
+                CustomerName = "Phạm Quang Đăng",
+                Rating = 4,
+                Comment = "Sản phẩm thực tế đẹp hơn trên ảnh. Giao hàng hỏa tốc trong 2 ngày rất ấn tượng.",
+                CreatedAt = DateTime.UtcNow.AddDays(-12)
+            }
+        };
+
+        if (products.Count > 1)
+        {
+            sampleReviews.Add(new Review
+            {
+                ProductId = products[1].Id,
+                CustomerName = "Lê Bảo Trâm",
+                Rating = 5,
+                Comment = "Màu sắc rất sang trọng, đi tiệc ai cũng khen. Rất hài lòng về chất lượng sản phẩm.",
+                CreatedAt = DateTime.UtcNow.AddDays(-5)
+            });
+        }
+
+        await context.Reviews.AddRangeAsync(sampleReviews);
+        await context.SaveChangesAsync();
     }
 }

@@ -3,7 +3,7 @@
 public class NotFoundException : Exception
 {
     public NotFoundException(string message) : base(message) { }
-    public NotFoundException(string name, object key) : base($"Entity \"{name}\" ({key}) was not found.") { }
+    public NotFoundException(string name, object key) : base($"Không tìm thấy {name} (mã: {key}).") { }
 }
 
 public class BadRequestException : Exception
@@ -13,5 +13,5 @@ public class BadRequestException : Exception
 
 public class UnauthorizedException : Exception
 {
-    public UnauthorizedException(string message = "Unauthorized access.") : base(message) { }
+    public UnauthorizedException(string message = "Bạn không có quyền truy cập.") : base(message) { }
 }

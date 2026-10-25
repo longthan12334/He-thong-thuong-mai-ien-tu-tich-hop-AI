@@ -56,7 +56,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
       }}
     >
       <div className="track-drawer-wrapper">
-        {/* SECONDARY PANEL (LEFT) */}
+        {/* KHUNG PHỤ (BÊN TRÁI) */}
         <div className="track-panel track-panel-secondary">
           <div className="track-panel-header">
             <h3>
@@ -68,19 +68,19 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </svg>
               Vận Đơn & Giao Nhận
             </h3>
-            <span className="badge-transit">In transit</span>
+            <span className="badge-transit">Đang vận chuyển</span>
           </div>
 
           <div className="track-panel-body">
-            {/* Tracking Carrier Details */}
+            {/* Thông tin đơn vị vận chuyển */}
             <div className="track-card">
-              <div className="track-card-title">Tracking Information</div>
+              <div className="track-card-title">Thông Tin Vận Đơn</div>
               <div className="carrier-info-grid mt-2">
                 <div className="carrier-col">
                   <div className="carrier-name-row">
                     <span>{order.carrier}</span>
                   </div>
-                  <div className="tracking-code-val">Tracking #: {order.trackingCode}</div>
+                  <div className="tracking-code-val">Mã vận đơn: {order.trackingCode}</div>
                   <div className="mt-1.5 text-[0.78rem] text-slate-500">
                     Dự kiến giao: <strong className="text-slate-900">{order.estimatedDelivery}</strong>
                   </div>
@@ -98,7 +98,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </div>
             </div>
 
-            {/* Shipping Address */}
+            {/* Địa chỉ giao hàng */}
             <div className="half-card">
               <div className="half-card-title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -114,7 +114,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </div>
             </div>
 
-            {/* Payment Method */}
+            {/* Phương thức thanh toán */}
             <div className="half-card">
               <div className="half-card-title">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -132,9 +132,9 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </div>
             </div>
 
-            {/* Quick Lookup */}
+            {/* Tra cứu nhanh */}
             <div className="track-card">
-              <div className="track-card-title">Find Another Order</div>
+              <div className="track-card-title">Tra Cứu Đơn Khác</div>
               <div className="track-card-subtitle">Tra cứu mã đơn khác trong hệ thống</div>
               <form onSubmit={handleLookupSubmit}>
                 <div className="track-inputs-row" style={{ gridTemplateColumns: '1fr' }}>
@@ -143,7 +143,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                       type="text"
                       value={lookupId}
                       onChange={(e) => setLookupId(e.target.value)}
-                      placeholder="e.g. AG-2024-7890"
+                      placeholder="VD: AG-2026-7890"
                     />
                   </div>
                 </div>
@@ -155,19 +155,19 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
           </div>
         </div>
 
-        {/* PRIMARY PANEL (RIGHT) */}
+        {/* KHUNG CHÍNH (BÊN PHẢI) */}
         <div className="track-panel track-panel-primary">
           <div className="track-panel-header">
             <div className="track-order-summary-header flex-1 mr-3">
               <div className="order-headline-left">
                 <div className="order-title-code">
-                  <span>Order {order.orderCode || order.id}</span>
+                  <span>Đơn hàng {order.orderCode || order.id}</span>
                   <span className={`badge-order-status ${order.status}`}>
                     {order.statusLabel}
                   </span>
                 </div>
                 <div className="order-date-text">
-                  Placed on {order.placedDateText || order.createdAt}
+                  Ngày đặt: {order.placedDateText || order.createdAt}
                 </div>
               </div>
 
@@ -178,7 +178,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Invoice
+                  Hóa đơn
                 </button>
                 <button className="btn-order-action" onClick={() => window.print()} type="button">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -186,7 +186,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                     <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                     <rect x="6" y="14" width="12" height="8" />
                   </svg>
-                  Print
+                  In đơn
                 </button>
               </div>
             </div>
@@ -197,11 +197,11 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
           </div>
 
           <div className="track-panel-body">
-            {/* Delivery Progress Stepper (4 steps) */}
+            {/* Tiến trình giao hàng (4 bước) */}
             <div className="track-card">
               <div className="stepper-header">
-                <h3>Delivery Progress</h3>
-                <span>Estimated delivery: {order.estimatedDelivery}</span>
+                <h3>Tiến Trình Giao Hàng</h3>
+                <span>Dự kiến giao: {order.estimatedDelivery}</span>
               </div>
 
               <div className="delivery-progress-bar-wrap">
@@ -211,7 +211,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                 />
 
                 <div className="stepper-steps-row">
-                  {['Order Placed', 'Confirmed', 'Shipped', 'Delivered'].map((title, idx) => {
+                  {['Đã đặt hàng', 'Đã xác nhận', 'Đang giao', 'Đã giao'].map((title, idx) => {
                     const stepNum = idx + 1;
                     const isDone = stepNum <= step;
                     const isCurrent = stepNum === step;
@@ -232,7 +232,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </div>
             </div>
 
-            {/* Order Items Detail */}
+            {/* Chi tiết sản phẩm trong đơn */}
             <div className="track-card">
               <div className="track-card-title">Chi Tiết Kiện Hàng</div>
               <div className="track-items-list mt-3">
@@ -260,7 +260,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                 ))}
               </div>
 
-              {/* Financial Summary */}
+              {/* Tổng kết thanh toán */}
               <div className="border-t border-slate-200 mt-4 pt-3 space-y-1.5 text-xs text-slate-600">
                 <div className="flex justify-between">
                   <span>Tiền hàng (Subtotal):</span>
@@ -286,7 +286,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Action Buttons Toolbar */}
+              {/* Thanh nút thao tác */}
               <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end">
                 {order.status === 'PENDING' && onConfirmOrder && (
                   <button

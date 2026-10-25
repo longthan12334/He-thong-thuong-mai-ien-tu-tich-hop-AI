@@ -1,5 +1,5 @@
-/* Shop Profile (Storefront) Stylesheet */
-/* Luxury Brand Flagship (Gucci / Dior) on Aethelgard Mall */
+/* Stylesheet trang hồ sơ gian hàng */
+/* Gian hàng thương hiệu cao cấp (Gucci / Dior) trên Aethelgard Mall */
 
 .shop-profile-container {
   width: 100%;
@@ -8,7 +8,7 @@
   padding: 0 4vw 80px 4vw;
 }
 
-/* LOGGED IN USER STATUS IN NAVBAR */
+/* TRẠNG THÁI NGƯỜI DÙNG ĐĂNG NHẬP TRÊN NAVBAR */
 .logged-in-user-badge {
   display: flex;
   align-items: center;
@@ -67,7 +67,7 @@
   background-color: #10B981;
 }
 
-/* 1. SHOP COVER BANNER */
+/* 1. ẢNH BÌA GIAN HÀNG */
 .shop-cover-banner {
   width: 100%;
   height: 380px;
@@ -132,7 +132,7 @@
   line-height: 1.5;
 }
 
-/* 2. SHOP IDENTITY PROFILE CARD */
+/* 2. THẺ NHẬN DIỆN GIAN HÀNG */
 .shop-identity-card {
   position: relative;
   z-index: 10;
@@ -304,7 +304,7 @@
   background-color: #FDE68A;
 }
 
-/* Performance Metrics Right Column */
+/* Cột phải: chỉ số hoạt động */
 .shop-stats-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -507,7 +507,7 @@
   background-color: var(--primary-hover);
 }
 
-/* 4. VOUCHERS STRIP */
+/* 4. DẢI MÃ GIẢM GIÁ */
 .shop-vouchers-section {
   margin-bottom: 36px;
 }
@@ -593,7 +593,7 @@
   cursor: default;
 }
 
-/* 5. SHOP TABS NAVIGATION BAR */
+/* 5. THANH TAB ĐIỀU HƯỚNG GIAN HÀNG */
 .shop-tabs-nav-bar {
   display: flex;
   align-items: center;
@@ -627,7 +627,7 @@
   border-bottom-color: var(--primary);
 }
 
-/* 6. SHOP SEARCH & FILTER TOOLBAR */
+/* 6. THANH TÌM KIẾM & LỌC */
 .shop-toolbar-row {
   display: flex;
   justify-content: space-between;
@@ -689,7 +689,7 @@
   border-color: var(--primary);
 }
 
-/* 7. PRODUCT CATALOG GRID */
+/* 7. LƯỚI DANH MỤC SẢN PHẨM */
 .shop-product-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -822,7 +822,7 @@
   color: var(--text-muted);
 }
 
-/* 8. SHOP GUARANTEE SECTION */
+/* 8. PHẦN CAM KẾT CỦA SHOP */
 .shop-guarantee-banner {
   background-color: #FFFFFF;
   border: 1px solid var(--border);

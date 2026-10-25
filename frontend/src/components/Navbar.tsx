@@ -3,15 +3,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LogOut, ShoppingBag, Store, LogIn } from 'lucide-react';
+import { LogOut, ShoppingBag, Store, LogIn, Heart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useShopper } from '@/contexts/ShopperContext';
 import { SELLER_NAV_LINKS } from '@/lib/constants';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const pathname = usePathname();
   const { user, token, logout } = useAuth();
   const { totalQty, setIsCartOpen } = useCart();
+  const { wishlist } = useShopper();
 
   // Ẩn thanh Navbar riêng ở trang login để giữ layout tập trung
   if (pathname === '/login') {
@@ -40,7 +43,7 @@ export default function Navbar() {
                 Aethelgard
               </span>
               <span className="text-[9px] tracking-[0.2em] text-slate-400 font-semibold uppercase -mt-0.5">
-                Shopping Mall • AI Powered
+                Trung Tâm Mua Sắm • Tích Hợp AI
               </span>
             </div>
           </Link>
@@ -48,14 +51,42 @@ export default function Navbar() {
 
         {/* Menu Điều hướng */}
         <nav className="nav-links flex items-center gap-1 md:gap-3">
+          {/* Seller/Admin: "/" là gian trưng bày quản trị. Khách hàng: vào khu mua sắm /shop */}
           <Link
-            href="/"
+            href={isSeller ? '/' : '/shop'}
             className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-              pathname === '/' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              (isSeller ? pathname === '/' : pathname === '/shop')
+                ? 'bg-purple-50 text-purple-700'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             Cửa Hàng
           </Link>
+
+          {/* Khách hàng / khách vãng lai: các trang mua sắm */}
+          {!isSeller && (
+            <Link
+              href={token ? '/shop/my-orders' : '/shop/track-order'}
+              className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                pathname.startsWith('/shop/my-orders') || pathname.startsWith('/shop/track-order')
+                  ? 'bg-purple-50 text-purple-700'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              {token ? 'Đơn Hàng Của Tôi' : 'Tra Cứu Đơn'}
+            </Link>
+          )}
+          {isSeller && (
+            <Link
+              href="/shop"
+              className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                pathname.startsWith('/shop') ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+              title="Xem sàn dưới góc nhìn người mua"
+            >
+              Góc Người Mua
+            </Link>
+          )}
 
           {/* Nếu là tài khoản Seller hoặc Admin: hiển thị thêm các tab quản lý */}
           {token && isSeller && (
@@ -96,8 +127,30 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Khối Actions: Nút Giỏ hàng & Đăng nhập / User info */}
+        {/* Khối Actions: Nút Giỏ hàng, Thông báo & Đăng nhập / User info */}
         <div className="nav-actions flex items-center gap-3">
+          {/* Chuông Thông Báo Thời Gian Thực (SignalR) */}
+          <NotificationBell />
+
+          {/* Nút Danh sách yêu thích (Khách hàng) */}
+          <Link
+            href="/shop/wishlist"
+            className={`relative p-2.5 rounded-xl border transition-all flex items-center justify-center ${
+              pathname.startsWith('/shop/wishlist')
+                ? 'border-purple-300 bg-purple-50'
+                : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
+            }`}
+            title="Danh sách yêu thích"
+            aria-label="Danh sách yêu thích"
+          >
+            <Heart className="w-5 h-5 text-slate-700" />
+            {wishlist.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+                {wishlist.length}
+              </span>
+            )}
+          </Link>
+
           {/* Nút Giỏ Hàng Mua Sắm (Dùng chung cho cả Khách và Seller) */}
           <button
             type="button"

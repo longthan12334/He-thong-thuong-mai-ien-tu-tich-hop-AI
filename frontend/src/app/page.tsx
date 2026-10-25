@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { fallbackProducts, fallbackCategories } from '@/lib/mock-data';
 import type { Product, Category } from '@/types';
 import { productService } from '@/services/product.service';
@@ -13,13 +14,13 @@ import {
   SellerDrawer,
   ProductFilters,
   HeroSection,
-  HomeAnalyticsStrip,
   BrandCinematicShowcase,
   ProductEditorModal,
   SellerRegisterModal,
 } from '@/components/seller';
 
 export default function HomePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
@@ -122,6 +123,11 @@ export default function HomePage() {
   }, [products, categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
 
   const openSellerDrawer = (p: Product) => {
+    // Nếu là khách hàng hoặc khách vãng lai: chuyển đến trang chi tiết sản phẩm khách hàng
+    if (!isSellerRole) {
+      router.push(`/product-detail/${p.id}`);
+      return;
+    }
     setDrawerProduct(p);
     setIsDrawerOpen(true);
   };
@@ -201,17 +207,15 @@ export default function HomePage() {
 
   return (
     <>
-      {/* 1. HERO BANNER */}
+      {/* 1. BANNER CHÍNH */}
       <HeroSection
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         onScrollToCatalog={scrollToCatalog}
+        products={products}
       />
 
-      {/* 2. SƠ ĐỒ DOANH SỐ & PHÂN RÃ DOANH THU (1/4 CUỐI MẶT ĐẦU) */}
-      <HomeAnalyticsStrip />
-
-      {/* 3. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
+      {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
       <BrandCinematicShowcase
         shopName={sellerTitle || 'Aethelgard Store'}
         products={products}
@@ -219,7 +223,7 @@ export default function HomePage() {
         onScrollToCatalog={scrollToCatalog}
       />
 
-      {/* 4. SHOWROOM SẢN PHẨM CỬA HÀNG */}
+      {/* 3. SHOWROOM SẢN PHẨM CỬA HÀNG */}
       <section className="page-section shop-section" id="catalog">
         <main className="main-layout">
           <ProductFilters
@@ -238,7 +242,7 @@ export default function HomePage() {
             onReset={resetFilters}
           />
 
-          {/* Product Grid */}
+          {/* Lưới sản phẩm */}
           <section className="catalog-section">
             <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
               <div>
@@ -265,14 +269,16 @@ export default function HomePage() {
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={handleOpenCreateModal}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Thêm Sản Phẩm Mới</span>
-                </button>
+                {isSellerRole && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateModal}
+                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Thêm Sản Phẩm Mới</span>
+                  </button>
+                )}
               </div>
             </div>
 

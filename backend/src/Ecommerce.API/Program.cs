@@ -1,11 +1,12 @@
 using Ecommerce.API.Configurations;
+using Ecommerce.API.Hubs;
 using Ecommerce.API.Middlewares;
 using Ecommerce.DAL.Context;
 using Ecommerce.DAL.Seed;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Đăng ký các dịch vụ vào container
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -16,7 +17,7 @@ builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// Cấu hình pipeline xử lý HTTP request
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment() || true)
@@ -30,13 +31,15 @@ if (app.Environment.IsDevelopment() || true)
 }
 
 app.UseCors("AllowAll");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 
-// Auto-seed database on application startup
+// Tự động nạp dữ liệu CSDL khi ứng dụng khởi động
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -55,5 +58,5 @@ using (var scope = app.Services.CreateScope())
 
 app.Run();
 
-// Needed for WebApplicationFactory in Integration Tests
+// Cần cho WebApplicationFactory trong Integration Tests
 public partial class Program { }

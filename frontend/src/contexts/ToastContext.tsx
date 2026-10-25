@@ -28,7 +28,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast, toasts }}>
       {children}
-      {/* Toast container */}
+      {/* Khung chứa thông báo */}
       <div className="fixed bottom-7 right-7 z-[99999] flex flex-col gap-2">
         {toasts.map(toast => (
           <div
@@ -46,7 +46,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error('useToast phải được sử dụng bên trong <ToastProvider>');
   }
   return context;
 }

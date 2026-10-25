@@ -81,3 +81,19 @@ public class PagedResultDto<T>
     public int PageSize { get; set; }
     public int TotalPages => (int)Math.Ceiling((double)TotalCount / (PageSize > 0 ? PageSize : 1));
 }
+
+public class GenerateProductDescriptionRequestDto
+{
+    public string ProductName { get; set; } = string.Empty;
+    public string? CategoryName { get; set; }
+    public string? Brand { get; set; }
+    public string? Keywords { get; set; }
+}
+
+public class GeneratedProductDescriptionResponseDto
+{
+    public string SeoTitle { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string Material { get; set; } = string.Empty;
+    public string CareInstructions { get; set; } = string.Empty;
+}
