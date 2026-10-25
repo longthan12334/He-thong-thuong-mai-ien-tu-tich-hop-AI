@@ -44,7 +44,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         onShowToast('Đăng nhập không thành công, vui lòng kiểm tra lại tài khoản.');
       }
     } catch {
-      onShowToast('Email hoặc mật khẩu không chính xác. Mật khẩu chuẩn là Password123@');
+      onShowToast('Email hoặc mật khẩu không chính xác. Mật khẩu chuẩn là 123456789');
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +52,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
   const handleDemoSelect = (demoEmail: string, demoName: string) => {
     setEmail(demoEmail);
-    setPassword('Password123@');
+    setPassword('123456789');
     onShowToast(`Đã chọn: ${demoName}`);
   };
 
@@ -66,7 +66,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="input-field !pl-4"
-          placeholder="seller@aethelgard.com"
+          placeholder="gucci@gmail.com, nike@gmail.com..."
         />
       </div>
 
@@ -130,11 +130,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => handleDemoSelect('dior@gmail.com', 'Christian Dior Boutique')}
+            onClick={() => handleDemoSelect('saintlaurent@gmail.com', 'Saint Laurent Paris')}
             className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Dior Boutique</div>
-            <div className="text-[10px] text-slate-400">dior@gmail.com</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Saint Laurent</div>
+            <div className="text-[10px] text-slate-400">saintlaurent@gmail.com</div>
           </button>
           <button
             type="button"
