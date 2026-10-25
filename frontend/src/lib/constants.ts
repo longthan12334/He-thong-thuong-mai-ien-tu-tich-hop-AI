@@ -1,18 +1,18 @@
 /**
- * App-wide constants — single source of truth
+ * Hằng số dùng chung toàn ứng dụng — nguồn dữ liệu duy nhất
  * Thay thế tất cả hardcoded values rải rác trong các page files
  */
 
 export const APP_NAME = 'Aethelgard Shopping Mall';
 export const APP_SHORT_NAME = 'Aethelgard Mall';
 
-/** API Configuration */
+/** Cấu hình API */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 // Tăng từ 4000ms → 10000ms: Backend .NET cần thời gian warm-up JIT + DB connection pool
 // lần đầu chạy. 4s quá ngắn gây timeout trước khi nhận được response.
 export const API_TIMEOUT = 10000;
 
-/** Local Storage Keys */
+/** Khóa lưu trữ localStorage */
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'aethelgard_token',
   AUTH_USER: 'aethelgard_user',
@@ -35,18 +35,18 @@ export const ROUTES = {
   },
 } as const;
 
-/** Seller Navbar Links */
+/** Liên kết điều hướng của Seller */
 export const SELLER_NAV_LINKS = [
-  { name: 'Home', href: '/' },
-  { name: 'Orders', href: '/orders' },
-  { name: 'Inventory', href: '/inventory' },
-  { name: 'Income Statistics', href: '/income-statistics' },
-  { name: 'Vouchers', href: '/vouchers' },
-  { name: 'Transactions', href: '/transactions' },
-  { name: 'Shop Profile', href: '/shop-profile' },
+  { name: 'Trang chủ', href: '/' },
+  { name: 'Đơn hàng', href: '/orders' },
+  { name: 'Tồn kho', href: '/inventory' },
+  { name: 'Doanh thu', href: '/income-statistics' },
+  { name: 'Mã giảm giá', href: '/vouchers' },
+  { name: 'Giao dịch', href: '/transactions' },
+  { name: 'Hồ sơ shop', href: '/shop-profile' },
 ] as const;
 
-/** Order Status Constants */
+/** Hằng số trạng thái đơn hàng */
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
@@ -65,7 +65,7 @@ export const ORDER_STATUS_LABELS: Record<string, string> = {
   CANCELLED: 'Đã Hủy',
 };
 
-/** Stock Status */
+/** Trạng thái tồn kho */
 export const STOCK_STATUS = {
   IN_STOCK: 'IN_STOCK',
   LOW_STOCK: 'LOW_STOCK',
@@ -75,5 +75,5 @@ export const STOCK_STATUS = {
 /** Pagination */
 export const DEFAULT_PAGE_SIZE = 12;
 
-/** Image fallback */
+/** Ảnh dự phòng */
 export const FALLBACK_IMAGE = '/img/products/adidas-samba.jpg';

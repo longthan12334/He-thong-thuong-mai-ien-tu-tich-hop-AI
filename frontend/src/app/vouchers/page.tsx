@@ -84,7 +84,7 @@ export default function VouchersPage() {
     }
   }, []);
 
-  // Form State
+  // Trạng thái form
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
@@ -384,7 +384,7 @@ export default function VouchersPage() {
         </div>
       )}
 
-      {/* Confirm Dialog */}
+      {/* Hộp thoại xác nhận */}
       {confirmDialog}
     </div>
   );

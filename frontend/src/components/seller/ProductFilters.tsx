@@ -39,7 +39,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         <h3>Danh Mục</h3>
       </div>
 
-      {/* Category Select Filter Dropdown */}
+      {/* Danh sách chọn danh mục */}
       <div className="filter-group">
         <label htmlFor="category-select" className="filter-label">
           Danh Mục Sản Phẩm
@@ -58,7 +58,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         </select>
       </div>
 
-      {/* Category Subnav */}
+      {/* Menu danh mục */}
       <ul className="category-subnav">
         <li
           className={`subnav-item ${categoryFilter === '' ? 'active' : ''}`}
@@ -100,7 +100,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
 
       <div className="filter-divider" />
 
-      {/* Quick Filter Nav */}
+      {/* Lọc nhanh */}
       <div className="quick-nav-links">
         <button
           type="button"
@@ -136,7 +136,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
 
       <div className="filter-divider" />
 
-      {/* Price Range Filter */}
+      {/* Lọc theo khoảng giá */}
       <div className="filter-group">
         <label className="filter-label">Khoảng Giá (VNĐ)</label>
         <div className="price-inputs">
@@ -162,7 +162,7 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
         </div>
       </div>
 
-      {/* Sort Filter */}
+      {/* Sắp xếp */}
       <div className="filter-group">
         <label htmlFor="sort-select" className="filter-label">
           Sắp Xếp Theo

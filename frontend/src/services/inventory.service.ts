@@ -17,7 +17,7 @@ export const inventoryService = {
           id: p.id,
           name: p.name,
           sku: p.sku,
-          categoryName: p.categoryName || 'Fashion',
+          categoryName: p.categoryName || 'Thời Trang',
           imageUrl: p.imageUrl,
           price: p.basePrice,
           stockQuantity: p.stockQuantity,

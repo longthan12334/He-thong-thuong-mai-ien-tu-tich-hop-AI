@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint"
-
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
     "axios": "^1.7.9",
     "clsx": "^2.1.1",
     "lucide-react": "^0.475.0",

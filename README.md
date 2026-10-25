@@ -17,8 +17,10 @@ Hệ thống E-Commerce thời trang cao cấp hoàn chỉnh với kiến trúc 
   * 📖 [**Báo Cáo Chức Năng & Lộ Trình Phát Triển**](BAO_CAO_CHUC_NANG_HE_THONG.md): Chi tiết chức năng từng phân hệ và đề xuất tính năng mới.
   * 🏗️ [**Báo Cáo Thiết Kế Kiến Trúc Hệ Thống**](BAO_CAO_THIET_KE_HE_THONG.md): Thiết kế Clean Architecture, sơ đồ FDD, Use Case, ERD 8 bảng dữ liệu, Sequence Diagrams.
   * 🚀 [**Hướng Dẫn Khởi Chạy Dự Án (Quickstart)**](HUONG_DAN_KHOI_CHAY_DU_AN.md): Hướng dẫn cài đặt môi trường và chạy dự án 1-click cho các dev mới.
+  * 🤖 [**Tài Liệu Tích Hợp Trí Tuệ Nhân Tạo**](TAI_LIEU_TICH_HOP_AI.md): Kiến trúc và đặc tả chi tiết về Gemini AI Stylist và Content Generator.
+  * 📝 [**Nhật Ký Thay Đổi Hệ Thống (Changelog)**](NHAT_KY_THAY_DOI_HE_THONG.md): Nhật ký tổng hợp các nâng cấp, tính năng mới và sửa lỗi gần đây.
+  * 📜 [**Lịch Sử Commit (Audit Trail)**](LICH_SU_COMMIT.md): Minh chứng toàn bộ 45 commits từ ngày khởi tạo dự án đến nay.
   * 👥 [**Quy Chuẩn Phối Hợp Làm Việc Nhóm**](TEAM_COLLABORATION_GUIDE.md): Phân chia trách nhiệm module và quy tắc tránh xung đột mã nguồn.
-  * 📝 [**Báo Cáo Thay Đổi Hệ Thống**](BAO_CAO_THAY_DOI_HE_THONG.md): Nhật ký kiểm toán các cải tiến kỹ thuật cốt lõi.
 
 ---
 

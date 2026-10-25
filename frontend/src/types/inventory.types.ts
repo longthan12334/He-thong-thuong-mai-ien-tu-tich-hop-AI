@@ -1,4 +1,4 @@
-/** Inventory Type Definitions */
+/** Định nghĩa kiểu dữ liệu Tồn kho */
 
 export interface InventoryItem {
   id: number;
