@@ -138,6 +138,51 @@ const BRAND_META: Record<string, { name: string; code: string; slogan: string; o
   burberry: { name: 'BURBERRY London Flagship', code: 'BB', slogan: '@burberry • Di sản xa xỉ Anh Quốc, áo trench coat & họa tiết kẻ cổ điển', origin: 'Anh Quốc (Từ năm 1856)' }
 };
 
+
+function classifyShopProductType(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('sunglass') || lower.includes('kính')) return 'sunglasses';
+  if (/shoe|giày|loafer|sneaker|boot|bốt|sandal|dép|mule|heel|derby|oxford|clog|slide/i.test(lower)) return 'shoes';
+  if (/bag|túi|tote|backpack|clutch|wallet|ví|đồ da/i.test(lower)) return 'bags';
+  if (/quần|áo|jacket|t-shirt|shirt|dress|coat|pant|denim|blazer|hoodie|sweater|polo|skirt|vest/i.test(lower)) return 'apparel';
+  return 'accessories';
+}
+
+function interleaveShopProducts(items: Product[]): Product[] {
+  if (!items || items.length <= 1) return items;
+
+  const groups: Record<string, Product[]> = {
+    apparel: [],
+    shoes: [],
+    bags: [],
+    sunglasses: [],
+    accessories: [],
+  };
+
+  for (const item of items) {
+    const type = classifyShopProductType(item.name);
+    groups[type].push(item);
+  }
+
+  for (const key of Object.keys(groups)) {
+    groups[key].sort((a, b) => Number(b.id) - Number(a.id));
+  }
+
+  const order = ['apparel', 'shoes', 'bags', 'sunglasses', 'accessories'];
+  const maxLen = Math.max(...order.map((k) => groups[k].length), 0);
+  const result: Product[] = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    for (const key of order) {
+      if (i < groups[key].length) {
+        result.push(groups[key][i]);
+      }
+    }
+  }
+
+  return result;
+}
+
 export default function ShopProfilePage() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(485200);
@@ -204,8 +249,8 @@ export default function ShopProfilePage() {
       }
 
       const url = sellerId
-        ? `http://localhost:5000/api/products?sellerId=${sellerId}&pageSize=100`
-        : `http://localhost:5000/api/products?pageSize=100`;
+        ? `http://localhost:5000/api/products?sellerId=${sellerId}&pageSize=1000`
+        : `http://localhost:5000/api/products?pageSize=1000`;
 
       fetch(url)
         .then((res) => {
@@ -227,7 +272,7 @@ export default function ShopProfilePage() {
               discount: p.discountPercent > 0 ? `-${p.discountPercent}%` : '-10%',
               image: p.imageUrl || '/img/products/sample-velora.jpg'
             }));
-            setShopProducts(mapped);
+            setShopProducts(interleaveShopProducts(mapped));
           }
         })
         .catch(() => {});
@@ -345,6 +390,8 @@ export default function ShopProfilePage() {
     displayProducts.sort((a, b) => b.price - a.price);
   } else if (sortBy === 'bestseller') {
     displayProducts.sort((a, b) => b.sales - a.sales);
+  } else {
+    displayProducts = interleaveShopProducts(displayProducts);
   }
 
   return (
@@ -653,7 +700,7 @@ export default function ShopProfilePage() {
           onClick={() => handleTabClick('all')}
           type="button"
         >
-          Tất Cả Sản Phẩm (240+)
+          Tất Cả Sản Phẩm ({shopProducts.length})
         </button>
         <button
           className={`shop-tab-item ${activeTab === 'new' ? 'active' : ''}`}
@@ -745,37 +792,48 @@ export default function ShopProfilePage() {
 
       {/* 7. LƯỚI SẢN PHẨM CỦA SHOP */}
       <section className="shop-product-grid" id="shop-product-grid">
-        {displayProducts.map((p) => (
-          <Link
-            key={p.id}
-            href={`/product-detail/${p.id}`}
-            className="shop-product-card"
-            data-price={p.price}
-            data-sales={p.sales}
-          >
-            <div className="product-card-thumb">
-              <span className="card-tag-badge">{p.badge}</span>
-              <span className="card-discount-tag">{p.discount}</span>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.image} alt={p.name} loading="lazy" />
-            </div>
-            <div className="product-card-body">
-              <span className="product-category-subtext">{p.category}</span>
-              <h3 className="product-card-name">{p.name}</h3>
-              <div className="product-card-meta">
-                <span className="stars-gold" style={{ fontSize: '0.85rem' }}>{p.rating}</span>
-                <span style={{ color: '#94A3B8' }}>•</span>
-                <span className="sales-count-text">Đã bán {p.sales >= 1000 ? `${(p.sales / 1000).toFixed(1)}k` : p.sales}</span>
+        {displayProducts.map((p) => {
+          let brandName = shopInfo.name || 'GUCCI';
+          let itemName = p.name;
+          if (p.name.includes(' - ')) {
+            const idx = p.name.indexOf(' - ');
+            brandName = p.name.substring(0, idx).trim();
+            itemName = p.name.substring(idx + 3).trim();
+          }
+
+          return (
+            <Link
+              key={p.id}
+              href={`/product-detail/${p.id}`}
+              className="shop-product-card group"
+              data-price={p.price}
+              data-sales={p.sales}
+            >
+              <div className="product-card-thumb">
+                <span className="card-tag-badge">{p.badge}</span>
+                {p.discount && <span className="card-discount-tag">{p.discount}</span>}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.image} alt={p.name} loading="lazy" />
               </div>
-              <div className="product-card-price-row">
-                <span className="price-main-val">{p.priceFormatted}</span>
-                <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.88rem' }}>
-                  {p.originalPrice}
-                </span>
+              <div className="product-card-body">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{p.category}</span>
+                  <span className="text-[10px] font-bold text-amber-500 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200/50">{p.rating}</span>
+                </div>
+                <div className="text-[11px] font-black tracking-[0.16em] text-slate-900 uppercase mb-0.5">{brandName}</div>
+                <h3 className="product-card-name font-medium text-slate-700 text-sm line-clamp-2 min-h-[2.6em] mb-2 group-hover:text-purple-600 transition-colors" title={p.name}>{itemName}</h3>
+                <div className="product-card-price-row mt-auto pt-2 border-t border-slate-100 flex items-baseline justify-between">
+                  <span className="price-main-val font-bold text-base text-slate-900">{p.priceFormatted}</span>
+                  {p.originalPrice && (
+                    <span style={{ textDecoration: 'line-through', color: '#94A3B8', fontSize: '0.8rem' }}>
+                      {p.originalPrice}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          );
+        })}
       </section>
 
       {/* 8. DẢI CAM KẾT CỦA THƯƠNG HIỆU */}
