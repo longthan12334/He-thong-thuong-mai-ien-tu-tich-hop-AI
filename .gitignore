@@ -55,3 +55,13 @@ __pycache__/
 *$py.class
 .venv/
 venv/
+
+
+tool/main.py
+tool/app/
+tool/reports/
+tool/start.cmd
+tool/scripts/crawl_ssense_4000_pipeline.py
+tool/scripts/run_native_scraper.py
+tool/.env
+tool/README.md
