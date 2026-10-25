@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load auth state from localStorage on mount
+  // Khôi phục trạng thái đăng nhập từ localStorage khi khởi động
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -42,20 +42,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Guard: redirect to login if not authenticated (except login page)
+  // Bảo vệ trang: chuyển về đăng nhập nếu chưa xác thực (trừ trang đăng nhập & trang công khai)
   useEffect(() => {
     if (isLoading) return;
     const isLoginPage = pathname === '/login';
+    // Khu mua sắm công khai: khách vãng lai được xem sản phẩm & tra cứu đơn không cần đăng nhập
+    const isPublicShopperPage =
+      pathname === '/shop' ||
+      pathname.startsWith('/shop/track-order') ||
+      pathname.startsWith('/shop/wishlist') ||
+      pathname.startsWith('/product-detail');
 
-    if (!token && !isLoginPage) {
+    const isSellerOnlyPage =
+      pathname === '/inventory' ||
+      pathname === '/orders' ||
+      pathname === '/income-statistics';
+
+    if (!token && !isLoginPage && !isPublicShopperPage) {
       sessionStorage.setItem(STORAGE_KEYS.REDIRECT_PATH, pathname);
       router.replace('/login');
+    } else if (token && user?.role === 'Customer' && isSellerOnlyPage) {
+      router.replace(pathname === '/orders' ? '/shop/my-orders' : '/shop');
     } else if (token && isLoginPage) {
-      const redirect = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH) || '/';
+      const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
+      const redirect = saved || (user?.role === 'Customer' ? '/shop' : '/');
       sessionStorage.removeItem(STORAGE_KEYS.REDIRECT_PATH);
       router.replace(redirect);
     }
-  }, [token, isLoading, pathname, router]);
+  }, [token, isLoading, pathname, router, user]);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newToken);
@@ -125,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuth phải được sử dụng bên trong <AuthProvider>');
   }
   return context;
 }

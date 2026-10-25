@@ -1,4 +1,4 @@
-/** Auth Type Definitions */
+/** Định nghĩa kiểu dữ liệu Xác thực */
 
 export interface AuthUser {
   userId: number;
@@ -17,6 +17,8 @@ export interface RegisterRequest {
   fullName: string;
   email: string;
   password: string;
+  /** Mặc định đăng ký tài khoản Khách hàng; nâng cấp Seller qua luồng "Mở Gian Hàng" */
+  role?: 'Customer' | 'Seller';
 }
 
 export interface LoginResponse {

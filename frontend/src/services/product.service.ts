@@ -36,7 +36,7 @@ export const productService = {
       return res.data;
     } catch {
       const found = fallbackProducts.find(p => p.id === id);
-      if (!found) throw new Error('Product not found');
+      if (!found) throw new Error('Không tìm thấy sản phẩm');
       return found;
     }
   },
@@ -63,5 +63,19 @@ export const productService = {
   async deleteProduct(id: number): Promise<boolean> {
     const res = await apiClient.delete(`/products/${id}`);
     return res.status === 204;
+  },
+
+  async getProductReviews(productId: number): Promise<any[]> {
+    try {
+      const res = await apiClient.get(`/products/${productId}/reviews`);
+      return res.data;
+    } catch {
+      return [];
+    }
+  },
+
+  async addProductReview(productId: number, data: { customerName: string; rating: number; comment: string }): Promise<any> {
+    const res = await apiClient.post(`/products/${productId}/reviews`, data);
+    return res.data;
   },
 };

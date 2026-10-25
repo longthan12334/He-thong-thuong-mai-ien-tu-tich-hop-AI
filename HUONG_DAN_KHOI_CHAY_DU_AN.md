@@ -102,23 +102,65 @@ npm run dev
 
 ---
 
-## 🔑 IV. DANH SÁCH TÀI KHOẢN DÙNG THỬ (PRE-SEEDED ACCOUNTS)
+## 🐳 IV. CÁCH 3: KHỞI CHẠY BẰNG DOCKER COMPOSE (CONTAINER KHÉP KÍN)
+
+Dành cho môi trường kiểm thử độc lập, triển khai máy chủ hoặc khi máy tính chưa cài sẵn .NET SDK và SQL Server cục bộ:
+
+```bash
+# Đóng gói và khởi chạy toàn bộ cụm dịch vụ
+docker compose up --build
+```
+
+* **Hạ tầng tự động thiết lập**:
+  - `aethelgard-backend`: Web API .NET 10 chạy cổng `5000`.
+  - `aethelgard-frontend`: Next.js 15 Standalone chạy cổng `3001`.
+  - `sqlite_data`: Phân vùng volume lưu trữ CSDL SQLite bền vững, không bị mất dữ liệu khi restart container.
+  - Tự động cấu hình kết nối mạng nội bộ bảo mật `aethelgard-network`.
+* Để dừng hệ thống: Nhấn `Ctrl + C` hoặc chạy `docker compose down`.
+
+---
+
+## 🤖 V. CẤU HÌNH TÍCH HỢP TRÍ TUỆ NHÂN TẠO (GOOGLE GEMINI AI STYLIST)
+
+Hệ thống tích hợp trợ lý thời trang thông minh **Aethelgard AI Stylist** sử dụng mô hình Google Gemini AI:
+
+1. **Thiết lập Khóa API (Tùy chọn)**:
+   - Tạo khóa API miễn phí tại [Google AI Studio](https://aistudio.google.com/).
+   - Thiết lập biến môi trường hệ thống:
+     ```powershell
+     # Thiết lập trên PowerShell Windows
+     $env:GEMINI_API_KEY="AIzaSyYourSecretApiKeyHere"
+     ```
+   - Hoặc khai báo trong file [`backend/src/Ecommerce.API/appsettings.json`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/backend/src/Ecommerce.API/appsettings.json):
+     ```json
+     "Gemini": {
+       "ApiKey": "AIzaSyYourSecretApiKeyHere",
+       "Model": "gemini-3-flash-preview"
+     }
+     ```
+2. **Cơ chế Dự phòng Thông minh (Zero-downtime Fallback)**:
+   - Nếu bạn **không nhập khóa API** hoặc máy tính không có internet, hệ thống sẽ tự động kích hoạt **Bộ sinh gợi ý phong cách thời trang dự phòng (Heuristic Stylist)**.
+   - Giao diện của khách hàng trên trang `/product-detail/[id]` **luôn hoạt động mượt mà 100%**, không bao giờ bị đơ, lỗi mạng hay để trống nội dung.
+
+---
+
+## 🔑 VI. DANH SÁCH TÀI KHOẢN DÙNG THỬ (PRE-SEEDED ACCOUNTS)
 
 Hệ thống đã tạo sẵn các tài khoản với vai trò khác nhau để phục vụ kiểm thử và phát triển. 
 **Mật khẩu dùng chung cho tất cả các tài khoản:** `Password123@`
 
 | Vai trò (Role) | Email đăng nhập | Họ & Tên | Phạm vi quyền hạn |
 | :--- | :--- | :--- | :--- |
+| **Customer (Khách hàng)**| `esther.howard@example.com` | Esther Howard | Mua sắm `/shop`, tư vấn AI Stylist `/product-detail/[id]`, quản lý đơn `/shop/my-orders`, tra cứu `/shop/track-order`, wishlist `/shop/wishlist` |
 | **Seller (Chủ shop)** | `ducmanh@gmail.com` | Nguyễn Đức Mạnh | Quản lý bộ sưu tập 20 sản phẩm riêng, quản lý kho hàng (`/inventory`), xử lý đơn hàng (`/orders`), xem ma trận doanh thu (`/income-statistics`) |
 | **Admin (Quản trị)** | `admin@gmail.com` | Aethelgard Admin | Toàn quyền kiểm soát tài khoản, duyệt gian hàng, danh mục và đơn hàng toàn sàn |
-| **Customer (Khách hàng)**| `esther.howard@example.com` | Esther Howard | Mua sắm sản phẩm, tư vấn AI Stylist, thêm giỏ hàng, đặt hàng thanh toán COD |
 | **Boutique Seller (Dior)** | `dior@gmail.com` | Christian Dior Official | Cửa hàng đối tác chính hãng thương hiệu Dior |
 | **Boutique Seller (Gucci)**| `gucci@gmail.com` | Gucci Official | Cửa hàng đối tác chính hãng thương hiệu Gucci |
 | **Boutique Seller (Adidas)**| `adidas@gmail.com` | Adidas Official | Cửa hàng đối tác chính hãng thương hiệu Adidas |
 
 ---
 
-## 🧪 V. KIỂM THỬ HỆ THỐNG (RUNNING TESTS)
+## 🧪 VII. KIỂM THỬ HỆ THỐNG (RUNNING TESTS)
 
 Trước khi commit mã nguồn mới hoặc tạo Pull Request, các dev nên chạy bộ kiểm thử để đảm bảo không làm vỡ các tính năng hiện có:
 
@@ -132,11 +174,11 @@ dotnet test backend/Ecommerce.slnx
 ```powershell
 npm --prefix frontend run build
 ```
-*(Yêu cầu kết quả: Biên dịch thành công 10/10 static/dynamic routes với 0 error)*
+*(Yêu cầu kết quả: Biên dịch thành công 16/16 static/dynamic routes với 0 error)*
 
 ---
 
-## ❓ VI. CÁC VẤN ĐỀ THƯỜNG GẶP & CÁCH XỬ LÝ (TROUBLESHOOTING)
+## ❓ VIII. CÁC VẤN ĐỀ THƯỜNG GẶP & CÁCH XỬ LÝ (TROUBLESHOOTING)
 
 ### 1. Lỗi khóa tệp nhị phân (`The process cannot access the file ... Ecommerce.BLL.dll`)
 * **Nguyên nhân**: Bạn đang chạy lệnh `dotnet test` hoặc `dotnet build` trong khi Backend API (`Ecommerce.API`) vẫn đang chạy ngầm và giữ khóa tệp DLL.
@@ -159,8 +201,11 @@ npm --prefix frontend run build
 
 ---
 
-## 📚 VII. TÀI LIỆU LIÊN QUAN TRONG DỰ ÁN
+## 📚 IX. TÀI LIỆU LIÊN QUAN TRONG DỰ ÁN
 * 📖 [`BAO_CAO_CHUC_NANG_HE_THONG.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/BAO_CAO_CHUC_NANG_HE_THONG.md): Chi tiết chức năng từng phân hệ & Gợi ý roadmap tương lai.
-* 🏗️ [`BAO_CAO_THIET_KE_HE_THONG.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/BAO_CAO_THIET_KE_HE_THONG.md): Kiến trúc Clean Architecture, sơ đồ ERD, Use Case và Sequence Diagrams.
+* 🤖 [`TAI_LIEU_TICH_HOP_AI.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/TAI_LIEU_TICH_HOP_AI.md): Tài liệu chuyên sâu về kiến trúc, cơ chế prompt, Gemini API và giải pháp AI trong hệ thống.
+* 🏗️ [`BAO_CAO_THIET_KE_HE_THONG.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/BAO_CAO_THIET_KE_HE_THONG.md): Kiến trúc Clean Architecture, sơ đồ ERD, Use Case và Sequence Diagrams chuẩn Retina.
+* 📝 [`NHAT_KY_THAY_DOI_HE_THONG.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/NHAT_KY_THAY_DOI_HE_THONG.md): Nhật ký tổng hợp các nâng cấp, tính năng mới và sửa lỗi gần đây.
+* 📜 [`LICH_SU_COMMIT.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/LICH_SU_COMMIT.md): Minh chứng toàn bộ 45 commits từ ngày khởi tạo dự án đến nay.
 * 👥 [`TEAM_COLLABORATION_GUIDE.md`](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/TEAM_COLLABORATION_GUIDE.md): Quy chuẩn phân chia module và vùng làm việc cho từng thành viên trong team.
 

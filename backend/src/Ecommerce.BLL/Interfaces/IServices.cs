@@ -21,6 +21,8 @@ public interface IProductService
     Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request, int? currentUserId = null, string? currentRole = null);
     Task<bool> DeleteProductAsync(int id, int? currentUserId = null, string? currentRole = null);
     Task<List<CategoryDto>> GetCategoriesAsync();
+    Task<List<ReviewDto>> GetProductReviewsAsync(int productId);
+    Task<ReviewDto> AddProductReviewAsync(int productId, CreateReviewDto request, int? userId = null);
 }
 
 public interface IOrderService
@@ -29,13 +31,14 @@ public interface IOrderService
     Task<OrderDto> GetOrderByIdAsync(int id, int? userId = null, string? role = null);
     Task<OrderDto> GetOrderByCodeAsync(string orderCode);
     Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null);
-    Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, string? role = null);
+    Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, int? userId = null, string? role = null);
+    Task<OrderDto> CancelOrderByCustomerAsync(int id, int userId);
 }
 
 public interface IInventoryService
 {
     Task<InventorySummaryDto> GetInventorySummaryAsync(int? sellerId = null, string? role = null);
-    Task<bool> RestockProductAsync(RestockRequestDto request);
+    Task<bool> RestockProductAsync(RestockRequestDto request, int? sellerId = null, string? role = null);
 }
 
 public interface IStatisticsService
@@ -46,6 +49,7 @@ public interface IStatisticsService
 public interface IAIService
 {
     Task<string> GenerateOutfitRecommendationAsync(string query, int? productId = null);
+    Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request);
 }
 
 public interface IStoreService
