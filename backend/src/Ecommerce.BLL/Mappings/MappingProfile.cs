@@ -37,6 +37,9 @@ public class MappingProfile : Profile
                 !string.IsNullOrEmpty(s.CategoriesJson) 
                     ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.CategoriesJson, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
                     : new List<string>()));
+
+        CreateMap<Review, ReviewDto>();
+        CreateMap<CreateReviewDto, Review>();
     }
 
     private static string GetStatusLabel(Ecommerce.Common.Enums.OrderStatus status)
