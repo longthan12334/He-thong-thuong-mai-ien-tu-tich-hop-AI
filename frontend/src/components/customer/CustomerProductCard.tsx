@@ -26,7 +26,24 @@ export const CustomerProductCard: React.FC<CustomerProductCardProps> = ({ produc
   const { isInWishlist, toggleWishlist } = useShopper();
   const { showToast } = useToast();
   const liked = isInWishlist(product.id);
-  const brand = extractBrand(product);
+
+  const parseProductName = (rawName: string) => {
+    if (rawName && rawName.includes(' - ')) {
+      const idx = rawName.indexOf(' - ');
+      return {
+        brand: rawName.substring(0, idx).trim(),
+        title: rawName.substring(idx + 3).trim(),
+      };
+    }
+    const detected = extractBrand(product);
+    return {
+      brand: detected || '',
+      title: rawName,
+    };
+  };
+
+  const { brand: parsedBrand, title: parsedTitle } = parseProductName(product.name);
+  const brand = parsedBrand || extractBrand(product);
   const hasDiscount = (product.discountPercent || 0) > 0;
   const showOriginal = !!product.originalPrice && product.originalPrice > product.basePrice;
   const outOfStock = (product.stockQuantity ?? 1) <= 0 || product.stockStatus === 'OUT_OF_STOCK' || product.stockStatus === 'OutOfStock';
@@ -40,7 +57,7 @@ export const CustomerProductCard: React.FC<CustomerProductCardProps> = ({ produc
 
   return (
     <div
-      className="product-card customer-product-card"
+      className="product-card customer-product-card group"
       role="link"
       tabIndex={0}
       aria-label={`Xem chi tiết ${product.name}`}
@@ -50,10 +67,10 @@ export const CustomerProductCard: React.FC<CustomerProductCardProps> = ({ produc
       }}
     >
       <div className="product-card-top flex justify-between items-center">
-        <span className="category-tag-top">{brand || product.categoryName || 'Thời Trang'}</span>
+        <span className="category-tag-top">{product.categoryName || 'Thời Trang'}</span>
         <div className="flex items-center gap-1.5">
           {hasDiscount && (
-            <span className="bg-red-500 text-white text-[0.7rem] font-extrabold px-1.5 py-0.5 rounded">
+            <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
               -{product.discountPercent}%
             </span>
           )}
@@ -82,7 +99,10 @@ export const CustomerProductCard: React.FC<CustomerProductCardProps> = ({ produc
       </div>
 
       <div className="product-info">
-        <h3 className="product-title">{product.name}</h3>
+        {brand && <div className="product-brand">{brand}</div>}
+        <h3 className="product-title" title={product.name}>
+          {parsedTitle || product.name}
+        </h3>
         <div className="product-rating-row">
           <span>★ {(product.rating || 0).toFixed(1)}</span>
           <span className="review-count">({product.reviewCount || 0} đánh giá)</span>
