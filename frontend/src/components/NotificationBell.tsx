@@ -7,7 +7,11 @@ import { signalRService, type SignalRNotification } from '@/services/signalr.ser
 import { useToast } from '@/hooks/useToast';
 import { useAuth } from '@/hooks/useAuth';
 
-const NOTIFICATIONS_STORAGE_KEY = 'aethelgard_signalr_notifications';
+const getStorageKey = (userId?: number, email?: string) => {
+  if (userId) return `aethelgard_notifications_uid_${userId}`;
+  if (email) return `aethelgard_notifications_email_${email}`;
+  return 'aethelgard_notifications_guest';
+};
 
 export default function NotificationBell() {
   const { showToast } = useToast();
@@ -17,29 +21,47 @@ export default function NotificationBell() {
   const [hasNewPulse, setHasNewPulse] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load thông báo từ localStorage
+  const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+
+  // Dọn dẹp key cũ không phân quyền để loại bỏ triệt để thông báo rác 24/10
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
-      if (saved) {
-        setNotifications(JSON.parse(saved));
-      }
+      localStorage.removeItem('aethelgard_signalr_notifications');
     } catch {}
   }, []);
 
-  const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+  // Load thông báo theo tài khoản đang đăng nhập
+  useEffect(() => {
+    const key = getStorageKey(user?.id, user?.email);
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setNotifications(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setNotifications([]);
+      }
+    } catch {
+      setNotifications([]);
+    }
+  }, [user?.id, user?.email]);
 
-  // Tham gia nhóm SignalR theo vai trò Người bán hoặc Khách hàng
+  // Tham gia nhóm SignalR theo vai trò Admin, Người bán (với SellerId cụ thể), hoặc Khách hàng
   useEffect(() => {
     signalRService.startConnection().then(() => {
-      if (isSeller) {
-        signalRService.joinSellerGroup();
+      if (user?.role === 'Admin') {
+        signalRService.joinAdminGroup();
+      } else if (user?.role === 'Seller') {
+        const sellerId = user?.id || user?.userId;
+        if (sellerId) {
+          signalRService.joinSellerGroup(sellerId);
+        }
       }
       if (user?.email) {
         signalRService.joinCustomerGroup(user.email);
       }
     });
-  }, [isSeller, user?.email]);
+  }, [user?.role, user?.id, user?.userId, user?.email]);
 
   // Kết nối SignalR và lắng nghe thông báo thời gian thực
   useEffect(() => {
@@ -52,7 +74,8 @@ export default function NotificationBell() {
       setNotifications((prev) => {
         const next = [notif, ...prev.slice(0, 29)];
         try {
-          localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(next));
+          const key = getStorageKey(user?.id, user?.email);
+          localStorage.setItem(key, JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -83,7 +106,7 @@ export default function NotificationBell() {
     return () => {
       unsubscribe();
     };
-  }, [showToast, isSeller]);
+  }, [showToast, isSeller, user?.id, user?.email]);
 
   // Đóng dropdown khi click bên ngoài
   useEffect(() => {
@@ -112,16 +135,25 @@ export default function NotificationBell() {
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, read: true }));
       try {
-        localStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(updated));
+        const key = getStorageKey(user?.id, user?.email);
+        localStorage.setItem(key, JSON.stringify(updated));
       } catch {}
       return updated;
     });
   };
 
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    try {
+      const key = getStorageKey(user?.id, user?.email);
+      localStorage.removeItem(key);
+    } catch {}
+  };
+
   const getTargetHref = (notif: SignalRNotification) => {
     const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
     if (isSeller) {
-      return '/orders';
+      return notif.orderCode ? `/orders?code=${encodeURIComponent(notif.orderCode)}` : '/orders';
     }
     if (notif.orderCode) {
       return `/shop/track-order?code=${encodeURIComponent(notif.orderCode)}`;
@@ -192,15 +224,27 @@ export default function NotificationBell() {
                 SignalR Real-time
               </strong>
             </div>
-            {unreadCount > 0 && (
-              <button
-                type="button"
-                onClick={markAllAsRead}
-                className="text-[11px] text-purple-200 hover:text-white flex items-center gap-1 font-medium transition-colors"
-              >
-                <Check className="w-3 h-3" /> Đánh dấu đã đọc
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={markAllAsRead}
+                  className="text-[11px] text-purple-200 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                >
+                  <Check className="w-3 h-3" /> Đã đọc
+                </button>
+              )}
+              {visibleNotifications.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAllNotifications}
+                  className="text-[11px] text-rose-300 hover:text-rose-100 font-medium transition-colors cursor-pointer"
+                  title="Xóa toàn bộ thông báo cũ"
+                >
+                  Xóa hết
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Danh sách thông báo */}
