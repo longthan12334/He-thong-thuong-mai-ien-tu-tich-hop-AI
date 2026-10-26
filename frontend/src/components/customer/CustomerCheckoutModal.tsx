@@ -79,6 +79,10 @@ export const CustomerCheckoutModal: React.FC<CustomerCheckoutModalProps> = ({ on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (user?.role === 'Seller' || user?.role === 'Admin') {
+      setServerError('Tài khoản Người bán không được phép đặt hàng. Vui lòng đăng nhập tài khoản Khách hàng để mua sắm.');
+      return;
+    }
     if (cart.length === 0) {
       setServerError('Giỏ hàng đang trống!');
       return;

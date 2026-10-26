@@ -33,7 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedToken && storedUser) {
       try {
         setToken(storedToken);
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        if (parsed && !parsed.id && parsed.userId) parsed.id = parsed.userId;
+        setUser(parsed);
       } catch {
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
@@ -54,30 +56,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pathname.startsWith('/product-detail');
 
     const isSellerOnlyPage =
+      pathname === '/' ||
       pathname === '/inventory' ||
       pathname === '/orders' ||
-      pathname === '/income-statistics';
+      pathname === '/income-statistics' ||
+      pathname === '/vouchers' ||
+      pathname === '/transactions' ||
+      pathname === '/shop-profile';
 
     if (!token && !isLoginPage && !isPublicShopperPage) {
+      if (pathname === '/') {
+        router.replace('/shop');
+        return;
+      }
       sessionStorage.setItem(STORAGE_KEYS.REDIRECT_PATH, pathname);
       router.replace('/login');
     } else if (token && user?.role === 'Customer' && isSellerOnlyPage) {
       router.replace(pathname === '/orders' ? '/shop/my-orders' : '/shop');
     } else if (token && isLoginPage) {
       const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
-      const redirect = saved || (user?.role === 'Customer' ? '/shop' : '/');
+      const isCustomer = user?.role === 'Customer';
+      const defaultPath = isCustomer ? '/shop' : '/';
+      const isInvalidForCustomer = isCustomer && (!saved || saved === '/' || saved === '/login' || saved.startsWith('/inventory') || saved.startsWith('/orders') || saved.startsWith('/income'));
+      const redirect = isInvalidForCustomer ? defaultPath : (saved || defaultPath);
       sessionStorage.removeItem(STORAGE_KEYS.REDIRECT_PATH);
       router.replace(redirect);
     }
   }, [token, isLoading, pathname, router, user]);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
+    const userWithId = { ...newUser, id: newUser.id ?? newUser.userId };
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, newToken);
-    localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(newUser));
+    localStorage.setItem(STORAGE_KEYS.AUTH_USER, JSON.stringify(userWithId));
     setToken(newToken);
-    setUser(newUser);
+    setUser(userWithId);
 
-    const redirect = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH) || '/';
+    const isCustomer = newUser.role === 'Customer';
+    const defaultPath = isCustomer ? '/shop' : '/';
+    const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
+    const isInvalidSaved = !saved || saved === '/' || saved === '/login' || (isCustomer && (saved === '/' || saved.startsWith('/inventory') || saved.startsWith('/orders') || saved.startsWith('/income')));
+    const redirect = isInvalidSaved ? defaultPath : saved;
     sessionStorage.removeItem(STORAGE_KEYS.REDIRECT_PATH);
     router.replace(redirect);
   }, [router]);

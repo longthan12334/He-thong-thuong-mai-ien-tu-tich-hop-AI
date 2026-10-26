@@ -8,6 +8,7 @@ using Ecommerce.DAL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.API.Controllers;
 
@@ -37,7 +38,8 @@ public class OrdersController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
             ?? User.FindFirst("sub")?.Value;
-        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
         int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
         var result = await _orderService.GetOrdersAsync(status, userId, roleClaim);
@@ -49,7 +51,8 @@ public class OrdersController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
             ?? User.FindFirst("sub")?.Value;
-        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
         int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
         var result = await _orderService.GetOrderByIdAsync(id, userId, roleClaim);
@@ -68,14 +71,27 @@ public class OrdersController : ControllerBase
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
             ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
         int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
-        var result = await _orderService.CreateOrderAsync(request, userId);
+        if (roleClaim == "Seller")
+        {
+            return BadRequest(new { message = "Tài khoản Người bán không được phép đặt hàng. Vui lòng sử dụng tài khoản Khách hàng để mua sắm." });
+        }
+
+        var result = await _orderService.CreateOrderAsync(request, userId, roleClaim);
 
         try
         {
-            // Chỉ gửi thông báo "Đơn hàng mới" tới nhóm Người bán (Sellers / Admin)
-            await _hubContext.Clients.Group("Sellers").SendAsync("ReceiveOrderCreated", new
+            var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
+            var sellerIds = await _unitOfWork.Products.Query()
+                .Where(p => productIds.Contains(p.Id) && p.SellerId > 0)
+                .Select(p => p.SellerId)
+                .Distinct()
+                .ToListAsync();
+
+            var orderCreatedPayload = new
             {
                 orderId = result.Id,
                 orderCode = result.OrderCode,
@@ -84,6 +100,19 @@ public class OrdersController : ControllerBase
                 createdAt = result.CreatedAt,
                 title = "Đơn Hàng Mới Cho Shop!",
                 message = $"Khách hàng {result.CustomerName} vừa đặt đơn {result.OrderCode} ({result.TotalAmount:N0} đ)."
+            };
+
+            await _hubContext.Clients.Group("Admins").SendAsync("ReceiveOrderCreated", orderCreatedPayload);
+            foreach (var sellerId in sellerIds)
+            {
+                await _hubContext.Clients.Group($"Seller_{sellerId}").SendAsync("ReceiveOrderCreated", orderCreatedPayload);
+            }
+
+            // Đồng bộ tồn kho tức thì cho tất cả khách hàng đang xem sàn
+            await _hubContext.Clients.All.SendAsync("ReceiveCatalogUpdated", new
+            {
+                productIds = productIds,
+                orderCode = result.OrderCode
             });
         }
         catch { }
@@ -102,6 +131,63 @@ public class OrdersController : ControllerBase
             return BadRequest(new { message = "Vui lòng đăng nhập để hủy đơn hàng." });
 
         var result = await _orderService.CancelOrderByCustomerAsync(id, userId);
+
+        try
+        {
+            var productIds = result.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).Distinct().ToList();
+            await _hubContext.Clients.All.SendAsync("ReceiveCatalogUpdated", new
+            {
+                productIds = productIds,
+                orderCode = result.OrderCode
+            });
+        }
+        catch { }
+
+        return Ok(result);
+    }
+
+    /// <summary>[Customer] Khách hàng xác nhận đã nhận hàng thành công.</summary>
+    [Authorize]
+    [HttpPatch("{id:int}/confirm-received")]
+    public async Task<ActionResult<OrderDto>> ConfirmReceived(int id)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+            return BadRequest(new { message = "Vui lòng đăng nhập để xác nhận nhận hàng." });
+
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
+
+        var result = await _orderService.ConfirmOrderReceivedByCustomerAsync(id, userId, roleClaim);
+
+        try
+        {
+            var productIds = result.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).Distinct().ToList();
+            var sellerIds = await _unitOfWork.Products.Query()
+                .Where(p => productIds.Contains(p.Id) && p.SellerId > 0)
+                .Select(p => p.SellerId)
+                .Distinct()
+                .ToListAsync();
+
+            var receivedPayload = new
+            {
+                orderId = result.Id,
+                orderCode = result.OrderCode,
+                status = result.Status,
+                statusLabel = result.StatusLabel,
+                title = "Khách Hàng Đã Nhận Hàng!",
+                message = $"Khách hàng {result.CustomerName} đã xác nhận nhận thành công kiện hàng {result.OrderCode}."
+            };
+
+            await _hubContext.Clients.Group("Admins").SendAsync("ReceiveOrderStatusUpdated", receivedPayload);
+            foreach (var sellerId in sellerIds)
+            {
+                await _hubContext.Clients.Group($"Seller_{sellerId}").SendAsync("ReceiveOrderStatusUpdated", receivedPayload);
+            }
+        }
+        catch { }
+
         return Ok(result);
     }
 
@@ -112,14 +198,21 @@ public class OrdersController : ControllerBase
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
             ?? User.FindFirst("sub")?.Value;
         int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
-        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
 
         var result = await _orderService.UpdateOrderStatusAsync(id, request, userId, roleClaim);
 
         try
         {
-            // Gửi thông báo tới Người bán
-            await _hubContext.Clients.Group("Sellers").SendAsync("ReceiveOrderStatusUpdated", new
+            var productIds = result.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).Distinct().ToList();
+            var sellerIds = await _unitOfWork.Products.Query()
+                .Where(p => productIds.Contains(p.Id) && p.SellerId > 0)
+                .Select(p => p.SellerId)
+                .Distinct()
+                .ToListAsync();
+
+            var statusPayload = new
             {
                 orderId = result.Id,
                 orderCode = result.OrderCode,
@@ -127,7 +220,13 @@ public class OrdersController : ControllerBase
                 statusLabel = result.StatusLabel,
                 title = "Trạng Thái Đơn Hàng Cập Nhật",
                 message = $"Đơn hàng {result.OrderCode} đã chuyển sang: {result.StatusLabel}."
-            });
+            };
+
+            await _hubContext.Clients.Group("Admins").SendAsync("ReceiveOrderStatusUpdated", statusPayload);
+            foreach (var sellerId in sellerIds)
+            {
+                await _hubContext.Clients.Group($"Seller_{sellerId}").SendAsync("ReceiveOrderStatusUpdated", statusPayload);
+            }
 
             // Gửi thông báo riêng cho Khách hàng sở hữu đơn hàng
             if (!string.IsNullOrWhiteSpace(result.CustomerEmail))
@@ -174,7 +273,10 @@ public class OrdersController : ControllerBase
 
         if (queryParams.TryGetValue("vnp_TxnRef", out var txnRef) && int.TryParse(txnRef, out var orderId))
         {
-            var order = await _unitOfWork.Orders.GetByIdAsync(orderId);
+            var order = await _unitOfWork.Orders.Query()
+                .Include(o => o.Items)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
             if (order != null)
             {
                 var responseCode = queryParams.GetValueOrDefault("vnp_ResponseCode");
@@ -187,14 +289,26 @@ public class OrdersController : ControllerBase
 
                     try
                     {
-                        // Gửi cho Người bán
-                        await _hubContext.Clients.Group("Sellers").SendAsync("ReceivePaymentConfirmed", new
+                        var productIds = order.Items.Where(i => i.ProductId.HasValue).Select(i => i.ProductId!.Value).Distinct().ToList();
+                        var sellerIds = await _unitOfWork.Products.Query()
+                            .Where(p => productIds.Contains(p.Id) && p.SellerId > 0)
+                            .Select(p => p.SellerId)
+                            .Distinct()
+                            .ToListAsync();
+
+                        var paymentNotif = new
                         {
                             orderId = order.Id,
                             orderCode = order.OrderCode,
                             title = "Thanh Toán VNPay Thành Công!",
                             message = $"Đơn hàng {order.OrderCode} ({order.TotalAmount:N0} đ) vừa hoàn tất thanh toán trực tuyến qua VNPay."
-                        });
+                        };
+
+                        await _hubContext.Clients.Group("Admins").SendAsync("ReceivePaymentConfirmed", paymentNotif);
+                        foreach (var sellerId in sellerIds)
+                        {
+                            await _hubContext.Clients.Group($"Seller_{sellerId}").SendAsync("ReceivePaymentConfirmed", paymentNotif);
+                        }
 
                         // Gửi riêng cho Khách hàng
                         if (!string.IsNullOrWhiteSpace(order.CustomerEmail))

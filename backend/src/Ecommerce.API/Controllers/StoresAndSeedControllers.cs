@@ -34,7 +34,7 @@ public class StoresController : ControllerBase
     }
 
     [HttpPut("{storeCode}")]
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Seller")]
     public async Task<ActionResult<StoreDto>> UpdateStore(string storeCode, [FromBody] UpdateStoreDto dto)
     {
         var updated = await _storeService.UpdateStoreAsync(storeCode, dto);
