@@ -63,7 +63,7 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
         </button>
       </div>
 
-      <div className="orders-search-box">
+      <div className="orders-search-box" style={{ position: 'relative' }}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#64748B" strokeWidth="2">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -75,6 +75,27 @@ export const OrderFilterBar: React.FC<OrderFilterBarProps> = ({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => onSearchChange('')}
+            style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: '#94a3b8',
+              fontSize: '14px',
+              fontWeight: 700,
+            }}
+            title="Xóa tìm kiếm"
+          >
+            ✕
+          </button>
+        )}
       </div>
     </div>
   );

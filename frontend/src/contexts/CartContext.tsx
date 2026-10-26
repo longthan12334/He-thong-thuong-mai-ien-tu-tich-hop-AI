@@ -102,8 +102,37 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
   }, [removeFromCart]);
 
+  // Đồng bộ giỏ hàng qua các tab khác và sự kiện làm trống
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === CART_STORAGE_KEY) {
+        try {
+          setCart(e.newValue ? JSON.parse(e.newValue) : []);
+        } catch {
+          setCart([]);
+        }
+      }
+    };
+    const handleCartCleared = () => {
+      setCart([]);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('aethelgard:cart-cleared', handleCartCleared);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('aethelgard:cart-cleared', handleCartCleared);
+    };
+  }, []);
+
   const clearCart = useCallback(() => {
     setCart([]);
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify([]));
+    } catch {}
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('aethelgard:cart-cleared'));
+    }
   }, []);
 
   const totalQty = useMemo(() => {

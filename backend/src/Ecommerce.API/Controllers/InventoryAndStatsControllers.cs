@@ -1,8 +1,10 @@
 using System.Security.Claims;
+using Ecommerce.API.Hubs;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 
 namespace Ecommerce.API.Controllers;
 
@@ -11,10 +13,12 @@ namespace Ecommerce.API.Controllers;
 public class InventoryController : ControllerBase
 {
     private readonly IInventoryService _inventoryService;
+    private readonly IHubContext<NotificationHub> _hubContext;
 
-    public InventoryController(IInventoryService inventoryService)
+    public InventoryController(IInventoryService inventoryService, IHubContext<NotificationHub> hubContext)
     {
         _inventoryService = inventoryService;
+        _hubContext = hubContext;
     }
 
     [HttpGet]
@@ -39,6 +43,16 @@ public class InventoryController : ControllerBase
         int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
 
         var success = await _inventoryService.RestockProductAsync(request, userId, roleClaim);
+
+        try
+        {
+            await _hubContext.Clients.All.SendAsync("ReceiveCatalogUpdated", new
+            {
+                productId = request.ProductId
+            });
+        }
+        catch { }
+
         return Ok(new { success, message = "Đã nhập hàng thành công vào hệ thống tồn kho sàn." });
     }
 }
