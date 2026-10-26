@@ -82,6 +82,13 @@ class SignalRService {
         this.notifyListeners(notif);
       });
 
+      this.connection.on('ReceiveCatalogUpdated', (data: any) => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('aethelgard:catalog-updated', { detail: data }));
+          window.dispatchEvent(new CustomEvent('aethelgard:request-catalog-reload', { detail: data }));
+        }
+      });
+
       await this.connection.start();
     } catch (err) {
       // Tự động kết nối lại ngầm
@@ -105,10 +112,18 @@ class SignalRService {
     });
   }
 
-  public async joinSellerGroup(): Promise<void> {
+  public async joinAdminGroup(): Promise<void> {
     try {
       if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-        await this.connection.invoke('JoinSellerGroup');
+        await this.connection.invoke('JoinAdminGroup');
+      }
+    } catch {}
+  }
+
+  public async joinSellerGroup(sellerId?: number): Promise<void> {
+    try {
+      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected && sellerId) {
+        await this.connection.invoke('JoinSellerGroup', sellerId);
       }
     } catch {}
   }

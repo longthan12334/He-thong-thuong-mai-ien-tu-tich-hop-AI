@@ -1,4 +1,4 @@
-﻿using Ecommerce.Common.Enums;
+using Ecommerce.Common.Enums;
 
 namespace Ecommerce.Common.DTOs;
 
@@ -30,6 +30,7 @@ public class OrderDto
 public class OrderItemDto
 {
     public int Id { get; set; }
+    public int? ProductId { get; set; }
     public string ProductName { get; set; } = string.Empty;
     public string Specs { get; set; } = string.Empty;
     public string ImageUrl { get; set; } = string.Empty;
