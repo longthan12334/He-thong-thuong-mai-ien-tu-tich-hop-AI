@@ -125,30 +125,48 @@ export const SellerDrawer: React.FC<SellerDrawerProps> = ({
                 <table className="variants-table">
                   <thead>
                     <tr>
-                      <th>Phân loại</th>
-                      <th>SKU Phụ</th>
-                      <th>Tồn</th>
-                      <th>Trạng thái</th>
+                      <th style={{ width: '42%' }}>Phân loại</th>
+                      <th style={{ width: '26%' }}>Mã SKU</th>
+                      <th style={{ width: '12%', textAlign: 'center' }}>Tồn</th>
+                      <th style={{ width: '20%', textAlign: 'right' }}>Trạng thái</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td>Màu Đen / Size M</td>
-                      <td>{skuCode}-BLK-M</td>
-                      <td>14</td>
-                      <td><span className="text-emerald-600 font-semibold">Sẵn sàng</span></td>
+                      <td className="font-semibold text-slate-900">Màu Đen / Size M</td>
+                      <td className="text-slate-500 font-mono text-[11px]" title={`${skuCode}-BLK-M`}>
+                        ...-BLK-M
+                      </td>
+                      <td className="text-center font-bold text-slate-800">14</td>
+                      <td className="text-right">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                          Sẵn sàng
+                        </span>
+                      </td>
                     </tr>
                     <tr>
-                      <td>Màu Trắng / Size L</td>
-                      <td>{skuCode}-WHT-L</td>
-                      <td>11</td>
-                      <td><span className="text-emerald-600 font-semibold">Sẵn sàng</span></td>
+                      <td className="font-semibold text-slate-900">Màu Trắng / Size L</td>
+                      <td className="text-slate-500 font-mono text-[11px]" title={`${skuCode}-WHT-L`}>
+                        ...-WHT-L
+                      </td>
+                      <td className="text-center font-bold text-slate-800">11</td>
+                      <td className="text-right">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                          Sẵn sàng
+                        </span>
+                      </td>
                     </tr>
                     <tr>
-                      <td>Màu Be / Size S</td>
-                      <td>{skuCode}-BEI-S</td>
-                      <td>5</td>
-                      <td><span className="text-amber-600 font-semibold">Sắp hết</span></td>
+                      <td className="font-semibold text-slate-900">Màu Be / Size S</td>
+                      <td className="text-slate-500 font-mono text-[11px]" title={`${skuCode}-BEI-S`}>
+                        ...-BEI-S
+                      </td>
+                      <td className="text-center font-bold text-slate-800">5</td>
+                      <td className="text-right">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+                          Sắp hết
+                        </span>
+                      </td>
                     </tr>
                   </tbody>
                 </table>

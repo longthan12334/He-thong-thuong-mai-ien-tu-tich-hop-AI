@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { Eye } from 'lucide-react';
 import type { Product } from '@/types';
 import { productService } from '@/services/product.service';
 import { useCart } from '@/hooks/useCart';
@@ -108,6 +109,24 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
+  // Đồng bộ tồn kho mới nhất ngay lập tức khi khách vừa đặt hàng hoặc kho thay đổi từ sàn
+  useEffect(() => {
+    if (!productId) return;
+    const handleCatalogUpdate = () => {
+      productService
+        .getProductById(productId)
+        .then((fresh) => {
+          if (fresh) setProduct(fresh);
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('aethelgard:catalog-updated', handleCatalogUpdate);
+    return () => {
+      window.removeEventListener('aethelgard:catalog-updated', handleCatalogUpdate);
+    };
+  }, [productId]);
+
   // 2. Đồng hồ chốt đơn trong ngày
   useEffect(() => {
     const timer = setInterval(() => setSecondsLeft(secondsUntilCutoff(new Date())), 1000);
@@ -160,6 +179,10 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
 
   const brand = product ? extractBrand(product) : '';
   const brandProductCount = brand ? catalog.filter((p) => extractBrand(p) === brand).length : 0;
+  const isSeller = user?.role === 'Seller';
+  const isAdmin = user?.role === 'Admin';
+  const isManagement = isSeller || isAdmin;
+  const isOwnProduct = isSeller && !!product && product.sellerId === (user?.id || user?.userId);
 
   // Tồn kho khả dụng theo phân loại đang chọn
   const availableStock = selectedVariant && (activeSize || !options.sizes.length)
@@ -220,6 +243,10 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
   };
 
   const validateSelection = () => {
+    if (isSeller) {
+      showToast('Tài khoản Người bán chỉ xem trước giao diện và không thể đặt hàng.');
+      return false;
+    }
     if (isOutOfStock) {
       showToast('Sản phẩm tạm hết hàng');
       return false;
@@ -541,73 +568,133 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
                   : `Còn hàng (${availableStock} sản phẩm)`}
           </p>
 
-          {/* Nút thao tác (Thêm vào giỏ, chọn số lượng, Yêu thích) */}
-          <div className="action-buttons-stack">
-            <div className="qty-stepper">
-              <button
-                id="btn-qty-minus"
-                className="qty-step-btn"
-                onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                aria-label="Giảm số lượng"
-                type="button"
-              >
-                -
-              </button>
-              <span id="qty-display" className="qty-display-val">{qty}</span>
-              <button
-                id="btn-qty-plus"
-                className="qty-step-btn"
-                onClick={() => {
-                  if (availableStock > 0 && qty >= availableStock) {
-                    showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`);
-                    return;
-                  }
-                  setQty((prev) => prev + 1);
-                }}
-                aria-label="Tăng số lượng"
-                type="button"
-              >
-                +
-              </button>
+          {/* Nút thao tác: Nếu là Người bán thì hiển thị thông báo Chế độ xem trước (không có giỏ hàng & không đặt hàng) */}
+          {isManagement ? (
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3 my-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                    <Eye className="w-4 h-4 text-white" />
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 m-0">
+                      {isAdmin ? 'Góc Người Mua (Chế độ giám sát)' : 'Góc Người Mua (Chế độ xem trước)'}
+                    </h4>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {isAdmin ? 'Tài khoản Quản trị viên sàn' : 'Tài khoản Người bán'} ({user?.fullName || user?.email})
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-900 text-white tracking-wider uppercase">
+                  {isAdmin ? 'Giám Sát' : 'Chỉ Xem Trước'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                {isAdmin
+                  ? 'Đây là giao diện hiển thị thực tế với khách hàng. Tài khoản Quản trị viên không có giỏ hàng và không được phép đặt hàng.'
+                  : 'Đây là giao diện hiển thị thực tế với khách hàng. Tài khoản Người bán không có giỏ hàng và không được phép đặt hàng.'}
+              </p>
+              {isOwnProduct ? (
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-900 flex items-center gap-1">
+                    ✓ Sản phẩm thuộc gian hàng của bạn
+                  </span>
+                  <Link
+                    href="/inventory"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-sm transition-all text-decoration-none"
+                  >
+                    ⚙ Quản lý tồn kho &rarr;
+                  </Link>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">
+                    {isAdmin
+                      ? 'Sản phẩm này thuộc quyền quản lý của một thương hiệu trên sàn.'
+                      : 'Sản phẩm này thuộc gian hàng đối tác khác trên sàn.'}
+                  </span>
+                  {isAdmin && (
+                    <Link
+                      href="/inventory"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-sm transition-all text-decoration-none"
+                    >
+                      ⚙ Quản lý tồn kho toàn sàn &rarr;
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              {/* Nút thao tác (Thêm vào giỏ, chọn số lượng, Yêu thích) */}
+              <div className="action-buttons-stack">
+                <div className="qty-stepper">
+                  <button
+                    id="btn-qty-minus"
+                    className="qty-step-btn"
+                    onClick={() => setQty((prev) => Math.max(1, prev - 1))}
+                    aria-label="Giảm số lượng"
+                    type="button"
+                  >
+                    -
+                  </button>
+                  <span id="qty-display" className="qty-display-val">{qty}</span>
+                  <button
+                    id="btn-qty-plus"
+                    className="qty-step-btn"
+                    onClick={() => {
+                      if (availableStock > 0 && qty >= availableStock) {
+                        showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`);
+                        return;
+                      }
+                      setQty((prev) => prev + 1);
+                    }}
+                    aria-label="Tăng số lượng"
+                    type="button"
+                  >
+                    +
+                  </button>
+                </div>
 
-            <button
-              id="btn-add-cart"
-              className="btn-add-to-cart-primary"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-              type="button"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                <path d="M3 6h18" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}</span>
-            </button>
+                <button
+                  id="btn-add-cart"
+                  className="btn-add-to-cart-primary"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                  type="button"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                    <path d="M3 6h18" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                  </svg>
+                  <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}</span>
+                </button>
 
-            <button
-              id="btn-wishlist"
-              className={`btn-wishlist-toggle ${isWishlist ? 'active' : ''}`}
-              title={isWishlist ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
-              onClick={handleWishlistToggle}
-              type="button"
-            >
-              {isWishlist ? '♥' : '♡'}
-            </button>
-          </div>
+                <button
+                  id="btn-wishlist"
+                  className={`btn-wishlist-toggle ${isWishlist ? 'active' : ''}`}
+                  title={isWishlist ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
+                  onClick={handleWishlistToggle}
+                  type="button"
+                >
+                  {isWishlist ? '♥' : '♡'}
+                </button>
+              </div>
 
-          <button
-            id="btn-buy-now"
-            className="btn-buy-now-accent"
-            onClick={handleBuyNow}
-            disabled={isOutOfStock}
-            style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-            type="button"
-          >
-            Mua Ngay Với 1 Bước
-          </button>
+              <button
+                id="btn-buy-now"
+                className="btn-buy-now-accent"
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                type="button"
+              >
+                Mua Ngay Với 1 Bước
+              </button>
+            </>
+          )}
 
           {/* Huy hiệu cam kết */}
           <div className="trust-badges-grid">

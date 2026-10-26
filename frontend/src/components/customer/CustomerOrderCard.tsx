@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import type { Order } from '@/types';
 import { formatVND } from '@/lib/utils';
 import { FALLBACK_IMAGE } from '@/lib/constants';
@@ -25,6 +26,8 @@ interface CustomerOrderCardProps {
   onToggle: () => void;
   onCancel?: (order: Order) => void;
   isCancelling?: boolean;
+  onConfirmReceived?: (order: Order) => void;
+  isConfirming?: boolean;
 }
 
 export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
@@ -33,10 +36,17 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
   onToggle,
   onCancel,
   isCancelling,
+  onConfirmReceived,
+  isConfirming,
 }) => {
   const status = normalizeStatus(order.status);
   const label = CUSTOMER_STATUS_LABELS[status] || order.statusLabel || status;
   const itemCount = order.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+  const isDelivered = status === 'DELIVERED' || status === 'COMPLETED';
+  const isCustomerConfirmed = order.lastUpdateLocation?.includes('Khách hàng đã nhận');
+  // Khách hàng CHỈ có thể bấm "Đã nhận được hàng" khi đơn vị vận chuyển đã giao hàng thành công (DELIVERED)
+  const canConfirmReceived = isDelivered && !isCustomerConfirmed;
+  const firstProductId = order.items?.find((i) => i.productId)?.productId || order.items?.[0]?.productId;
 
   return (
     <article className={`customer-order-card ${expanded ? 'expanded' : ''}`} id={`order-${order.orderCode}`}>
@@ -116,6 +126,45 @@ export const CustomerOrderCard: React.FC<CustomerOrderCardProps> = ({
             >
               {isCancelling ? 'Đang hủy...' : 'Hủy đơn'}
             </button>
+          )}
+          {canConfirmReceived && onConfirmReceived && (
+            <button
+              type="button"
+              className="customer-btn-success"
+              onClick={() => onConfirmReceived(order)}
+              disabled={isConfirming}
+              title="Xác nhận bạn đã nhận được kiện hàng an toàn & đầy đủ"
+            >
+              {isConfirming ? 'Đang xác nhận...' : '✓ Đã nhận được hàng'}
+            </button>
+          )}
+          {isCustomerConfirmed && (
+            <>
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#059669',
+                  padding: '6px 12px',
+                  background: '#ecfdf5',
+                  borderRadius: '999px',
+                  border: '1px solid #a7f3d0',
+                }}
+              >
+                ✓ Đã nhận hàng
+              </span>
+              {firstProductId && (
+                <Link
+                  href={`/product-detail/${firstProductId}`}
+                  className="customer-btn-outline-success"
+                >
+                  ★ Viết đánh giá
+                </Link>
+              )}
+            </>
           )}
           <button type="button" className="customer-btn-outline" onClick={onToggle}>
             {expanded ? 'Thu gọn' : 'Xem chi tiết'}
