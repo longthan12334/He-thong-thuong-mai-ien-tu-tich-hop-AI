@@ -4,6 +4,8 @@ using Ecommerce.Common.Enums;
 using Ecommerce.Common.Exceptions;
 using Ecommerce.DAL.Interfaces;
 
+using Microsoft.EntityFrameworkCore;
+
 namespace Ecommerce.BLL.Services;
 
 public class InventoryService : IInventoryService
@@ -23,16 +25,17 @@ public class InventoryService : IInventoryService
             throw new UnauthorizedException("Khách mua hàng không có quyền truy cập dữ liệu tồn kho quản trị.");
         }
 
-        var allProducts = await _unitOfWork.Products.GetAllAsync();
-        var activeProducts = allProducts.Where(p => p.IsActive);
+        var query = _unitOfWork.Products.Query()
+            .Include(p => p.Category)
+            .Where(p => p.IsActive);
 
         // Seller chỉ thấy sản phẩm của chính mình, Admin thấy toàn bộ
         if (sellerId.HasValue && role != "Admin")
         {
-            activeProducts = activeProducts.Where(p => p.SellerId == sellerId.Value);
+            query = query.Where(p => p.SellerId == sellerId.Value);
         }
 
-        var products = activeProducts.ToList();
+        var products = await query.ToListAsync();
 
         var totalSku = products.Count;
         var totalStockItems = products.Sum(p => p.StockQuantity);

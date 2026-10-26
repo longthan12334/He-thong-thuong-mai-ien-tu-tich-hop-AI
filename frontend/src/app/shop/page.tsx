@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye } from 'lucide-react';
 import { HeroSection } from '@/components/seller/HeroSection';
 import {
   CustomerProductCard,
@@ -41,6 +42,11 @@ function ShopPageContent() {
     brand: searchParams.get('brand') || '',
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const isSeller = user?.role === 'Seller';
+  const isAdmin = user?.role === 'Admin';
+  const isManagement = isSeller || isAdmin;
+  const sellerId = user?.id || user?.userId;
+  const [onlyMyProducts, setOnlyMyProducts] = useState(false);
 
   // Đồng bộ tìm kiếm / danh mục / thương hiệu lên URL để chia sẻ link & giữ trạng thái khi quay lại
   useEffect(() => {
@@ -78,6 +84,10 @@ function ShopPageContent() {
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
+
+    if (isSeller && onlyMyProducts && sellerId) {
+      list = list.filter((p) => p.sellerId === sellerId);
+    }
 
     if (filters.categoryId) list = list.filter((p) => String(p.categoryId) === filters.categoryId);
     if (filters.brand) list = list.filter((p) => extractBrand(p) === filters.brand);
@@ -154,12 +164,69 @@ function ShopPageContent() {
       />
 
       <section className="page-section shop-section" id="catalog">
-        <div className="customer-shop-topbar">
-          <ShopSubnav />
-          {isOffline && !isLoading && (
-            <span className="customer-offline-pill">Đang hiển thị dữ liệu mẫu — chưa kết nối được máy chủ</span>
-          )}
-        </div>
+        {isManagement && (
+          <div className="w-full max-w-[1440px] mx-auto px-[4vw] mb-6">
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                  <Eye className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <strong className="text-sm font-bold text-slate-900 tracking-tight">
+                      {isAdmin
+                        ? 'Góc Người Mua (Chế độ giám sát dành cho Quản Trị Viên sàn)'
+                        : 'Góc Người Mua (Chế độ xem trước dành cho Người Bán)'}
+                    </strong>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-900 text-white tracking-wider uppercase">
+                      {isAdmin ? 'Giám Sát' : 'Xem Trước'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 m-0">
+                    {isAdmin
+                      ? 'Giám sát trải nghiệm thực tế của khách hàng trên toàn sàn Aethelgard. Tài khoản Quản trị viên không có giỏ hàng và không được phép đặt hàng.'
+                      : 'Xem trước giao diện sản phẩm hiển thị với khách hàng. Tài khoản Người bán không có giỏ hàng và không được phép đặt hàng.'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 w-full md:w-auto shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setOnlyMyProducts(false)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    !onlyMyProducts
+                      ? 'bg-slate-900 text-white shadow-sm hover:bg-black'
+                      : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                >
+                  Tất cả sản phẩm ({products.length})
+                </button>
+                {isSeller && (
+                  <button
+                    type="button"
+                    onClick={() => setOnlyMyProducts(true)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      onlyMyProducts
+                        ? 'bg-slate-900 text-white shadow-sm hover:bg-black'
+                        : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    Sản phẩm của Shop tôi ({products.filter((p) => p.sellerId === sellerId).length})
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isManagement && (
+          <div className="customer-shop-topbar">
+            <ShopSubnav />
+            {isOffline && !isLoading && (
+              <span className="customer-offline-pill">Đang hiển thị dữ liệu mẫu — chưa kết nối được máy chủ</span>
+            )}
+          </div>
+        )}
 
         <main className="main-layout">
           <CustomerFilters

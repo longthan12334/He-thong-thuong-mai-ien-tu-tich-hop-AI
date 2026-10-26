@@ -29,17 +29,39 @@ public class MappingProfile : Profile
         CreateMap<OrderItem, OrderItemDto>();
 
         CreateMap<Store, StoreDto>()
-            .ForMember(d => d.Services, opt => opt.MapFrom(s => 
-                !string.IsNullOrEmpty(s.ServicesJson) 
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.ServicesJson, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
-                    : new List<string>()))
-            .ForMember(d => d.Categories, opt => opt.MapFrom(s => 
-                !string.IsNullOrEmpty(s.CategoriesJson) 
-                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(s.CategoriesJson, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
-                    : new List<string>()));
+            .ForMember(d => d.Services, opt => opt.MapFrom(s => ParseStringList(s.ServicesJson)))
+            .ForMember(d => d.Categories, opt => opt.MapFrom(s => ParseStringList(s.CategoriesJson)));
 
         CreateMap<Review, ReviewDto>();
         CreateMap<CreateReviewDto, Review>();
+    }
+
+    private static List<string> ParseStringList(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw) || raw.Trim().Equals("null", StringComparison.OrdinalIgnoreCase))
+            return new List<string>();
+
+        var trimmed = raw.Trim();
+        try
+        {
+            if (trimmed.StartsWith("["))
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<List<string>>(trimmed, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>();
+            }
+            if (trimmed.StartsWith("\"") && trimmed.EndsWith("\""))
+            {
+                var unquoted = System.Text.Json.JsonSerializer.Deserialize<string>(trimmed);
+                if (!string.IsNullOrWhiteSpace(unquoted))
+                {
+                    return unquoted.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                }
+            }
+        }
+        catch
+        {
+        }
+
+        return trimmed.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
     private static string GetStatusLabel(Ecommerce.Common.Enums.OrderStatus status)

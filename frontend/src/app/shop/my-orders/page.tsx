@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui';
 import { CustomerOrderCard, ShopSubnav } from '@/components/customer';
 import { formatVND } from '@/lib/utils';
 import { getErrorMessage, normalizeStatus } from '@/lib/customer';
+import { invalidateCatalog } from '@/hooks/useCatalog';
 
 const TABS: { key: string; label: string; match: (s: string) => boolean }[] = [
   { key: 'all', label: 'Tất cả', match: () => true },
@@ -36,6 +37,7 @@ function MyOrdersContent() {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const isSellerView = user?.role === 'Seller' || user?.role === 'Admin';
 
@@ -109,10 +111,33 @@ function MyOrdersContent() {
       const updated = await orderService.cancelMyOrder(order.id);
       setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, ...updated } : o)));
       showToast(`Đã hủy đơn hàng ${order.orderCode}`);
+      invalidateCatalog();
     } catch (err) {
       showToast(getErrorMessage(err, 'Không thể hủy đơn hàng lúc này.'));
     } finally {
       setCancellingId(null);
+    }
+  };
+
+  const handleConfirmReceived = async (order: Order) => {
+    const ok = await confirm({
+      title: 'Xác Nhận Đã Nhận Hàng',
+      message: `Bạn xác nhận đã nhận được kiện hàng ${order.orderCode} nguyên vẹn và đầy đủ? Sau khi xác nhận, đơn hàng sẽ hoàn tất và bạn có thể để lại đánh giá cho sản phẩm.`,
+      confirmText: 'Đã Nhận Được Hàng',
+      cancelText: 'Chưa Nhận',
+      tone: 'default',
+    });
+    if (!ok) return;
+
+    setConfirmingId(order.id);
+    try {
+      const updated = await orderService.confirmReceived(order.id);
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, ...updated } : o)));
+      showToast(`Cảm ơn bạn! Đơn hàng ${order.orderCode} đã hoàn tất thành công.`);
+    } catch (err) {
+      showToast(getErrorMessage(err, 'Không thể xác nhận nhận hàng lúc này. Vui lòng thử lại.'));
+    } finally {
+      setConfirmingId(null);
     }
   };
 
@@ -212,8 +237,10 @@ function MyOrdersContent() {
               order={o}
               expanded={expandedId === o.id}
               onToggle={() => setExpandedId((prev) => (prev === o.id ? null : o.id))}
-              onCancel={isSellerView ? undefined : handleCancel}
+              onCancel={handleCancel}
               isCancelling={cancellingId === o.id}
+              onConfirmReceived={handleConfirmReceived}
+              isConfirming={confirmingId === o.id}
             />
           ))}
         </div>

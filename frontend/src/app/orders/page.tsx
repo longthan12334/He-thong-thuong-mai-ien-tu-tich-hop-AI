@@ -1,7 +1,8 @@
 'use client';
 import '@/styles/orders.css';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { orderService } from '@/services/order.service';
 import type { Order } from '@/types';
 import { useToast } from '@/hooks/useToast';
@@ -118,10 +119,12 @@ const defaultOrders: Order[] = [
   },
 ];
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop/my-orders');
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
+  const searchParams = useSearchParams();
+  const codeParam = searchParams.get('code') || '';
 
   const [orders, setOrders] = useState<Order[]>(defaultOrders);
   const [loading, setLoading] = useState(false);
@@ -135,15 +138,31 @@ export default function OrdersPage() {
     try {
       setLoading(true);
       const data = await orderService.getOrders();
-      if (data && data.length > 0) {
+      if (Array.isArray(data)) {
         setOrders(data);
+
+        // Nếu có mã đơn trên URL, tự động tìm và mở Drawer chi tiết đơn đó
+        if (codeParam) {
+          const matched = data.find(
+            (o) => o.orderCode?.toLowerCase() === codeParam.toLowerCase() || String(o.id) === codeParam
+          );
+          if (matched) {
+            setSelectedOrder(matched);
+            setIsDrawerOpen(true);
+            setActiveTab('ALL');
+            setSearchTerm(codeParam);
+          } else {
+            setSearchTerm('');
+            showToast(`Đơn hàng #${codeParam} không thuộc quyền quản lý của gian hàng bạn.`);
+          }
+        }
       }
     } catch {
       // Giữ dữ liệu hiện tại nếu ngắt kết nối
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [codeParam, showToast]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -227,10 +246,10 @@ export default function OrdersPage() {
   const counts = useMemo(() => {
     return {
       all: orders.length,
-      pending: orders.filter((o) => o.status === 'PENDING').length,
-      confirmed: orders.filter((o) => o.status === 'CONFIRMED' || o.status === 'PROCESSING').length,
-      shipped: orders.filter((o) => o.status === 'SHIPPED').length,
-      delivered: orders.filter((o) => o.status === 'DELIVERED').length,
+      pending: orders.filter((o) => o.status?.toUpperCase() === 'PENDING').length,
+      confirmed: orders.filter((o) => o.status?.toUpperCase() === 'CONFIRMED' || o.status?.toUpperCase() === 'PROCESSING').length,
+      shipped: orders.filter((o) => o.status?.toUpperCase() === 'SHIPPED').length,
+      delivered: orders.filter((o) => o.status?.toUpperCase() === 'DELIVERED').length,
     };
   }, [orders]);
 
@@ -295,6 +314,48 @@ export default function OrdersPage() {
         onFilterChange={setActiveTab}
       />
 
+      {/* Banner thông báo khi mã đơn trên URL không thuộc gian hàng này */}
+      {codeParam && !loading && !orders.some((o) => o.orderCode?.toLowerCase() === codeParam.toLowerCase() || String(o.id) === codeParam) && (
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.86rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }}
+        >
+          <span>
+            ⚠️ Đơn hàng <strong>#{codeParam}</strong> không chứa sản phẩm thuộc gian hàng của bạn hoặc không tồn tại. Đang hiển thị danh sách đơn hàng thực tế của bạn bên dưới.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm('');
+              window.history.replaceState({}, '', '/orders');
+            }}
+            style={{
+              background: '#fef3c7',
+              border: '1px solid #f59e0b',
+              color: '#78350f',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+            }}
+          >
+            Đóng thông báo
+          </button>
+        </div>
+      )}
+
       {/* 3. Thanh bộ lọc */}
       <OrderFilterBar
         currentFilter={activeTab}
@@ -329,5 +390,20 @@ export default function OrdersPage() {
       {/* 6. Hộp thoại xác nhận */}
       {confirmDialog}
     </main>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-2"></div>
+          <p className="text-sm text-slate-400">Đang tải trung tâm đơn hàng...</p>
+        </div>
+      }
+    >
+      <OrdersPageContent />
+    </Suspense>
   );
 }

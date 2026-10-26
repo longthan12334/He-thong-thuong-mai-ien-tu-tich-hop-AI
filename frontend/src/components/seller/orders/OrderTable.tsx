@@ -13,7 +13,11 @@ interface OrderTableProps {
   onCancelOrder?: (order: Order) => void;
 }
 
-export const OrderTable: React.FC<OrderTableProps> = ({ orders, onSelectOrder }) => {
+export const OrderTable: React.FC<OrderTableProps> = ({
+  orders,
+  onSelectOrder,
+  onConfirmOrder,
+}) => {
   return (
     <div className="orders-table-wrapper">
       <table className="orders-table">
@@ -98,10 +102,26 @@ export const OrderTable: React.FC<OrderTableProps> = ({ orders, onSelectOrder })
                     </div>
                   </td>
                   <td>
-                    <span className={`badge-order-status ${o.status}`}>{o.statusLabel}</span>
+                    <span className={`badge-order-status ${o.status?.toUpperCase()}`}>
+                      {o.statusLabel}
+                    </span>
                   </td>
-                  <td className="text-right">
-                    <span className="text-slate-400 text-lg font-bold">›</span>
+                  <td className="text-right" style={{ minWidth: 100 }}>
+                    {o.status?.toUpperCase() === 'PENDING' && onConfirmOrder ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onConfirmOrder(o);
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                        title="Xác nhận đơn hàng ngay"
+                      >
+                        Xác Nhận
+                      </button>
+                    ) : (
+                      <span className="text-slate-400 text-lg font-bold">›</span>
+                    )}
                   </td>
                 </tr>
               );

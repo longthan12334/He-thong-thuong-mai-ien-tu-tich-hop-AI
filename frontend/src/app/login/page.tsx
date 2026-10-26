@@ -23,8 +23,16 @@ const DUAL_IMAGE_PAIRS = [
  */
 function resolvePostLoginPath(role: string | undefined, savedPath: string | null): string {
   const isCustomer = !role || role === 'Customer';
+  if (role === 'Admin') {
+    if (savedPath && savedPath !== '/' && savedPath !== '/login' && savedPath !== '/shop-profile') {
+      return savedPath;
+    }
+    return '/';
+  }
   if (!isCustomer) return savedPath || '/';
-  if (savedPath && savedPath !== '/' && savedPath !== '/login') return savedPath;
+  if (savedPath && savedPath !== '/' && savedPath !== '/login' && !savedPath.startsWith('/inventory') && !savedPath.startsWith('/orders') && !savedPath.startsWith('/income') && savedPath !== '/shop-profile') {
+    return savedPath;
+  }
   return '/shop';
 }
 
