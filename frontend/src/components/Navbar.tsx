@@ -7,7 +7,6 @@ import { LogOut, ShoppingBag, Store, LogIn, Heart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { useShopper } from '@/contexts/ShopperContext';
-import { SELLER_NAV_LINKS } from '@/lib/constants';
 import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
@@ -21,7 +20,9 @@ export default function Navbar() {
     return null;
   }
 
-  const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+  const isSeller = user?.role === 'Seller';
+  const isAdmin = user?.role === 'Admin';
+  const isManagement = isSeller || isAdmin;
   const displayName = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || 'Khách Mua Sắm';
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -51,20 +52,20 @@ export default function Navbar() {
 
         {/* Menu Điều hướng */}
         <nav className="nav-links flex items-center gap-1 md:gap-3">
-          {/* Seller/Admin: "/" là gian trưng bày quản trị. Khách hàng: vào khu mua sắm /shop */}
+          {/* Seller/Admin: "/" là gian trưng bày / quản trị sàn. Khách hàng: vào khu mua sắm /shop */}
           <Link
-            href={isSeller ? '/' : '/shop'}
+            href={isManagement ? '/' : '/shop'}
             className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-              (isSeller ? pathname === '/' : pathname === '/shop')
+              (isManagement ? pathname === '/' : pathname === '/shop')
                 ? 'bg-purple-50 text-purple-700'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            Cửa Hàng
+            {isAdmin ? 'Quản Trị Sàn' : 'Cửa Hàng'}
           </Link>
 
           {/* Khách hàng / khách vãng lai: các trang mua sắm */}
-          {!isSeller && (
+          {!isManagement && (
             <Link
               href={token ? '/shop/my-orders' : '/shop/track-order'}
               className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
@@ -76,7 +77,7 @@ export default function Navbar() {
               {token ? 'Đơn Hàng Của Tôi' : 'Tra Cứu Đơn'}
             </Link>
           )}
-          {isSeller && (
+          {isManagement && (
             <Link
               href="/shop"
               className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
@@ -88,8 +89,8 @@ export default function Navbar() {
             </Link>
           )}
 
-          {/* Nếu là tài khoản Seller hoặc Admin: hiển thị thêm các tab quản lý */}
-          {token && isSeller && (
+          {/* Quản lý nghiệp vụ (Seller & Admin): Tồn kho, Đơn hàng, Doanh thu */}
+          {token && isManagement && (
             <>
               <Link
                 href="/inventory"
@@ -115,14 +116,17 @@ export default function Navbar() {
               >
                 Doanh Thu
               </Link>
-              <Link
-                href="/shop-profile"
-                className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  pathname === '/shop-profile' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                Hồ Sơ Shop
-              </Link>
+              {/* Hồ Sơ Shop: CHỈ DÀNH CHO SELLER (Người bán có cửa hàng riêng). Admin là quản trị viên sàn, không phải shop nên ẩn hoàn toàn */}
+              {isSeller && (
+                <Link
+                  href="/shop-profile"
+                  className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                    pathname === '/shop-profile' ? 'bg-purple-50 text-purple-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  Hồ Sơ Shop
+                </Link>
+              )}
             </>
           )}
         </nav>
@@ -132,39 +136,43 @@ export default function Navbar() {
           {/* Chuông Thông Báo Thời Gian Thực (SignalR) */}
           <NotificationBell />
 
-          {/* Nút Danh sách yêu thích (Khách hàng) */}
-          <Link
-            href="/shop/wishlist"
-            className={`relative p-2.5 rounded-xl border transition-all flex items-center justify-center ${
-              pathname.startsWith('/shop/wishlist')
-                ? 'border-purple-300 bg-purple-50'
-                : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
-            }`}
-            title="Danh sách yêu thích"
-            aria-label="Danh sách yêu thích"
-          >
-            <Heart className="w-5 h-5 text-slate-700" />
-            {wishlist.length > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
-                {wishlist.length}
-              </span>
-            )}
-          </Link>
+          {/* Nút Danh sách yêu thích: CHỈ DÀNH CHO KHÁCH HÀNG (Ẩn với Seller & Admin) */}
+          {!isManagement && (
+            <Link
+              href="/shop/wishlist"
+              className={`relative p-2.5 rounded-xl border transition-all flex items-center justify-center ${
+                pathname.startsWith('/shop/wishlist')
+                  ? 'border-purple-300 bg-purple-50'
+                  : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
+              }`}
+              title="Danh sách yêu thích"
+              aria-label="Danh sách yêu thích"
+            >
+              <Heart className="w-5 h-5 text-slate-700" />
+              {wishlist.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+                  {wishlist.length}
+                </span>
+              )}
+            </Link>
+          )}
 
-          {/* Nút Giỏ Hàng Mua Sắm (Dùng chung cho cả Khách và Seller) */}
-          <button
-            type="button"
-            onClick={() => setIsCartOpen(true)}
-            className="relative p-2.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-700 transition-all flex items-center justify-center cursor-pointer"
-            title="Mở giỏ hàng mua sắm"
-          >
-            <ShoppingBag className="w-5 h-5 text-slate-700" />
-            {totalQty > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
-                {totalQty}
-              </span>
-            )}
-          </button>
+          {/* Nút Giỏ Hàng Mua Sắm: CHỈ DÀNH CHO KHÁCH HÀNG (Loại bỏ đối với Seller & Admin) */}
+          {!isManagement && (
+            <button
+              type="button"
+              onClick={() => setIsCartOpen(true)}
+              className="relative p-2.5 rounded-xl border border-slate-200 hover:border-purple-300 hover:bg-purple-50 text-slate-700 transition-all flex items-center justify-center cursor-pointer"
+              title="Mở giỏ hàng mua sắm"
+            >
+              <ShoppingBag className="w-5 h-5 text-slate-700" />
+              {totalQty > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-purple-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm">
+                  {totalQty}
+                </span>
+              )}
+            </button>
+          )}
 
           {token && user ? (
             <div className="flex items-center gap-2">

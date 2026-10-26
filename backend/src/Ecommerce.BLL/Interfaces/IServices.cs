@@ -30,9 +30,10 @@ public interface IOrderService
     Task<List<OrderDto>> GetOrdersAsync(OrderStatus? status = null, int? userId = null, string? role = null);
     Task<OrderDto> GetOrderByIdAsync(int id, int? userId = null, string? role = null);
     Task<OrderDto> GetOrderByCodeAsync(string orderCode);
-    Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null);
+    Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null, string? role = null);
     Task<OrderDto> UpdateOrderStatusAsync(int id, UpdateOrderStatusDto request, int? userId = null, string? role = null);
     Task<OrderDto> CancelOrderByCustomerAsync(int id, int userId);
+    Task<OrderDto> ConfirmOrderReceivedByCustomerAsync(int id, int userId, string? role = null);
 }
 
 public interface IInventoryService
