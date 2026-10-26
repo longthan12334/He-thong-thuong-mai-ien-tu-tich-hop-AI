@@ -8,9 +8,14 @@ import { extractBrand } from '@/lib/customer';
 interface SellerProductCardProps {
   product: Product;
   onClick: (product: Product) => void;
+  isSeller?: boolean;
 }
 
-export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, onClick }) => {
+export const SellerProductCard: React.FC<SellerProductCardProps> = ({
+  product,
+  onClick,
+  isSeller = true,
+}) => {
   const parseProductName = (rawName: string) => {
     if (rawName && rawName.includes(' - ')) {
       const idx = rawName.indexOf(' - ');
@@ -76,8 +81,8 @@ export const SellerProductCard: React.FC<SellerProductCardProps> = ({ product, o
           <span className="card-sku-code" title={`SKU: ${product.sku}`}>
             SKU: {product.sku}
           </span>
-          <span className="card-seller-cta">
-            Quản lý kho &rarr;
+          <span className={`card-seller-cta ${!isSeller ? 'text-indigo-600' : ''}`}>
+            {isSeller ? 'Quản lý kho →' : 'Xem chi tiết →'}
           </span>
         </div>
       </div>

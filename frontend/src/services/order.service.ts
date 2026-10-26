@@ -48,6 +48,12 @@ export const orderService = {
     return res.data;
   },
 
+  /** [Customer] Xác nhận đã nhận được hàng */
+  async confirmReceived(id: number): Promise<Order> {
+    const res = await apiClient.patch(`/orders/${id}/confirm-received`);
+    return res.data;
+  },
+
   async updateOrderStatus(id: number, data: UpdateOrderStatus): Promise<Order> {
     try {
       const res = await apiClient.patch(`/orders/${id}/status`, data);

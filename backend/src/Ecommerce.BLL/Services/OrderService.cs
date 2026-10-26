@@ -107,8 +107,13 @@ public class OrderService : IOrderService
         return _mapper.Map<OrderDto>(order);
     }
 
-    public async Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null)
+    public async Task<OrderDto> CreateOrderAsync(CreateOrderDto request, int? userId = null, string? role = null)
     {
+        if (role == "Seller")
+        {
+            throw new BadRequestException("Tài khoản Người bán không được phép đặt hàng. Vui lòng sử dụng tài khoản Khách hàng để mua sắm.");
+        }
+
         if (request.Items == null || !request.Items.Any())
             throw new BadRequestException("Đơn hàng phải có ít nhất 1 sản phẩm.");
 
@@ -140,8 +145,8 @@ public class OrderService : IOrderService
             if (product.Variants != null && product.Variants.Any() && !string.IsNullOrWhiteSpace(item.Specs))
             {
                 var matchedVariant = product.Variants.FirstOrDefault(v =>
-                    item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase) ||
-                    (!string.IsNullOrEmpty(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
+                    (!string.IsNullOrWhiteSpace(v.Size) && item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
 
                 if (matchedVariant != null)
                 {
@@ -192,7 +197,7 @@ public class OrderService : IOrderService
             ShippingAddress = request.ShippingAddress,
             PaymentMethod = request.PaymentMethod,
             Status = OrderStatus.Pending,
-            PaymentStatus = PaymentStatus.Paid,
+            PaymentStatus = PaymentStatus.Pending,
             Carrier = "FedEx Logistics",
             TrackingCode = trackingCode,
             EstimatedDelivery = DateTime.UtcNow.AddDays(3).ToString("dd/MM/yyyy"),
@@ -210,7 +215,7 @@ public class OrderService : IOrderService
         await _unitOfWork.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        return await GetOrderByIdAsync(order.Id);
+        return _mapper.Map<OrderDto>(order);
     }
     catch
     {
@@ -256,8 +261,8 @@ public class OrderService : IOrderService
             if (product.Variants != null && product.Variants.Any() && !string.IsNullOrWhiteSpace(item.Specs))
             {
                 var matchedVariant = product.Variants.FirstOrDefault(v =>
-                    item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase) ||
-                    (!string.IsNullOrEmpty(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
+                    (!string.IsNullOrWhiteSpace(v.Size) && item.Specs.Contains(v.Size, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(v.Color) && item.Specs.Contains(v.Color, StringComparison.OrdinalIgnoreCase)));
                 if (matchedVariant != null)
                     matchedVariant.StockQuantity += item.Quantity;
             }
@@ -267,6 +272,45 @@ public class OrderService : IOrderService
 
         order.Status = OrderStatus.Cancelled;
         order.LastUpdateLocation = "Khách hàng đã hủy đơn hàng";
+
+        _unitOfWork.Orders.Update(order);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<OrderDto>(order);
+    }
+
+    /// <summary>
+    /// [Customer] Khách hàng xác nhận đã nhận được kiện hàng thành công.
+    /// Chuyển trạng thái sang Giao thành công (Delivered), ProgressStep = 4.
+    /// Nếu là COD, cập nhật PaymentStatus = Paid.
+    /// </summary>
+    public async Task<OrderDto> ConfirmOrderReceivedByCustomerAsync(int id, int userId, string? role = null)
+    {
+        var order = await _unitOfWork.Orders.Query()
+            .Include(o => o.Items)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
+        if (order == null)
+            throw new NotFoundException("Đơn hàng", id);
+
+        // Khách hàng chỉ xác nhận đơn của chính mình; Admin / Seller có quyền quản lý và kiểm thử
+        if (role != "Admin" && role != "Seller" && order.UserId.HasValue && order.UserId != userId)
+            throw new BadRequestException("Bạn chỉ có thể xác nhận đơn hàng do chính mình đặt.");
+
+        if (order.Status == OrderStatus.Cancelled)
+            throw new BadRequestException("Đơn hàng này đã bị hủy, không thể xác nhận nhận hàng.");
+
+        // Đơn hàng phải ở trạng thái Đã giao (Delivered) mới được khách hàng xác nhận nhận hàng
+        if (role != "Admin" && order.Status != OrderStatus.Delivered)
+            throw new BadRequestException("Đơn hàng chưa được giao đến bạn. Bạn chỉ có thể xác nhận sau khi đơn vị vận chuyển giao hàng thành công.");
+
+        order.Status = OrderStatus.Delivered;
+        order.ProgressStep = 4;
+        order.LastUpdateLocation = "Khách hàng đã nhận kiện hàng & xác nhận hoàn tất thành công";
+        if (order.PaymentStatus != PaymentStatus.Paid)
+        {
+            order.PaymentStatus = PaymentStatus.Paid;
+        }
 
         _unitOfWork.Orders.Update(order);
         await _unitOfWork.SaveChangesAsync();

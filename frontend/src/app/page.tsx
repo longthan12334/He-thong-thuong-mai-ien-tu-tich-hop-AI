@@ -90,8 +90,17 @@ export default function HomePage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
-  const sellerTitle = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '';
-  const isSellerRole = user?.role === 'Seller' || user?.role === 'Admin';
+  // Khách hàng mua sắm: chuyển hướng tự động sang khu mua sắm /shop
+  useEffect(() => {
+    if (user?.role === 'Customer') {
+      router.replace('/shop');
+    }
+  }, [user, router]);
+
+  const isSellerRole = user?.role === 'Seller';
+  const isAdminRole = user?.role === 'Admin';
+  const isManagement = isSellerRole || isAdminRole;
+  const sellerTitle = isSellerRole ? (user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '') : '';
 
   // Tải danh mục thực tế từ backend API
   useEffect(() => {
@@ -108,15 +117,14 @@ export default function HomePage() {
     let isMounted = true;
     const sellerId = user?.userId;
 
-    const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
-    const activeSellerId = isSeller && sellerId && sellerId > 0 ? sellerId : undefined;
+    const activeSellerId = isSellerRole && sellerId && sellerId > 0 ? sellerId : undefined;
 
     productService
       .getProducts({
         sellerId: activeSellerId,
-        // Khi Seller đăng nhập quản lý gian hàng: tải toàn bộ kho hàng (tối đa 1000)
-        // Khi xem chung sàn: tải 48 sản phẩm đại diện
-        pageSize: activeSellerId ? 1000 : 48,
+        // Khi Seller đăng nhập quản lý gian hàng: tải toàn bộ kho hàng của shop (tối đa 1000)
+        // Khi Admin hoặc xem toàn sàn: tải toàn bộ danh mục để số lượng khớp hoàn toàn với CSDL (10000)
+        pageSize: activeSellerId ? 1000 : 10000,
       })
       .then((res) => {
         if (isMounted && res && res.items) {
@@ -186,16 +194,25 @@ export default function HomePage() {
     return filteredProducts.slice(0, displayLimit);
   }, [filteredProducts, displayLimit]);
 
+  const activeSellerId = isSellerRole && user?.userId && user?.userId > 0 ? user.userId : undefined;
+
   const categoriesWithCount = useMemo(() => {
     return categories.map((cat) => ({
       ...cat,
-      productCount: products.filter((p) => p.categoryId === cat.id).length,
+      productCount: activeSellerId
+        ? products.filter((p) => p.categoryId === cat.id).length
+        : (cat.productCount || products.filter((p) => p.categoryId === cat.id).length),
     }));
-  }, [categories, products]);
+  }, [categories, products, activeSellerId]);
+
+  const totalCatalogCount = useMemo(() => {
+    if (activeSellerId) return products.length;
+    return categories.reduce((sum, c) => sum + (c.productCount || 0), 0) || products.length;
+  }, [categories, products, activeSellerId]);
 
   const openSellerDrawer = (p: Product) => {
     // Nếu là khách hàng hoặc khách vãng lai: chuyển đến trang chi tiết sản phẩm khách hàng
-    if (!isSellerRole) {
+    if (!isManagement) {
       router.push(`/product-detail/${p.id}`);
       return;
     }
@@ -288,7 +305,7 @@ export default function HomePage() {
 
       {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
       <BrandCinematicShowcase
-        shopName={sellerTitle || 'Aethelgard Store'}
+        shopName={isSellerRole ? (sellerTitle || 'Gian Hàng') : 'Aethelgard Luxury Mall'}
         products={products}
         onExploreProduct={handleExploreProduct}
         onScrollToCatalog={scrollToCatalog}
@@ -299,7 +316,7 @@ export default function HomePage() {
         <main className="main-layout">
           <ProductFilters
             categories={categoriesWithCount}
-            totalProductsCount={products.length}
+            totalProductsCount={totalCatalogCount}
             categoryFilter={categoryFilter}
             onCategoryChange={setCategoryFilter}
             quickFilterType={quickFilterType}
@@ -318,9 +335,9 @@ export default function HomePage() {
             <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
               <div>
                 <h2 id="catalog-title" className="text-xl sm:text-2xl font-bold text-slate-900">
-                  {sellerTitle
+                  {isSellerRole && sellerTitle
                     ? `Gian Trưng Bày — ${sellerTitle}`
-                    : 'Sản Phẩm Đang Niêm Yết Trên Sàn'}
+                    : (isAdminRole ? 'Quản Trị Sản Phẩm Toàn Sàn' : 'Sản Phẩm Đang Niêm Yết Trên Sàn')}
                 </h2>
                 <span id="results-count" className="results-tag text-xs text-slate-500 font-medium">
                   Hiển thị {filteredProducts.length} sản phẩm thực tế
@@ -359,6 +376,7 @@ export default function HomePage() {
                   key={p.id}
                   product={p}
                   onClick={openSellerDrawer}
+                  isSeller={isSellerRole}
                 />
               ))}
             </div>

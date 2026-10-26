@@ -162,7 +162,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               <div className="order-headline-left">
                 <div className="order-title-code">
                   <span>Đơn hàng {order.orderCode || order.id}</span>
-                  <span className={`badge-order-status ${order.status}`}>
+                  <span className={`badge-order-status ${order.status?.toUpperCase()}`}>
                     {order.statusLabel}
                   </span>
                 </div>
@@ -288,7 +288,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
 
               {/* Thanh nút thao tác */}
               <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end">
-                {order.status === 'PENDING' && onConfirmOrder && (
+                {order.status?.toUpperCase() === 'PENDING' && onConfirmOrder && (
                   <button
                     type="button"
                     onClick={() => {
@@ -301,7 +301,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                   </button>
                 )}
 
-                {(order.status === 'CONFIRMED' || order.status === 'PROCESSING') && onShipOrder && (
+                {(order.status?.toUpperCase() === 'CONFIRMED' || order.status?.toUpperCase() === 'PROCESSING') && onShipOrder && (
                   <button
                     type="button"
                     onClick={() => {
@@ -314,7 +314,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                   </button>
                 )}
 
-                {order.status === 'SHIPPED' && onDeliverOrder && (
+                {order.status?.toUpperCase() === 'SHIPPED' && onDeliverOrder && (
                   <button
                     type="button"
                     onClick={() => {
@@ -327,7 +327,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                   </button>
                 )}
 
-                {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && onCancelOrder && (
+                {order.status?.toUpperCase() !== 'DELIVERED' && order.status?.toUpperCase() !== 'CANCELLED' && onCancelOrder && (
                   <button
                     type="button"
                     onClick={() => {
