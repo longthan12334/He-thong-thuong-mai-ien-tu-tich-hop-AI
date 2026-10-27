@@ -123,33 +123,33 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <button
             type="button"
             onClick={() => handleDemoSelect('nike@gmail.com', 'Nike Official Store')}
-            className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
+            className="p-2 text-left bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Nike Official</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-sky-600">Nike Official</div>
             <div className="text-[10px] text-slate-400">nike@gmail.com</div>
           </button>
           <button
             type="button"
             onClick={() => handleDemoSelect('saintlaurent@gmail.com', 'Saint Laurent Paris')}
-            className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
+            className="p-2 text-left bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Saint Laurent</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-sky-600">Saint Laurent</div>
             <div className="text-[10px] text-slate-400">saintlaurent@gmail.com</div>
           </button>
           <button
             type="button"
             onClick={() => handleDemoSelect('adidas@gmail.com', 'Adidas Flagship Store')}
-            className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
+            className="p-2 text-left bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Adidas Official</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-sky-600">Adidas Official</div>
             <div className="text-[10px] text-slate-400">adidas@gmail.com</div>
           </button>
           <button
             type="button"
             onClick={() => handleDemoSelect('gucci@gmail.com', 'Gucci Luxury Store')}
-            className="p-2 text-left bg-slate-50 hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg transition-all group cursor-pointer"
+            className="p-2 text-left bg-slate-50 hover:bg-sky-50 border border-slate-200 hover:border-sky-300 rounded-lg transition-all group cursor-pointer"
           >
-            <div className="text-xs font-bold text-slate-800 group-hover:text-purple-700">Gucci Luxury</div>
+            <div className="text-xs font-bold text-slate-800 group-hover:text-sky-600">Gucci Luxury</div>
             <div className="text-[10px] text-slate-400">gucci@gmail.com</div>
           </button>
         </div>

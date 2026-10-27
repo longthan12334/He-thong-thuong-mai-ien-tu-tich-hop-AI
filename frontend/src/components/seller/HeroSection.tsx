@@ -42,6 +42,14 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   }, [propProducts, catalogProducts]);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [isBgLoaded, setIsBgLoaded] = useState(false);
+
+  // Preload ảnh nền Hero để kích hoạt hiệu ứng Cross-fade mềm mại (Item 16)
+  useEffect(() => {
+    const img = new Image();
+    img.src = '/img/products/fashion-mood-board.jpg';
+    img.onload = () => setIsBgLoaded(true);
+  }, []);
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
   // Lọc sản phẩm khớp từ khóa theo thời gian thực (Live instant search)
@@ -143,7 +151,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   };
 
   return (
-    <section className="page-section hero-section" id="hero">
+    <section className="page-section hero-section relative overflow-hidden" id="hero">
+      {/* Lớp nền Cross-fade điện ảnh (Item 16) */}
+      <div
+        className={`absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-out z-0 ${
+          isBgLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+        style={{
+          backgroundImage: "linear-gradient(rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.55)), url('/img/products/fashion-mood-board.jpg')",
+        }}
+      />
       <div className="hero-backdrop">
         <h1 className="hero-watermark">AETHELGARD</h1>
       </div>
@@ -297,7 +314,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                                 {p.sku || `#${p.id}`}
                               </span>
                             </div>
-                            <h4 className="text-sm font-semibold text-slate-900 truncate group-hover:text-purple-700 transition-colors">
+                            <h4 className="text-sm font-semibold text-slate-900 truncate group-hover:text-sky-600 transition-colors">
                               {p.name}
                             </h4>
                           </div>
@@ -340,7 +357,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                         key={tag}
                         type="button"
                         onClick={() => handleApplyTag(tag)}
-                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-purple-100 text-slate-700 hover:text-purple-800 transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-full text-xs font-semibold bg-slate-100 hover:bg-sky-50 text-slate-700 hover:text-purple-800 transition-all cursor-pointer"
                       >
                         {tag}
                       </button>
@@ -361,7 +378,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                       setIsOpen(false);
                       onScrollToCatalog();
                     }}
-                    className="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5 hover:underline cursor-pointer"
+                    className="text-xs font-bold text-sky-600 hover:text-sky-800 flex items-center gap-1.5 hover:underline cursor-pointer"
                   >
                     <span>Xem tất cả {totalMatchesCount} sản phẩm</span>
                     <ArrowRight className="w-3.5 h-3.5" />

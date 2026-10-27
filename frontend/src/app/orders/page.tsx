@@ -8,134 +8,42 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Order } from '@/types';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
-import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   OrderKpiCards,
   OrderFilterBar,
   OrderTable,
   OrderTrackingDrawer,
+  PackingSlipModal,
+  CancelOrderModal,
 } from '@/components/seller/orders';
-import { RefreshCw, Printer } from 'lucide-react';
+import { RefreshCw, FileSpreadsheet, Printer } from 'lucide-react';
 import { signalRService } from '@/services/signalr.service';
-
-const defaultOrders: Order[] = [
-  {
-    id: 1,
-    orderCode: 'AG-2024-7890',
-    customerName: 'Esther Howard',
-    customerEmail: 'esther.howard@example.com',
-    customerPhone: '+84 902 345 678',
-    shippingAddress: 'Villa 18, Vinhomes Riverside, Long Biên, Hà Nội',
-    paymentMethod: 'Thẻ Tín Dụng Quốc Tế (Visa Signature)',
-    status: 'DELIVERED',
-    statusLabel: 'Giao Thành Công',
-    createdAt: '2026-09-21 10:20',
-    carrier: 'FedEx Priority Luxury Express',
-    trackingCode: 'FX-VN-882910384',
-    estimatedDelivery: 'Đã giao thành công',
-    lastUpdateLocation: 'Kho trung chuyển Nội Bài - Đã ký nhận',
-    progressStep: 4,
-    items: [
-      {
-        id: 1,
-        productName: 'Giày Adidas Samba OG Classic White Black',
-        specs: 'EU 41 / Da thật / Fullbox',
-        imageUrl: '/img/products/adidas-samba.jpg',
-        price: 2790000,
-        quantity: 1,
-        subtotal: 2790000,
-      },
-    ],
-    subtotal: 2790000,
-    shippingCharge: 0,
-    taxes: 0,
-    discount: 0,
-    totalAmount: 2790000,
-  },
-  {
-    id: 2,
-    orderCode: 'AG-2024-7891',
-    customerName: 'Trần Thị Mai Phương',
-    customerEmail: 'maiphuong.tran@gmail.com',
-    customerPhone: '+84 912 888 999',
-    shippingAddress: 'Penthouse 3201, Diamond Island, Quận 2, TP. Hồ Chí Minh',
-    paymentMethod: 'Chuyển Khoản Ngân Hàng Tức Thời (VietQR Pro)',
-    status: 'SHIPPED',
-    statusLabel: 'Đang Vận Chuyển',
-    createdAt: '2026-09-21 14:15',
-    carrier: 'Aethelgard White-Glove Courier',
-    trackingCode: 'AG-VIP-994812',
-    estimatedDelivery: 'Dự kiến giao trong 24 giờ',
-    lastUpdateLocation: 'Trung tâm phân loại Tân Sơn Nhất - Đang luân chuyển',
-    progressStep: 3,
-    items: [
-      {
-        id: 2,
-        productName: 'Áo Khoác Nữ Adidas Sakura Special Edition',
-        specs: 'Size L / Bản giới hạn',
-        imageUrl: '/img/products/adidas-sakura-hoodie.jpg',
-        price: 1890000,
-        quantity: 1,
-        subtotal: 1890000,
-      },
-    ],
-    subtotal: 1890000,
-    shippingCharge: 50000,
-    taxes: 0,
-    discount: 0,
-    totalAmount: 1940000,
-  },
-  {
-    id: 3,
-    orderCode: 'AG-2024-7892',
-    customerName: 'Lê Hoàng Nam',
-    customerEmail: 'hoangnam.le@vng.com.vn',
-    customerPhone: '+84 983 222 111',
-    shippingAddress: 'Tòa nhà Keangnam Landmark 72, Phạm Hùng, Cầu Giấy, Hà Nội',
-    paymentMethod: 'Thẻ Tín Dụng Quốc Tế (Mastercard World Elite)',
-    status: 'CONFIRMED',
-    statusLabel: 'Đã Xác Nhận',
-    createdAt: '2026-09-22 09:30',
-    carrier: 'FedEx Priority Luxury Express',
-    trackingCode: 'FX-VN-900213441',
-    estimatedDelivery: 'Dự kiến giao ngày mai',
-    lastUpdateLocation: 'Đã niêm phong gói hàng tại Boutique chính hãng',
-    progressStep: 2,
-    items: [
-      {
-        id: 3,
-        productName: 'Giày Balenciaga Track 4.0 Tan/Beige Limited',
-        specs: 'EU 42 / Tiêu chuẩn',
-        imageUrl: '/img/products/balenciaga-track-beige.jpg',
-        price: 24500000,
-        quantity: 1,
-        subtotal: 24500000,
-      },
-    ],
-    subtotal: 24500000,
-    shippingCharge: 0,
-    taxes: 0,
-    discount: 0,
-    totalAmount: 24500000,
-  },
-];
+import { exportToCsv, formatDate } from '@/lib/utils';
 
 function OrdersPageContent() {
   const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop/my-orders');
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { confirm, confirmDialog } = useConfirmDialog();
   const searchParams = useSearchParams();
   const codeParam = searchParams.get('code') || '';
 
   const isAdmin = user?.role === 'Admin' || (user?.role as any) === 1 || String(user?.role).toLowerCase() === 'admin';
 
-  const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('ALL');
+  const [dateFilter, setDateFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Packing Slip modal state (Item 11)
+  const [packingSlipOrder, setPackingSlipOrder] = useState<Order | null>(null);
+  const [isPackingSlipOpen, setIsPackingSlipOpen] = useState(false);
+
+  // Cancellation reason modal state (Item 12)
+  const [orderToCancel, setOrderToCancel] = useState<Order | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
 
   // Load danh sách đơn hàng thực tế ngầm từ backend
   const loadOrders = useCallback(async () => {
@@ -160,9 +68,11 @@ function OrdersPageContent() {
             showToast(`Đơn hàng #${codeParam} không thuộc quyền quản lý của gian hàng bạn.`);
           }
         }
+      } else {
+        setOrders([]);
       }
     } catch {
-      // Giữ dữ liệu hiện tại nếu ngắt kết nối
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -179,16 +89,34 @@ function OrdersPageContent() {
     return () => unsubscribe();
   }, [loadOrders, isAuthorized]);
 
-
-
-  // Lọc đơn hàng theo tab và từ khóa
+  // Lọc đơn hàng theo tab, khoảng ngày (Item 10) và từ khóa tìm kiếm
   const filteredOrders = useMemo(() => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
     return orders.filter((order) => {
+      // 1. Lọc theo trạng thái
       const matchesTab =
         activeTab === 'ALL' ||
         order.status?.toUpperCase() === activeTab ||
         order.statusLabel?.toUpperCase() === activeTab;
 
+      // 2. Lọc theo khoảng ngày (Item 10)
+      let matchesDate = true;
+      if (dateFilter !== 'ALL' && order.createdAt) {
+        const orderDate = new Date(order.createdAt);
+        if (dateFilter === 'TODAY') {
+          matchesDate = order.createdAt.startsWith(todayStr);
+        } else if (dateFilter === '7DAYS') {
+          matchesDate = orderDate >= sevenDaysAgo;
+        } else if (dateFilter === 'THIS_MONTH') {
+          matchesDate = orderDate >= firstDayOfMonth;
+        }
+      }
+
+      // 3. Lọc theo từ khóa tìm kiếm
       const q = searchTerm.toLowerCase();
       const matchesSearch =
         !searchTerm ||
@@ -197,16 +125,16 @@ function OrdersPageContent() {
         (order.customerPhone && order.customerPhone.includes(q)) ||
         (order.trackingCode && order.trackingCode.toLowerCase().includes(q));
 
-      return matchesTab && matchesSearch;
+      return matchesTab && matchesDate && matchesSearch;
     });
-  }, [orders, activeTab, searchTerm]);
+  }, [orders, activeTab, dateFilter, searchTerm]);
 
   // Cập nhật trạng thái đơn hàng qua Backend API
-  const handleUpdateStatus = async (orderId: number, nextStatusInt: number, statusName: string) => {
+  const handleUpdateStatus = async (orderId: number, nextStatusInt: number, statusName: string, locationNote?: string) => {
     try {
       const updated = await orderService.updateOrderStatus(orderId, {
         status: nextStatusInt,
-        location: 'Kho Trung Chuyển Aethelgard Logistics, Hà Nội',
+        location: locationNote || 'Kho Trung Chuyển Aethelgard Logistics, Hà Nội',
       });
 
       setOrders((prev) =>
@@ -223,19 +151,50 @@ function OrdersPageContent() {
     }
   };
 
-  // Xác nhận hủy đơn với ConfirmDialog
-  const handleCancelOrder = async (order: Order) => {
-    const isConfirmed = await confirm({
-      title: 'Xác Nhận Hủy Đơn Hàng',
-      message: `Bạn có chắc chắn muốn hủy đơn hàng #${order.orderCode || order.id} của khách hàng ${order.customerName}?`,
-      confirmText: 'Xác Nhận Hủy',
-      cancelText: 'Đóng',
-      tone: 'danger',
-    });
+  // Mở modal xác nhận hủy đơn có lý do bắt buộc (Item 12)
+  const handleRequestCancel = (order: Order) => {
+    setOrderToCancel(order);
+    setIsCancelModalOpen(true);
+  };
 
-    if (!isConfirmed) return;
+  // Thực thi hủy đơn có lý do chi tiết
+  const handleConfirmCancelWithReason = async (order: Order, reason: string) => {
+    await handleUpdateStatus(order.id, 6, 'Đã Hủy Đơn', `Lý do hủy: ${reason}`);
+    showToast(`Đã hủy đơn #${order.orderCode || order.id} với lý do: "${reason}".`);
+  };
 
-    await handleUpdateStatus(order.id, 6, 'Đã Hủy Đơn');
+  // Mở phiếu đóng gói / phiếu giao hàng (Item 11)
+  const handleOpenPackingSlip = (order: Order) => {
+    setPackingSlipOrder(order);
+    setIsPackingSlipOpen(true);
+  };
+
+  // Xuất file Excel/CSV chuẩn UTF-8 BOM tái sử dụng utility chung (Item 38)
+  const handleExportCSV = () => {
+    if (filteredOrders.length === 0) {
+      showToast('Hiện không có dữ liệu đơn hàng nào để xuất báo cáo.');
+      return;
+    }
+
+    exportToCsv(
+      filteredOrders,
+      [
+        { key: (o) => o.orderCode || o.id, label: 'Mã Đơn Hàng' },
+        { key: (o) => formatDate(o.createdAt, 'datetime') || o.createdAt || '', label: 'Thời Gian Đặt' },
+        { key: (o) => o.customerName || '', label: 'Tên Khách Hàng' },
+        { key: (o) => o.customerPhone || '', label: 'Số Điện Thoại' },
+        { key: (o) => o.shippingAddress || '', label: 'Địa Chỉ Giao Hàng' },
+        { key: (o) => o.paymentMethod || '', label: 'Phương Thức Thanh Toán' },
+        { key: (o) => o.carrier || '', label: 'Đơn Vị Vận Chuyển' },
+        { key: (o) => o.trackingCode || '', label: 'Mã Vận Đơn Tracking' },
+        { key: (o) => o.statusLabel || o.status || '', label: 'Trạng Thái Đơn' },
+        { key: (o) => o.totalAmount || 0, label: 'Tổng Tiền (VNĐ)' },
+        { key: (o) => o.items?.length || 0, label: 'Số Loại Sản Phẩm' },
+      ],
+      `danh-sach-don-hang-aethelgard-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+
+    showToast(`Đã xuất thành công ${filteredOrders.length} đơn hàng ra file CSV Excel!`);
   };
 
   const handleOpenDrawer = (order: Order) => {
@@ -261,7 +220,7 @@ function OrdersPageContent() {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-slate-400 font-medium">Đang xác thực quyền quản trị đơn hàng...</p>
         </div>
       </div>
@@ -270,7 +229,7 @@ function OrdersPageContent() {
 
   return (
     <main className="orders-container">
-      {/* 1. Header Toolbar chuẩn bản sắc dự án */}
+      {/* 1. Header Toolbar */}
       <div className="orders-page-header">
         <div className="orders-header-titles">
           <h1>
@@ -296,7 +255,7 @@ function OrdersPageContent() {
           <p>
             {isAdmin
               ? 'Giám sát luồng xử lý đơn đặt hàng và hành trình giao nhận bưu kiện trên toàn bộ 273 gian hàng đối tác Aethelgard'
-              : 'Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và xuất phiếu kho'}
+              : 'Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và in phiếu giao hàng A5'}
           </p>
         </div>
 
@@ -308,24 +267,24 @@ function OrdersPageContent() {
             title="Đồng bộ đơn hàng từ máy chủ"
             style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-sky-600' : ''}`} />
             <span>Làm Mới</span>
           </button>
           <button
             type="button"
             className="btn-order-action"
             style={{
-              background: '#111827',
+              background: '#0284C7',
               color: '#FFFFFF',
-              borderColor: '#111827',
+              borderColor: '#0284C7',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
             }}
-            onClick={() => window.print()}
+            onClick={handleExportCSV}
           >
-            <Printer size={14} />
-            <span>Xuất Báo Cáo</span>
+            <FileSpreadsheet size={14} />
+            <span>Xuất Excel (.CSV)</span>
           </button>
         </div>
       </div>
@@ -383,27 +342,31 @@ function OrdersPageContent() {
         </div>
       )}
 
-      {/* 3. Thanh bộ lọc */}
+      {/* 3. Thanh bộ lọc (Kèm Date Picker Item 10) */}
       <OrderFilterBar
         currentFilter={activeTab}
         onFilterChange={setActiveTab}
         searchQuery={searchTerm}
         onSearchChange={setSearchTerm}
+        dateFilter={dateFilter}
+        onDateFilterChange={setDateFilter}
         counts={counts}
       />
 
-      {/* 4. Bảng đơn hàng */}
+      {/* 4. Bảng đơn hàng (Kèm nút In Phiếu Item 11 & Hủy Đơn Item 12) */}
       <OrderTable
         orders={filteredOrders}
+        isLoading={loading}
         isAdmin={isAdmin}
         onSelectOrder={handleOpenDrawer}
         onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
         onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
         onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
-        onCancelOrder={handleCancelOrder}
+        onCancelOrder={isAdmin ? undefined : handleRequestCancel}
+        onPrintPackingSlip={handleOpenPackingSlip}
       />
 
-      {/* 5. Ngăn theo dõi vận đơn */}
+      {/* 5. Ngăn theo dõi vận đơn chi tiết */}
       <OrderTrackingDrawer
         isOpen={isDrawerOpen}
         order={selectedOrder}
@@ -413,11 +376,23 @@ function OrdersPageContent() {
         onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
         onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
         onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
-        onCancelOrder={handleCancelOrder}
+        onCancelOrder={isAdmin ? undefined : handleRequestCancel}
       />
 
-      {/* 6. Hộp thoại xác nhận */}
-      {confirmDialog}
+      {/* 6. Modal In Phiếu Giao Hàng & Đóng Gói A5 (Item 11) */}
+      <PackingSlipModal
+        isOpen={isPackingSlipOpen}
+        order={packingSlipOrder}
+        onClose={() => setIsPackingSlipOpen(false)}
+      />
+
+      {/* 7. Modal Lý Do Hủy Đơn Hàng Bắt Buộc (Item 12) */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        order={orderToCancel}
+        onClose={() => setIsCancelModalOpen(false)}
+        onConfirmCancel={handleConfirmCancelWithReason}
+      />
     </main>
   );
 }
@@ -427,7 +402,7 @@ export default function OrdersPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mb-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mb-2"></div>
           <p className="text-sm text-slate-400">Đang tải trung tâm đơn hàng...</p>
         </div>
       }

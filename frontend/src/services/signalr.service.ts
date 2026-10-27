@@ -1,4 +1,5 @@
 import * as signalR from '@microsoft/signalr';
+import { SIGNALR_EVENTS, API_BASE_URL } from '@/lib/constants';
 
 export interface SignalRNotification {
   id: string;
@@ -11,6 +12,24 @@ export interface SignalRNotification {
   type: 'ORDER_CREATED' | 'ORDER_STATUS' | 'PAYMENT_CONFIRMED' | 'INFO';
   createdAt: string;
   read: boolean;
+}
+
+export interface SignalROrderCreatedPayload {
+  orderCode?: string;
+  orderId?: number;
+  title?: string;
+  message?: string;
+  customerName?: string;
+  totalAmount?: number;
+}
+
+export interface SignalROrderStatusPayload {
+  orderCode?: string;
+  orderId?: number;
+  title?: string;
+  message?: string;
+  status?: string;
+  statusLabel?: string;
 }
 
 type NotificationListener = (notification: SignalRNotification) => void;
@@ -29,8 +48,10 @@ class SignalRService {
 
     this.isConnecting = true;
     try {
+      const hubUrl = `${API_BASE_URL.replace('/api', '')}/hubs/notifications`;
+
       this.connection = new signalR.HubConnectionBuilder()
-        .withUrl('http://localhost:5000/hubs/notifications', {
+        .withUrl(hubUrl, {
           skipNegotiation: false,
           transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
         })
@@ -38,11 +59,16 @@ class SignalRService {
         .configureLogging(signalR.LogLevel.Warning)
         .build();
 
-      this.connection.on('ReceiveOrderCreated', (data: any) => {
+      // Cấu hình tối ưu nhịp tim kết nối (Item 51)
+      this.connection.serverTimeoutInMilliseconds = 30000;
+      this.connection.keepAliveIntervalInMilliseconds = 15000;
+
+      // Đăng ký các sự kiện sử dụng hằng số tập trung (Item 30 & 32)
+      this.connection.on(SIGNALR_EVENTS.RECEIVE_ORDER_CREATED, (data: SignalROrderCreatedPayload) => {
         const notif: SignalRNotification = {
           id: `order-created-${data.orderCode || Date.now()}`,
           title: data.title || 'Đơn Hàng Mới!',
-          message: data.message || `Khách hàng ${data.customerName} vừa đặt đơn ${data.orderCode}.`,
+          message: data.message || `Khách hàng ${data.customerName || 'VIP'} vừa đặt đơn ${data.orderCode}.`,
           orderCode: data.orderCode,
           orderId: data.orderId,
           totalAmount: data.totalAmount,
@@ -53,7 +79,7 @@ class SignalRService {
         this.notifyListeners(notif);
       });
 
-      this.connection.on('ReceiveOrderStatusUpdated', (data: any) => {
+      this.connection.on(SIGNALR_EVENTS.RECEIVE_ORDER_STATUS_UPDATED, (data: SignalROrderStatusPayload) => {
         const notif: SignalRNotification = {
           id: `order-status-${data.orderCode || Date.now()}-${Date.now()}`,
           title: data.title || 'Cập Nhật Trạng Thái Đơn Hàng',
@@ -68,7 +94,7 @@ class SignalRService {
         this.notifyListeners(notif);
       });
 
-      this.connection.on('ReceivePaymentConfirmed', (data: any) => {
+      this.connection.on(SIGNALR_EVENTS.RECEIVE_PAYMENT_CONFIRMED, (data: SignalROrderCreatedPayload) => {
         const notif: SignalRNotification = {
           id: `payment-${data.orderCode || Date.now()}`,
           title: data.title || 'Thanh Toán Thành Công!',
@@ -90,26 +116,24 @@ class SignalRService {
       });
 
       await this.connection.start();
-    } catch (err) {
-      // Tự động kết nối lại ngầm
+
+      // Tự động tham gia group của Seller hoặc Admin
+      const storedUser = localStorage.getItem('aethelgard_user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          if (user?.role === 'Admin') {
+            await this.joinAdminGroup();
+          } else if (user?.userId && user?.role === 'Seller') {
+            await this.joinSellerGroup(user.userId);
+          }
+        } catch {}
+      }
+    } catch {
+      // Bỏ qua lỗi kết nối ban đầu
     } finally {
       this.isConnecting = false;
     }
-  }
-
-  public subscribe(listener: NotificationListener): () => void {
-    this.listeners.push(listener);
-    return () => {
-      this.listeners = this.listeners.filter((l) => l !== listener);
-    };
-  }
-
-  private notifyListeners(notification: SignalRNotification) {
-    this.listeners.forEach((listener) => {
-      try {
-        listener(notification);
-      } catch {}
-    });
   }
 
   public async joinAdminGroup(): Promise<void> {
@@ -128,12 +152,32 @@ class SignalRService {
     } catch {}
   }
 
-  public async joinCustomerGroup(email: string): Promise<void> {
+  public async joinCustomerGroup(customerEmail: string): Promise<void> {
     try {
-      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected && email) {
-        await this.connection.invoke('JoinCustomerGroup', email.trim().toLowerCase());
+      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected && customerEmail) {
+        await this.connection.invoke('JoinCustomerGroup', customerEmail.trim().toLowerCase());
       }
     } catch {}
+  }
+
+  public subscribe(listener: NotificationListener): () => void {
+    this.listeners.push(listener);
+    if (!this.connection || this.connection.state === signalR.HubConnectionState.Disconnected) {
+      this.startConnection();
+    }
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  private notifyListeners(notification: SignalRNotification): void {
+    this.listeners.forEach((listener) => {
+      try {
+        listener(notification);
+      } catch (err) {
+        console.error('Lỗi listener SignalR:', err);
+      }
+    });
   }
 
   public async stopConnection(): Promise<void> {

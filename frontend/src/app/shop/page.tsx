@@ -131,7 +131,7 @@ function ShopPageContent() {
       }
     });
     return list;
-  }, [products, filters, searchTerm]);
+  }, [products, filters, searchTerm, isSeller, onlyMyProducts, sellerId]);
 
   const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
   const paginated = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -264,7 +264,7 @@ function ShopPageContent() {
                   <button
                     type="button"
                     onClick={resetFilters}
-                    className="mt-3 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold hover:bg-purple-200 transition-all cursor-pointer"
+                    className="mt-3 px-4 py-2 bg-sky-100 text-sky-700 rounded-lg text-xs font-bold hover:bg-sky-200 transition-all cursor-pointer"
                   >
                     Xóa tất cả bộ lọc
                   </button>

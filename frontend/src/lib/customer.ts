@@ -247,7 +247,7 @@ export function normalizePhone(phone: string): string {
   return cleaned;
 }
 
-/** Chuẩn hóa trạng thái từ Backend ("Pending") / mock ("PENDING") về dạng IN HOA */
+/** Chuẩn hóa trạng thái từ Backend ("Pending") về dạng IN HOA */
 export function normalizeStatus(status?: string): string {
   return (status || 'PENDING').toUpperCase();
 }
