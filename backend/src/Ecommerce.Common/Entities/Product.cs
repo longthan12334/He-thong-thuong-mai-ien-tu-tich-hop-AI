@@ -15,6 +15,7 @@ public class Product : BaseEntity
     public string Description { get; set; } = string.Empty;
     public decimal BasePrice { get; set; }
     public decimal? OriginalPrice { get; set; }
+    public decimal CostPrice { get; set; } = 0;
     public int DiscountPercent { get; set; } = 0;
     public string ImageUrl { get; set; } = string.Empty;
     public string? GalleryUrlsJson { get; set; }

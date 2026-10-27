@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { fallbackProducts, fallbackCategories } from '@/lib/mock-data';
 import type { Product, Category } from '@/types';
 import { productService } from '@/services/product.service';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
-import { Plus, Store, Sparkles } from 'lucide-react';
+import { Plus, Store } from 'lucide-react';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { ProductCardSkeleton } from '@/components/ui/Skeleton';
 import {
   SellerProductCard,
   SellerDrawer,
@@ -18,7 +18,6 @@ import {
   ProductEditorModal,
   SellerRegisterModal,
 } from '@/components/seller';
-
 
 /** Phân loại sản phẩm để điều phối showroom đa dạng phong cách */
 function classifyProductType(name: string): string {
@@ -47,7 +46,6 @@ function interleaveShowroomProducts(items: Product[]): Product[] {
     groups[type].push(item);
   }
 
-  // Giữ các sản phẩm mới nhất lên đầu trong từng nhóm
   for (const key of Object.keys(groups)) {
     groups[key].sort((a, b) => b.id - a.id);
   }
@@ -74,14 +72,24 @@ export default function HomePage() {
   const { confirm, confirmDialog } = useConfirmDialog();
 
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>(fallbackCategories);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoadingInitial, setIsLoadingInitial] = useState(true);
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [quickFilterType, setQuickFilterType] = useState<string>('');
   const [minPrice, setMinPrice] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<string>('newest');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
   const [displayLimit, setDisplayLimit] = useState<number>(48);
+
+  // Debounce ô tìm kiếm 300ms (Item 46)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   // Modals
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -93,33 +101,25 @@ export default function HomePage() {
   const sellerTitle = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '';
   const isSellerRole = user?.role === 'Seller' || user?.role === 'Admin';
 
-  // Tải danh mục thực tế từ backend API
-  useEffect(() => {
-    productService
-      .getCategories()
-      .then((cats) => {
-        if (cats && cats.length > 0) setCategories(cats);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Tải danh sách sản phẩm từ backend API qua productService
+  // Tải song song Danh mục & Sản phẩm qua Promise.all (Item 60)
   useEffect(() => {
     let isMounted = true;
     const sellerId = user?.userId;
-
     const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
     const activeSellerId = isSeller && sellerId && sellerId > 0 ? sellerId : undefined;
 
-    productService
-      .getProducts({
+    setIsLoadingInitial(true);
+    Promise.all([
+      productService.getCategories(),
+      productService.getProducts({
         sellerId: activeSellerId,
-        // Khi Seller đăng nhập quản lý gian hàng: tải toàn bộ kho hàng (tối đa 1000)
-        // Khi xem chung sàn: tải 48 sản phẩm đại diện
         pageSize: activeSellerId ? 1000 : 48,
-      })
-      .then((res) => {
-        if (isMounted && res && res.items) {
+      }),
+    ])
+      .then(([cats, res]) => {
+        if (!isMounted) return;
+        if (cats && cats.length > 0) setCategories(cats);
+        if (res && res.items) {
           const processed = interleaveShowroomProducts(res.items);
           setProducts(processed);
           if (processed.length > 0) {
@@ -129,14 +129,17 @@ export default function HomePage() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setIsLoadingInitial(false);
+      });
 
     return () => {
       isMounted = false;
     };
   }, [user]);
 
-  // Bộ lọc sản phẩm
+  // Bộ lọc sản phẩm sử dụng debouncedSearch
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
@@ -144,8 +147,8 @@ export default function HomePage() {
       list = list.filter((p) => p.categoryId.toString() === categoryFilter);
     }
 
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
@@ -175,12 +178,12 @@ export default function HomePage() {
     }
 
     return list;
-  }, [products, categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder]);
+  }, [products, categoryFilter, debouncedSearch, minPrice, maxPrice, quickFilterType, sortOrder]);
 
   // Reset giới hạn hiển thị khi thay đổi bộ lọc tìm kiếm
   useEffect(() => {
     setDisplayLimit(48);
-  }, [categoryFilter, searchTerm, minPrice, maxPrice, quickFilterType, sortOrder, user]);
+  }, [categoryFilter, debouncedSearch, minPrice, maxPrice, quickFilterType, sortOrder, user]);
 
   const visibleProducts = useMemo(() => {
     return filteredProducts.slice(0, displayLimit);
@@ -193,88 +196,105 @@ export default function HomePage() {
     }));
   }, [categories, products]);
 
-  const openSellerDrawer = (p: Product) => {
-    // Nếu là khách hàng hoặc khách vãng lai: chuyển đến trang chi tiết sản phẩm khách hàng
-    if (!isSellerRole) {
-      router.push(`/product-detail/${p.id}`);
-      return;
-    }
-    setDrawerProduct(p);
-    setIsDrawerOpen(true);
-  };
+  // Ổn định các handler bằng useCallback (Item 49)
+  const openSellerDrawer = useCallback(
+    (p: Product) => {
+      if (!isSellerRole) {
+        router.push(`/product-detail/${p.id}`);
+        return;
+      }
+      setDrawerProduct(p);
+      setIsDrawerOpen(true);
+    },
+    [isSellerRole, router]
+  );
 
-  const closeSellerDrawer = () => {
+  const closeSellerDrawer = useCallback(() => {
     setIsDrawerOpen(false);
-  };
+  }, []);
 
-  const handleOpenCreateModal = () => {
+  const handleProductUpdated = useCallback((updated: Product) => {
+    setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    setDrawerProduct(updated);
+  }, []);
+
+  const handleOpenCreateModal = useCallback(() => {
     setEditingProduct(null);
     setIsEditorOpen(true);
-  };
+  }, []);
 
-  const handleOpenEditModal = (p: Product) => {
+  const handleOpenEditModal = useCallback((p: Product) => {
     setEditingProduct(p);
     setIsEditorOpen(true);
-  };
+  }, []);
 
-  const handleDeleteProduct = async (p: Product) => {
-    const isConfirmed = await confirm({
-      title: 'Xóa Niêm Yết Sản Phẩm',
-      message: `Bạn có chắc chắn muốn xóa sản phẩm "${p.name}" (SKU: ${p.sku}) khỏi gian hàng? Hành động này sẽ gỡ bỏ sản phẩm khỏi sàn mua sắm.`,
-      confirmText: 'Xóa Vĩnh Viễn',
-      cancelText: 'Giữ Lại',
-      tone: 'danger',
-    });
+  const handleDeleteProduct = useCallback(
+    async (p: Product) => {
+      const isConfirmed = await confirm({
+        title: 'Xóa Niêm Yết Sản Phẩm',
+        message: `Bạn có chắc chắn muốn xóa sản phẩm "${p.name}" (SKU: ${p.sku}) khỏi gian hàng? Hành động này sẽ gỡ bỏ sản phẩm khỏi sàn mua sắm.`,
+        confirmText: 'Xóa Vĩnh Viễn',
+        cancelText: 'Giữ Lại',
+        tone: 'danger',
+      });
 
-    if (!isConfirmed) return;
+      if (!isConfirmed) return;
 
-    try {
-      await productService.deleteProduct(p.id);
-      setProducts((prev) => prev.filter((item) => item.id !== p.id));
-      showToast(`Đã xóa sản phẩm "${p.name}" thành công.`);
-      if (drawerProduct?.id === p.id) {
-        setIsDrawerOpen(false);
+      try {
+        await productService.deleteProduct(p.id);
+        setProducts((prev) => prev.filter((item) => item.id !== p.id));
+        showToast(`Đã xóa sản phẩm "${p.name}" thành công.`);
+        if (drawerProduct?.id === p.id) {
+          setIsDrawerOpen(false);
+        }
+      } catch (err: any) {
+        showToast(err.response?.data?.message || err.message || 'Không thể xóa sản phẩm.');
       }
-    } catch (err: any) {
-      showToast(err.response?.data?.message || err.message || 'Không thể xóa sản phẩm.');
-    }
-  };
+    },
+    [confirm, drawerProduct, showToast]
+  );
 
-  const handleProductSaved = (savedProduct: Product, isEdit: boolean) => {
-    if (isEdit) {
-      setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
-      showToast(`Đã cập nhật sản phẩm "${savedProduct.name}" thành công!`);
-    } else {
-      setProducts((prev) => [savedProduct, ...prev]);
-      showToast(`Đã thêm mới và niêm yết sản phẩm "${savedProduct.name}" lên sàn!`);
-    }
-    setDrawerProduct(savedProduct);
-  };
+  const handleProductSaved = useCallback(
+    (savedProduct: Product, isEdit: boolean) => {
+      if (isEdit) {
+        setProducts((prev) => prev.map((p) => (p.id === savedProduct.id ? savedProduct : p)));
+        showToast(`Đã cập nhật sản phẩm "${savedProduct.name}" thành công!`);
+      } else {
+        setProducts((prev) => [savedProduct, ...prev]);
+        showToast(`Đã thêm mới và niêm yết sản phẩm "${savedProduct.name}" lên sàn!`);
+      }
+      setDrawerProduct(savedProduct);
+    },
+    [showToast]
+  );
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setCategoryFilter('');
     setQuickFilterType('');
     setMinPrice('');
     setMaxPrice('');
     setSortOrder('newest');
     setSearchTerm('');
-  };
+  }, []);
 
-  const scrollToCatalog = () => {
+  const scrollToCatalog = useCallback(() => {
     const el = document.getElementById('catalog');
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  };
+  }, []);
 
-  const handleExploreProduct = (keyword: string) => {
-    const matched = products.find((p) => p.name.toLowerCase().includes(keyword.toLowerCase()));
-    if (matched) {
-      openSellerDrawer(matched);
-    } else {
-      scrollToCatalog();
-    }
-  };
+  const handleExploreProduct = useCallback(
+    (keyword: string) => {
+      const matched = products.find((p) => p.name.toLowerCase().includes(keyword.toLowerCase()));
+      if (matched) {
+        openSellerDrawer(matched);
+      } else {
+        scrollToCatalog();
+      }
+    },
+    [products, openSellerDrawer, scrollToCatalog]
+  );
 
   return (
     <>
@@ -286,7 +306,7 @@ export default function HomePage() {
         products={products}
       />
 
-      {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH ĐỔI 10S/LẦN) */}
+      {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH) */}
       <BrandCinematicShowcase
         shopName={sellerTitle || 'Aethelgard Store'}
         products={products}
@@ -297,34 +317,15 @@ export default function HomePage() {
       {/* 3. SHOWROOM SẢN PHẨM CỬA HÀNG */}
       <section className="page-section shop-section" id="catalog">
         <main className="main-layout">
-          <ProductFilters
-            categories={categoriesWithCount}
-            totalProductsCount={products.length}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-            quickFilterType={quickFilterType}
-            onQuickFilterChange={setQuickFilterType}
-            minPrice={minPrice}
-            onMinPriceChange={setMinPrice}
-            maxPrice={maxPrice}
-            onMaxPriceChange={setMaxPrice}
-            sortOrder={sortOrder}
-            onSortOrderChange={setSortOrder}
-            onReset={resetFilters}
-          />
-
           {/* Lưới sản phẩm */}
           <section className="catalog-section">
-            <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4">
+            <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
               <div>
                 <h2 id="catalog-title" className="text-xl sm:text-2xl font-bold text-slate-900">
                   {sellerTitle
                     ? `Gian Trưng Bày — ${sellerTitle}`
                     : 'Sản Phẩm Đang Niêm Yết Trên Sàn'}
                 </h2>
-                <span id="results-count" className="results-tag text-xs text-slate-500 font-medium">
-                  Hiển thị {filteredProducts.length} sản phẩm thực tế
-                </span>
               </div>
 
               {/* ACTION BUTTONS: THÊM SẢN PHẨM MỚI / MỞ GIAN HÀNG */}
@@ -333,7 +334,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setIsRegisterOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 transition-colors shadow-sm cursor-pointer"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-700 text-xs font-bold hover:bg-sky-100 transition-colors shadow-sm cursor-pointer"
                   >
                     <Store className="w-4 h-4" />
                     <span>Mở Gian Hàng Seller</span>
@@ -344,7 +345,7 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={handleOpenCreateModal}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-5 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-md shadow-sky-200 transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4" />
                     <span>Thêm Sản Phẩm Mới</span>
@@ -353,17 +354,42 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* THANH DANH MỤC */}
+            <ProductFilters
+              categories={categoriesWithCount}
+              totalProductsCount={products.length}
+              categoryFilter={categoryFilter}
+              onCategoryChange={setCategoryFilter}
+              quickFilterType={quickFilterType}
+              onQuickFilterChange={setQuickFilterType}
+              minPrice={minPrice}
+              onMinPriceChange={setMinPrice}
+              maxPrice={maxPrice}
+              onMaxPriceChange={setMaxPrice}
+              sortOrder={sortOrder}
+              onSortOrderChange={setSortOrder}
+              onReset={resetFilters}
+              filteredCount={filteredProducts.length}
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+            />
+
+            {/* LƯỚI SẢN PHẨM HOẶC SKELETON KHI LOADING (Item 10) */}
             <div id="product-grid" className="product-grid">
-              {visibleProducts.map((p) => (
-                <SellerProductCard
-                  key={p.id}
-                  product={p}
-                  onClick={openSellerDrawer}
-                />
-              ))}
+              {isLoadingInitial
+                ? Array.from({ length: 8 }).map((_, idx) => (
+                    <ProductCardSkeleton key={`skeleton-${idx}`} />
+                  ))
+                : visibleProducts.map((p) => (
+                    <SellerProductCard
+                      key={p.id}
+                      product={p}
+                      onClick={openSellerDrawer}
+                    />
+                  ))}
             </div>
 
-            {displayLimit < filteredProducts.length && (
+            {!isLoadingInitial && displayLimit < filteredProducts.length && (
               <div className="flex justify-center mt-10 mb-6">
                 <button
                   type="button"
@@ -372,7 +398,7 @@ export default function HomePage() {
                 >
                   <span>Xem thêm sản phẩm</span>
                   <span className="text-xs text-slate-400 font-semibold">
-                    (Đang xem {visibleProducts.length} / {filteredProducts.length})
+                    {`(Đang xem ${visibleProducts.length} / ${filteredProducts.length})`}
                   </span>
                 </button>
               </div>
@@ -381,7 +407,7 @@ export default function HomePage() {
         </main>
       </section>
 
-      {/* 5. SELLER DRAWER — Chỉnh sửa & Xóa sản phẩm */}
+      {/* 5. SELLER DRAWER */}
       <SellerDrawer
         isOpen={isDrawerOpen}
         product={drawerProduct}
@@ -389,6 +415,7 @@ export default function HomePage() {
         onShowToast={showToast}
         onEditProduct={handleOpenEditModal}
         onDeleteProduct={handleDeleteProduct}
+        onProductUpdated={handleProductUpdated}
       />
 
       {/* 6. MODAL THÊM / SỬA SẢN PHẨM ĐA BƯỚC */}

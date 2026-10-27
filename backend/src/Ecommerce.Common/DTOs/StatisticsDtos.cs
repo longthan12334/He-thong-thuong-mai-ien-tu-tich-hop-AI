@@ -1,4 +1,4 @@
-﻿namespace Ecommerce.Common.DTOs;
+namespace Ecommerce.Common.DTOs;
 
 public class IncomeSummaryDto
 {
@@ -6,8 +6,18 @@ public class IncomeSummaryDto
     public decimal MonthlyRevenue { get; set; }
     public int TotalOrders { get; set; }
     public double GrowthPercent { get; set; }
+    public int ShopViews { get; set; }
+    public List<CategoryRevenueDto> CategoryBreakdown { get; set; } = new();
     public List<MonthlyDataDto> MonthlyMatrix { get; set; } = new();
     public List<TransactionDto> RecentTransactions { get; set; } = new();
+}
+
+public class CategoryRevenueDto
+{
+    public string CategoryName { get; set; } = string.Empty;
+    public decimal Revenue { get; set; }
+    public double Percentage { get; set; }
+    public int OrderCount { get; set; }
 }
 
 public class MonthlyDataDto

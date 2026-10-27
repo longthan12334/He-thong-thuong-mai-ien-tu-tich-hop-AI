@@ -1,6 +1,5 @@
 import apiClient from './api-client';
 import type { InventorySummary, RestockRequest } from '@/types';
-import { fallbackProducts } from '@/lib/mock-data';
 
 export const inventoryService = {
   async getInventory(): Promise<InventorySummary> {
@@ -9,33 +8,17 @@ export const inventoryService = {
       return res.data;
     } catch {
       return {
-        totalSku: fallbackProducts.length,
-        totalStockItems: fallbackProducts.reduce((acc, p) => acc + p.stockQuantity, 0),
-        totalStockValue: fallbackProducts.reduce((acc, p) => acc + p.basePrice * p.stockQuantity, 0),
-        lowStockAlertCount: fallbackProducts.filter(p => p.stockQuantity <= 10).length,
-        items: fallbackProducts.map(p => ({
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-          categoryName: p.categoryName || 'Thời Trang',
-          imageUrl: p.imageUrl,
-          price: p.basePrice,
-          stockQuantity: p.stockQuantity,
-          stockStatus: p.stockQuantity === 0 ? 'OUT_OF_STOCK' : (p.stockQuantity <= 10 ? 'LOW_STOCK' : 'IN_STOCK'),
-          safetyThreshold: 10,
-        })),
+        totalSku: 0,
+        totalStockItems: 0,
+        totalStockValue: 0,
+        lowStockAlertCount: 0,
+        items: [],
       };
     }
   },
 
   async restock(data: RestockRequest): Promise<boolean> {
-    try {
-      await apiClient.post('/inventory/restock', data);
-      return true;
-    } catch {
-      const p = fallbackProducts.find(x => x.id === data.productId);
-      if (p) p.stockQuantity += data.additionalQuantity;
-      return true;
-    }
+    await apiClient.post('/inventory/restock', data);
+    return true;
   },
 };

@@ -6,6 +6,7 @@ import { statisticsService } from '@/services/statistics.service';
 import type { IncomeSummary } from '@/types';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
+import { formatVND } from '@/lib/utils';
 
 // Dữ liệu theo tháng cho biểu đồ ma trận khối (Tháng 1 - Tháng 12)
 interface MatrixMonthItem {
@@ -77,18 +78,10 @@ interface Transaction {
   total: string;
 }
 
-const initialTransactions: Transaction[] = [
-  { id: '#04910', customer: 'Ryan Korsgaard', product: 'Ergo Leather Chair Haute', status: 'Success', qty: 12, unitPrice: '$3,450', total: '$41,400' },
-  { id: '#04911', customer: 'Madelyn Lubin', product: 'Dior Sunset Desk Special', status: 'Success', qty: 20, unitPrice: '$2,980', total: '$59,200' },
-  { id: '#04912', customer: 'Abram Bergson', product: 'Eco Minimal Bookshelf', status: 'Pending', qty: 22, unitPrice: '$1,750', total: '$75,900' },
-  { id: '#04913', customer: 'Phillip Mango', product: 'Green Leaf Velvet Sofa', status: 'Refunded', qty: 24, unitPrice: '$1,950', total: '$19,500' },
-  { id: '#04914', customer: 'Esther Howard', product: 'Giày Sneaker Gucci Ace Leather', status: 'Success', qty: 2, unitPrice: '$1,250', total: '$2,500' },
-  { id: '#04915', customer: 'Darrell Steward', product: 'Túi Gucci Dionysus Supreme', status: 'Success', qty: 1, unitPrice: '$2,850', total: '$2,850' },
-  { id: '#04916', customer: 'Cameron Williamson', product: 'Adidas Samba OG Classic Edition', status: 'Success', qty: 4, unitPrice: '$180', total: '$720' }
-];
+const initialTransactions: Transaction[] = [];
 
 export default function IncomeStatisticsPage() {
-  const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop');
+  const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/');
   const { showToast } = useToast();
   const [activeMonth, setActiveMonth] = useState<string>('JUN');
   const [period, setPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
@@ -98,6 +91,7 @@ export default function IncomeStatisticsPage() {
   const [showAiModal, setShowAiModal] = useState(false);
   const [apiData, setApiData] = useState<IncomeSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [barsAnimated, setBarsAnimated] = useState(false);
 
   // Lấy dữ liệu thống kê từ API thực tế của backend
   useEffect(() => {
@@ -108,6 +102,9 @@ export default function IncomeStatisticsPage() {
         const res = await statisticsService.getIncomeStats();
         if (res) {
           setApiData(res);
+          if (res.recentTransactions) {
+            setTransactions(res.recentTransactions as any);
+          }
         }
       } catch {
         // Giữ fallback mẫu nếu backend chưa có nhiều giao dịch
@@ -120,30 +117,50 @@ export default function IncomeStatisticsPage() {
 
 
 
+  // Dữ liệu ma trận biểu đồ từ API hoặc trạng thái 0
+  const matrixData: MatrixMonthItem[] = useMemo(() => {
+    if (apiData?.monthlyMatrix && apiData.monthlyMatrix.length > 0) {
+      return apiData.monthlyMatrix.map((m) => ({
+        month: m.month,
+        existing: m.existingUsers,
+        newUsers: m.newUsers,
+        valTotal: m.valTotal,
+        newText: m.newText ?? undefined,
+        existText: m.existText ?? undefined,
+      }));
+    }
+    return Object.keys(MONTH_LABELS).map((m) => ({
+      month: m,
+      existing: 0,
+      newUsers: 0,
+      valTotal: '0 ₫',
+    }));
+  }, [apiData]);
+
   // Tính toán số liệu doanh thu hiển thị linh hoạt
   const totalRevenueDisplay = useMemo(() => {
     if (apiData && apiData.totalRevenue > 0) {
-      return `$${apiData.totalRevenue.toLocaleString()}`;
+      return formatVND(apiData.totalRevenue);
     }
-    return '$29.230.000';
+    return '0 ₫';
   }, [apiData]);
 
   const totalOrdersDisplay = useMemo(() => {
     if (apiData && apiData.totalOrders > 0) {
       return `${apiData.totalOrders.toLocaleString()} Đơn hàng`;
     }
-    return '10,320 Đơn hàng';
+    return '0 Đơn hàng';
   }, [apiData]);
 
   const growthDisplay = useMemo(() => {
     if (apiData && apiData.growthPercent) {
       return `+${apiData.growthPercent}%`;
     }
-    return '+0,94';
+    return '0.0%';
   }, [apiData]);
 
   // Tính tổng theo kỳ
-  const trendTotal = period === 'weekly' ? '$5,240' : period === 'yearly' ? '$248,500' : totalRevenueDisplay;
+  const trendTotal = totalRevenueDisplay;
 
   // Danh sách giao dịch sau khi lọc
   const filteredTransactions = transactions.filter((tx) => {
@@ -171,28 +188,12 @@ export default function IncomeStatisticsPage() {
     );
   };
 
-  const handleAddNewTx = () => {
-    const customer = window.prompt('Nhập tên khách hàng mới:', 'Nguyễn Đức Mạnh');
-    if (customer) {
-      const newTx: Transaction = {
-        id: `#049${Math.floor(100 + Math.random() * 900)}`,
-        customer: customer,
-        product: 'Christian Dior Silk Haute Couture Shirt',
-        status: 'Success',
-        qty: 1,
-        unitPrice: '$1,250',
-        total: '$1,250',
-      };
-      setTransactions([newTx, ...transactions]);
-      showToast('Đã thêm giao dịch thử nghiệm mới thành công.');
-    }
-  };
-
+  const handleAddNewTx = () => {};
   if (isGuardLoading || !isAuthorized) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-slate-400 font-medium">Đang xác thực quyền truy cập báo cáo tài chính...</p>
         </div>
       </div>
@@ -223,7 +224,7 @@ export default function IncomeStatisticsPage() {
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Chi tiết doanh thu">ⓘ</span>
             <span className="kpi-growth-tag">
-              {growthDisplay} <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
+              {growthDisplay} <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với kỳ trước</span>
             </span>
           </div>
         </div>
@@ -248,15 +249,15 @@ export default function IncomeStatisticsPage() {
           <div className="kpi-bottom-row">
             <span className="kpi-info-icon" title="Thống kê đơn hàng">ⓘ</span>
             <span className="kpi-growth-tag">
-              +1,25 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
+              0 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>đơn mới trong kỳ</span>
             </span>
           </div>
         </div>
 
-        {/* 3. Khách hàng mới */}
+        {/* 3. Lượt ghé thăm shop */}
         <div className="kpi-stat-box">
           <div className="kpi-top-row">
-            <span className="kpi-title-mono">KHÁCH HÀNG MỚI</span>
+            <span className="kpi-title-mono">LƯỢT GHÉ THĂM SHOP</span>
             <div className="sparkline-bars">
               <div className="spark-bar" style={{ height: '16px' }}></div>
               <div className="spark-bar" style={{ height: '20px' }}></div>
@@ -268,12 +269,12 @@ export default function IncomeStatisticsPage() {
             </div>
           </div>
           <div className="kpi-big-num">
-            4,305 <span className="kpi-subtext">Người dùng mới</span>
+            {apiData?.shopViews ?? 0} <span className="kpi-subtext">Lượt xem</span>
           </div>
           <div className="kpi-bottom-row">
-            <span className="kpi-info-icon" title="Khách hàng mới">ⓘ</span>
+            <span className="kpi-info-icon" title="Lưu lượng khách xem gian hàng">ⓘ</span>
             <span className="kpi-growth-tag">
-              +0,94 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
+              0 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>lượt xem trong kỳ</span>
             </span>
           </div>
         </div>
@@ -292,11 +293,11 @@ export default function IncomeStatisticsPage() {
               <div className="spark-bar" style={{ height: '12px' }}></div>
             </div>
           </div>
-          <div className="kpi-big-num">3.9%</div>
+          <div className="kpi-big-num">{apiData && apiData.totalOrders > 0 ? ((apiData.totalOrders / Math.max(apiData.totalOrders, 1)) * 100).toFixed(1) + '%' : '0.0%'}</div>
           <div className="kpi-bottom-row">
-            <span className="kpi-info-icon" title="Tỷ lệ chuyển đổi">ⓘ</span>
+            <span className="kpi-info-icon" title="Tỷ lệ đơn hàng thành công trên khách ghé thăm">ⓘ</span>
             <span className="kpi-growth-tag">
-              +0,42 <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>so với năm trước</span>
+              0.0% <span style={{ fontWeight: 500, color: '#6B7280', marginLeft: '2px' }}>tỷ lệ chuyển đổi</span>
             </span>
           </div>
         </div>
@@ -385,7 +386,7 @@ export default function IncomeStatisticsPage() {
 
               {/* Các Cột Tháng Ma Trận */}
               <div className="matrix-columns-container" id="matrix-cols-container">
-                {defaultMatrixChartData.map((item) => {
+                {matrixData.map((item) => {
                   const isActive = item.month === activeMonth;
                   return (
                     <div
@@ -435,7 +436,7 @@ export default function IncomeStatisticsPage() {
 
               {/* Nhãn Trục Hoành (X-Axis) */}
               <div className="matrix-x-axis" id="matrix-x-axis">
-                {defaultMatrixChartData.map((item) => (
+                {matrixData.map((item) => (
                   <span
                     key={item.month}
                     className={`matrix-x-label ${item.month === activeMonth ? 'active' : ''}`}
@@ -498,6 +499,41 @@ export default function IncomeStatisticsPage() {
           <div className="needle-axis-labels">
             <span>01 THG 1</span>
             <span>31 THG 12, 2025</span>
+          </div>
+
+          {/* Phân Rã Cơ Cấu Doanh Thu Danh Mục Thật (Item 15) */}
+          <div className="mt-4 pt-3 border-t border-slate-100 space-y-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+              Tỷ Trọng Doanh Thu Ngành Hàng
+            </div>
+            {(apiData?.categoryBreakdown && apiData.categoryBreakdown.length > 0
+              ? apiData.categoryBreakdown
+              : [
+                  { categoryName: 'Giày Sneaker & Dép', revenue: 0, percentage: 40, orderCount: 0 },
+                  { categoryName: 'Túi Xách Da Cao Cấp', revenue: 0, percentage: 35, orderCount: 0 },
+                  { categoryName: 'Trang Phục & Outerwear', revenue: 0, percentage: 15, orderCount: 0 },
+                  { categoryName: 'Phụ Kiện & Đồng Hồ', revenue: 0, percentage: 10, orderCount: 0 },
+                ]
+            ).map((cat, idx) => {
+              const colors = ['bg-sky-500', 'bg-blue-600', 'bg-teal-500', 'bg-amber-500'];
+              const color = colors[idx % colors.length];
+              return (
+                <div key={cat.categoryName} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="font-semibold text-slate-700">{cat.categoryName}</span>
+                    <span className="font-bold text-slate-900">
+                      {cat.revenue > 0 ? `${formatVND(cat.revenue)} (${cat.percentage}%)` : `${cat.percentage}%`}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${color}`}
+                      style={{ width: `${Math.max(cat.percentage, 2)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -566,7 +602,7 @@ export default function IncomeStatisticsPage() {
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: '#9CA3AF' }}>
-                    Không tìm thấy giao dịch nào phù hợp với "{searchQuery}"
+                    {searchQuery ? `Không tìm thấy giao dịch nào phù hợp với "${searchQuery}"` : "Chưa có giao dịch thanh toán nào được ghi nhận cho gian hàng."}
                   </td>
                 </tr>
               ) : (

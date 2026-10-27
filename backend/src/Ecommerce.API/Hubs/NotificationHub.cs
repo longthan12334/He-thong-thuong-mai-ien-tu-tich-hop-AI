@@ -4,8 +4,12 @@ namespace Ecommerce.API.Hubs;
 
 public class NotificationHub : Hub
 {
-    public async Task JoinSellerGroup()
+    public async Task JoinSellerGroup(int? sellerId = null)
     {
+        if (sellerId.HasValue)
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"Seller_{sellerId.Value}");
+        }
         await Groups.AddToGroupAsync(Context.ConnectionId, "Sellers");
     }
 

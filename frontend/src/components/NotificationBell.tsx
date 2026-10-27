@@ -33,7 +33,7 @@ export default function NotificationBell() {
   useEffect(() => {
     signalRService.startConnection().then(() => {
       if (isSeller) {
-        signalRService.joinSellerGroup();
+        signalRService.joinSellerGroup(user?.userId);
       }
       if (user?.email) {
         signalRService.joinCustomerGroup(user.email);

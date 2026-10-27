@@ -1,6 +1,5 @@
 import apiClient from './api-client';
 import type { Product, Category, ProductFilter, PagedResult } from '@/types';
-import { fallbackProducts, fallbackCategories } from '@/lib/mock-data';
 
 export const productService = {
   async getProducts(params?: ProductFilter): Promise<PagedResult<Product>> {
@@ -8,37 +7,13 @@ export const productService = {
       const res = await apiClient.get('/products', { params });
       return res.data;
     } catch {
-      let filtered = [...fallbackProducts];
-      if (params?.search) {
-        const q = params.search.toLowerCase();
-        filtered = filtered.filter(p =>
-          p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q)
-        );
-      }
-      if (params?.categoryId) {
-        filtered = filtered.filter(p => p.categoryId === Number(params.categoryId));
-      }
-      if (params?.minPrice) {
-        filtered = filtered.filter(p => p.basePrice >= Number(params.minPrice));
-      }
-      if (params?.maxPrice) {
-        filtered = filtered.filter(p => p.basePrice <= Number(params.maxPrice));
-      }
-      if (params?.sortBy === 'price_asc') filtered.sort((a, b) => a.basePrice - b.basePrice);
-      else if (params?.sortBy === 'price_desc') filtered.sort((a, b) => b.basePrice - a.basePrice);
-      return { items: filtered, totalCount: filtered.length, page: 1, pageSize: filtered.length };
+      return { items: [], totalCount: 0, page: 1, pageSize: 0 };
     }
   },
 
   async getProductById(id: number): Promise<Product> {
-    try {
-      const res = await apiClient.get(`/products/${id}`);
-      return res.data;
-    } catch {
-      const found = fallbackProducts.find(p => p.id === id);
-      if (!found) throw new Error('Không tìm thấy sản phẩm');
-      return found;
-    }
+    const res = await apiClient.get(`/products/${id}`);
+    return res.data;
   },
 
   async getCategories(): Promise<Category[]> {
@@ -46,7 +21,7 @@ export const productService = {
       const res = await apiClient.get('/products/categories');
       return res.data;
     } catch {
-      return fallbackCategories;
+      return [];
     }
   },
 
@@ -60,9 +35,22 @@ export const productService = {
     return res.data;
   },
 
-  async deleteProduct(id: number): Promise<boolean> {
-    const res = await apiClient.delete(`/products/${id}`);
-    return res.status === 204;
+  async deleteProduct(id: number): Promise<void> {
+    await apiClient.delete(`/products/${id}`);
+  },
+
+  async toggleProductStatus(id: number): Promise<{ id: number; isActive: boolean; message: string }> {
+    const res = await apiClient.patch(`/products/${id}/toggle-status`);
+    return res.data;
+  },
+
+  async uploadImage(file: File): Promise<{ url: string; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await apiClient.post('/products/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
   },
 
   async getProductReviews(productId: number): Promise<any[]> {
@@ -76,6 +64,26 @@ export const productService = {
 
   async addProductReview(productId: number, data: { customerName: string; rating: number; comment: string }): Promise<any> {
     const res = await apiClient.post(`/products/${productId}/reviews`, data);
+    return res.data;
+  },
+
+  async getAiRecommendation(query: string, productId?: number): Promise<string> {
+    const res = await apiClient.get('/ai/recommend', { params: { query, productId } });
+    return res.data.recommendation;
+  },
+
+  async generateAiDescription(data: {
+    productName: string;
+    categoryName?: string;
+    brand?: string;
+    keywords?: string;
+  }): Promise<{
+    seoTitle: string;
+    description: string;
+    material: string;
+    careInstructions: string;
+  }> {
+    const res = await apiClient.post('/ai/generate-description', data);
     return res.data;
   },
 };

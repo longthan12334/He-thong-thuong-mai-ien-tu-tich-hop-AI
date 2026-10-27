@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import type { Category, Product } from '@/types';
 import { productService } from '@/services/product.service';
-import { fallbackCategories, fallbackProducts } from '@/lib/mock-data';
 
 /**
  * Danh mục sản phẩm toàn sàn cho phân hệ Khách hàng.
@@ -28,10 +27,10 @@ async function loadCatalog() {
         productService.getCategories(),
       ]);
       const items = productRes.status === 'fulfilled' ? productRes.value.items : [];
-      usedFallback = items.length === 0;
-      cachedProducts = items.length > 0 ? items : fallbackProducts;
+      usedFallback = false;
+      cachedProducts = items;
       const cats = categoryRes.status === 'fulfilled' ? categoryRes.value : [];
-      cachedCategories = cats.length > 0 ? cats : fallbackCategories;
+      cachedCategories = cats;
     })().finally(() => {
       inflight = null;
     });

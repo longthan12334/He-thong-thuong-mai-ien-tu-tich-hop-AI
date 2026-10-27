@@ -195,7 +195,7 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
         <div className="customer-empty-state customer-empty-page">
           <h1 className="product-detail-title">Không tìm thấy sản phẩm</h1>
           <p>Sản phẩm có thể đã ngừng kinh doanh hoặc đường dẫn không chính xác.</p>
-          <Link href="/shop" className="customer-link-btn">
+          <Link href="/" className="customer-link-btn">
             ← Quay lại cửa hàng
           </Link>
         </div>
@@ -312,7 +312,7 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
     <div className="profile-page-wrapper">
       {/* BREADCRUMBS */}
       <nav className="breadcrumb-nav">
-        <Link href="/shop">Cửa Hàng</Link>
+        <Link href="/">Cửa Hàng</Link>
         <span className="breadcrumb-separator">/</span>
         {product.categoryName && (
           <>
