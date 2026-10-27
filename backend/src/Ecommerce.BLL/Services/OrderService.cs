@@ -332,6 +332,15 @@ public class OrderService : IOrderService
         if (order == null)
             throw new NotFoundException("Đơn hàng", id);
 
+        // Quản trị viên (Admin) chỉ có quyền can thiệp hủy đơn khi có khiếu nại/vi phạm, không được xác nhận đơn hoặc giao hàng thay cho shop
+        if (role == "Admin")
+        {
+            if (request.Status != OrderStatus.Cancelled)
+            {
+                throw new BadRequestException("Quản trị viên (Admin) không có quyền xác nhận đơn hoặc xử lý vận chuyển thay cho Người bán. Trách nhiệm chuẩn bị và giao hàng thuộc về chủ gian hàng.");
+            }
+        }
+
         // Seller chỉ được cập nhật trạng thái đơn hàng có chứa sản phẩm của mình
         if (role == "Seller")
         {
