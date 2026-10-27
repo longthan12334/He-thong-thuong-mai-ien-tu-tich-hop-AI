@@ -7,6 +7,7 @@ import { aiService } from '@/services/ai.service';
 import { productService } from '@/services/product.service';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
+import { useAuth } from '@/hooks/useAuth';
 import { RefreshCw, Package, AlertTriangle, ArrowDownToLine, DollarSign, Sparkles, Plus, Wand2, CheckCircle2, Tag } from 'lucide-react';
 
 interface InvItem {
@@ -28,7 +29,11 @@ interface InvItem {
 
 export default function InventoryPage() {
   const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop');
+  const { user } = useAuth();
   const { showToast } = useToast();
+
+  const isSeller = user?.role === 'Seller' || (user?.role as any) === 2 || String(user?.role).toLowerCase() === 'seller';
+  const isAdmin = user?.role === 'Admin' || (user?.role as any) === 1 || String(user?.role).toLowerCase() === 'admin';
 
   const [inventoryList, setInventoryList] = useState<InvItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,11 +43,22 @@ export default function InventoryPage() {
   const [restockQty, setRestockQty] = useState(25);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Danh mục sản phẩm
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([
+    { id: 2, name: 'Trang Phục & Quần Áo' },
+    { id: 1, name: 'Giày Dép & Sneaker' },
+    { id: 3, name: 'Túi Xách & Balo' },
+    { id: 4, name: 'Kính Mát & Mắt Kính' },
+    { id: 5, name: 'Phụ Kiện & Đồ Da' },
+    { id: 6, name: 'Trang Sức Cao Cấp' },
+  ]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number>(2);
+
   // State cho Thêm Sản Phẩm Mới (AI Copilot)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('Áo Khoác & Outerwear');
+  const [formCategory, setFormCategory] = useState('Trang Phục & Quần Áo');
   const [formBrand, setFormBrand] = useState('Aethelgard Boutique');
   const [formKeyFeatures, setFormKeyFeatures] = useState('');
   const [formDescription, setFormDescription] = useState('');
@@ -53,6 +69,16 @@ export default function InventoryPage() {
   const [formRetailPrice, setFormRetailPrice] = useState(3850000);
   const [formStock, setFormStock] = useState(30);
   const [formImageUrl, setFormImageUrl] = useState('/img/products/gucci-runway.jpg');
+
+  // Tải danh mục thực tế
+  useEffect(() => {
+    productService
+      .getCategories()
+      .then((res) => {
+        if (res && res.length > 0) setCategories(res);
+      })
+      .catch(() => {});
+  }, []);
 
   // Load kho hàng từ backend API
   const loadInventory = async () => {
@@ -90,8 +116,6 @@ export default function InventoryPage() {
       loadInventory();
     }
   }, [isAuthorized]);
-
-
 
   // Xử lý AI Gemini sinh mô tả sản phẩm
   const handleGenerateAIDescription = async () => {
@@ -138,50 +162,53 @@ export default function InventoryPage() {
     setIsSubmitting(true);
     const newSku = `SKU-AI-${Date.now().toString().slice(-4)}`;
     try {
-      await productService.createProduct({
+      const created = await productService.createProduct({
         name: formName.trim(),
         sku: newSku,
-        categoryId: 1,
+        categoryId: Number(selectedCategoryId) || 2,
         basePrice: formRetailPrice,
         stockQuantity: formStock,
         description: formDescription || `${formName} thời trang xa xỉ Aethelgard`,
         imageUrl: formImageUrl,
         material: formMaterial,
       });
-    } catch {
-      // Tiếp tục cập nhật UI mượt mà ngay cả khi chạy token demo
+
+      const chosenCategory = categories.find((c) => c.id === Number(selectedCategoryId))?.name || formCategory;
+
+      const newItem: InvItem = {
+        id: created?.id || Date.now(),
+        name: formName.trim(),
+        category: chosenCategory,
+        sku: created?.sku || newSku,
+        barcode: `893850123${Math.floor(1000 + Math.random() * 9000)}`,
+        variants: 'Đa kích cỡ / Tiêu chuẩn',
+        available_stock: formStock,
+        reserved_stock: 0,
+        threshold: 10,
+        status: formStock > 10 ? 'IN_STOCK' : formStock > 0 ? 'LOW_STOCK' : 'OUT_OF_STOCK',
+        status_text: formStock > 10 ? 'Còn Hàng' : 'Sắp Hết',
+        cost_price: Math.round(formRetailPrice * 0.6),
+        retail_price: formRetailPrice,
+        image_url: formImageUrl,
+      };
+
+      setInventoryList((prev) => [newItem, ...prev]);
+      setIsAddModalOpen(false);
+      showToast(`🎉 Đã thêm sản phẩm "${formName}" vào kho hàng và niêm yết trên sàn!`);
+
+      // Reset form
+      setFormName('');
+      setFormKeyFeatures('');
+      setFormDescription('');
+      setFormMaterial('');
+      setFormCare('');
+      setFormSeoTitle('');
+      setFormTags([]);
+    } catch (err: any) {
+      showToast(err.response?.data?.message || err.message || 'Không thể niêm yết sản phẩm lên hệ thống.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newItem: InvItem = {
-      id: Date.now(),
-      name: formName.trim(),
-      category: formCategory,
-      sku: newSku,
-      barcode: `893850123${Math.floor(1000 + Math.random() * 9000)}`,
-      variants: 'Đa kích cỡ / Tiêu chuẩn',
-      available_stock: formStock,
-      reserved_stock: 0,
-      threshold: 10,
-      status: formStock > 10 ? 'IN_STOCK' : formStock > 0 ? 'LOW_STOCK' : 'OUT_OF_STOCK',
-      status_text: formStock > 10 ? 'Còn Hàng' : 'Sắp Hết',
-      cost_price: Math.round(formRetailPrice * 0.6),
-      retail_price: formRetailPrice,
-      image_url: formImageUrl,
-    };
-
-    setInventoryList((prev) => [newItem, ...prev]);
-    setIsSubmitting(false);
-    setIsAddModalOpen(false);
-    showToast(`🎉 Đã thêm sản phẩm "${formName}" vào kho hàng và niêm yết trên sàn!`);
-
-    // Reset form
-    setFormName('');
-    setFormKeyFeatures('');
-    setFormDescription('');
-    setFormMaterial('');
-    setFormCare('');
-    setFormSeoTitle('');
-    setFormTags([]);
   };
 
   const filteredItems = useMemo(() => {
@@ -255,38 +282,55 @@ export default function InventoryPage() {
       {/* TIÊU ĐỀ TRANG */}
       <div className="inv-page-header">
         <div className="inv-header-titles">
-          <h1>Quản Lý Tồn Kho & Hàng Hóa</h1>
-          <p>Kiểm soát lượng tồn khả dụng, đồng bộ dữ liệu thời gian thực và cảnh báo an toàn kho bãi</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h1 style={{ margin: 0 }}>Quản Lý Tồn Kho & Hàng Hóa</h1>
+            {isAdmin && (
+              <span style={{ fontSize: '0.7rem', padding: '3px 9px', borderRadius: '6px', background: '#F1F5F9', color: '#475569', fontWeight: 600, border: '1px solid #E2E8F0' }}>
+                Chế Độ Giám Sát Sàn
+              </span>
+            )}
+          </div>
+          <p>
+            {isAdmin
+              ? 'Giám sát mức tồn kho thời gian thực trên toàn bộ 273 gian hàng đối tác Aethelgard'
+              : 'Kiểm soát lượng tồn khả dụng, đồng bộ dữ liệu thời gian thực và cảnh báo an toàn kho bãi'}
+          </p>
         </div>
 
         <div className="inv-header-actions">
-          <button
-            type="button"
-            className="btn-clean-primary"
-            style={{
-              background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-              border: 'none',
-              boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '10px 18px',
-              borderRadius: 10,
-              fontWeight: 700,
-              color: '#fff',
-            }}
-            onClick={() => setIsAddModalOpen(true)}
-          >
-            <Sparkles className="w-4 h-4 text-amber-300" />
-            + Thêm Sản Phẩm (AI Copilot)
-          </button>
-          <button
-            type="button"
-            className="btn-clean-secondary"
-            onClick={() => setRestockTarget(inventoryList[0] || null)}
-          >
-            + Nhập Hàng Bổ Sung
-          </button>
+          {/* Nút Thêm Sản Phẩm và Nhập Hàng CHỈ DÀNH CHO SELLER (Người sở hữu kho) */}
+          {isSeller && (
+            <>
+              <button
+                type="button"
+                className="btn-clean-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  border: 'none',
+                  boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 18px',
+                  borderRadius: 10,
+                  fontWeight: 700,
+                  color: '#fff',
+                }}
+                onClick={() => setIsAddModalOpen(true)}
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                + Thêm Sản Phẩm (AI Copilot)
+              </button>
+              <button
+                type="button"
+                className="btn-clean-secondary"
+                onClick={() => setRestockTarget(inventoryList[0] || null)}
+              >
+                + Nhập Hàng Bổ Sung
+              </button>
+            </>
+          )}
+
           <button
             type="button"
             className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-sm cursor-pointer"
@@ -447,12 +491,18 @@ export default function InventoryPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <button
-                      className="btn-action-small"
-                      onClick={() => setRestockTarget(item)}
-                    >
-                      Nhập Hàng
-                    </button>
+                    {isSeller ? (
+                      <button
+                        className="btn-action-small"
+                        onClick={() => setRestockTarget(item)}
+                      >
+                        Nhập Hàng
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600 }}>
+                        Giám sát
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -461,13 +511,24 @@ export default function InventoryPage() {
         </table>
       </div>
 
-      {/* HỘP THOẠI NHẬP HÀNG */}
+      {/* HỘP THOẠI NHẬP HÀNG BỔ SUNG */}
       {restockTarget && (
         <div className="inv-modal-backdrop active">
-          <div className="inv-modal-card animate-fade-in">
+          <div className="inv-modal-card animate-fade-in" style={{ maxWidth: 520 }}>
             <div className="inv-modal-header">
-              <h3>Nhập Hàng Bổ Sung</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ background: '#EFF6FF', color: '#2563EB', padding: 8, borderRadius: 10 }}>
+                  <ArrowDownToLine className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0F172A' }}>Nhập Hàng Bổ Sung Kho Sàn</h3>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748B' }}>
+                    Cập nhật số lượng khả dụng tức thì vào hệ thống kho đa kênh
+                  </p>
+                </div>
+              </div>
               <button
+                type="button"
                 className="inv-modal-close"
                 onClick={() => setRestockTarget(null)}
                 disabled={isSubmitting}
@@ -476,35 +537,7 @@ export default function InventoryPage() {
               </button>
             </div>
             <div className="inv-modal-body">
-              <p style={{ fontSize: '0.88rem', color: '#475569', marginBottom: '1.25rem' }}>
-                Ghi nhận số lượng sản phẩm nhập kho thực tế từ nhà máy/xưởng cho mã SKU:
-              </p>
-
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '12px',
-                  alignItems: 'center',
-                  background: '#F8FAFC',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  marginBottom: '1.25rem',
-                  border: '1px solid #E2E8F0',
-                }}
-              >
-                <img
-                  src={restockTarget.image_url}
-                  alt={restockTarget.name}
-                  style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
-                />
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{restockTarget.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#64748B' }}>
-                    Mã SKU: {restockTarget.sku} • Hiện tại trong kho: <strong>{restockTarget.available_stock}</strong> sp
-                  </div>
-                </div>
-              </div>
-
+              {/* Chọn mặt hàng cần nhập kho */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label
                   style={{
@@ -516,33 +549,112 @@ export default function InventoryPage() {
                     marginBottom: '6px',
                   }}
                 >
-                  Số Lượng Nhập Bổ Sung (Chiếc)
+                  Mặt Hàng Nhập Kho
                 </label>
+                <select
+                  className="inv-search-input"
+                  style={{ fontWeight: 600, fontSize: '0.88rem' }}
+                  value={restockTarget.id}
+                  onChange={(e) => {
+                    const found = inventoryList.find((it) => it.id === Number(e.target.value));
+                    if (found) setRestockTarget(found);
+                  }}
+                >
+                  {inventoryList.map((it) => (
+                    <option key={it.id} value={it.id}>
+                      {it.sku} — {it.name} (Tồn: {it.available_stock} sp)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Thông tin sản phẩm đang chọn */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  alignItems: 'center',
+                  background: '#F8FAFC',
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  marginBottom: '1.25rem',
+                  border: '1px solid #E2E8F0',
+                }}
+              >
+                <img
+                  src={restockTarget.image_url}
+                  alt={restockTarget.name}
+                  style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {restockTarget.name}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: 2 }}>
+                    Mã SKU: <strong style={{ color: '#334155' }}>{restockTarget.sku}</strong> • Hiện tại trong kho: <strong style={{ color: '#2563EB' }}>{restockTarget.available_stock}</strong> sp
+                  </div>
+                </div>
+              </div>
+
+              {/* Nhập số lượng và nút chọn nhanh */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <label
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      color: '#475569',
+                    }}
+                  >
+                    Số Lượng Nhập Thêm (Chiếc)
+                  </label>
+                  <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                    Chọn nhanh:
+                  </span>
+                </div>
+
                 <input
                   type="number"
                   min="1"
                   className="inv-search-input"
-                  style={{ width: '100%', fontSize: '1rem', fontWeight: 700, color: '#0F172A' }}
+                  style={{ width: '100%', fontSize: '1.1rem', fontWeight: 800, color: '#0F172A', padding: '10px 14px' }}
                   value={restockQty}
                   onChange={(e) => setRestockQty(Math.max(1, Number(e.target.value)))}
                 />
+
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  {[10, 25, 50, 100].map((qty) => (
+                    <button
+                      key={qty}
+                      type="button"
+                      className="btn-action-small"
+                      style={{ fontSize: '0.75rem', padding: '4px 10px', background: restockQty === qty ? '#0F172A' : '#F1F5F9', color: restockQty === qty ? '#FFF' : '#334155' }}
+                      onClick={() => setRestockQty(qty)}
+                    >
+                      +{qty} sp
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div
                 style={{
                   background: '#EEF2FF',
-                  padding: '12px',
+                  padding: '12px 14px',
                   borderRadius: '12px',
-                  fontSize: '0.8rem',
+                  fontSize: '0.82rem',
                   color: '#4338CA',
                   lineHeight: '1.5',
+                  border: '1px solid #E0E7FF',
                 }}
               >
-                Số lượng tồn sau khi nhập: <strong>{restockTarget.available_stock + restockQty}</strong> chiếc sản phẩm khả dụng trên sàn.
+                Tồn khả dụng sau khi nhập: <strong>{restockTarget.available_stock + restockQty}</strong> chiếc sản phẩm sẵn sàng mở bán trên sàn.
               </div>
             </div>
             <div className="inv-modal-footer">
               <button
+                type="button"
                 className="btn-clean-secondary"
                 onClick={() => setRestockTarget(null)}
                 disabled={isSubmitting}
@@ -550,9 +662,11 @@ export default function InventoryPage() {
                 Hủy Bỏ
               </button>
               <button
+                type="button"
                 className="btn-clean-primary"
                 onClick={handleRestockSubmit}
                 disabled={isSubmitting}
+                style={{ background: '#0F172A', minWidth: 140 }}
               >
                 {isSubmitting ? 'Đang lưu vào CSDL...' : 'Xác Nhận Nhập Kho'}
               </button>
@@ -578,6 +692,7 @@ export default function InventoryPage() {
                 </div>
               </div>
               <button
+                type="button"
                 className="inv-modal-close"
                 onClick={() => setIsAddModalOpen(false)}
                 disabled={isSubmitting}
@@ -646,19 +761,24 @@ export default function InventoryPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Ngành hàng
+                    Ngành hàng (*)
                   </label>
                   <select
                     className="inv-search-input"
                     style={{ width: '100%', fontSize: '0.88rem' }}
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
+                    value={selectedCategoryId}
+                    onChange={(e) => {
+                      const cid = Number(e.target.value);
+                      setSelectedCategoryId(cid);
+                      const found = categories.find((c) => c.id === cid);
+                      if (found) setFormCategory(found.name);
+                    }}
                   >
-                    <option value="Áo Khoác & Outerwear">Áo Khoác & Outerwear</option>
-                    <option value="Giày Sneaker Cao Cấp">Giày Sneaker Cao Cấp</option>
-                    <option value="Túi Xách Da Cao Cấp">Túi Xách Da Cao Cấp</option>
-                    <option value="Đầm Dạ Hội & Váy Sang Trọng">Đầm Dạ Hội & Váy Sang Trọng</option>
-                    <option value="Phụ Kiện & Đồng Hồ">Phụ Kiện & Đồng Hồ</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

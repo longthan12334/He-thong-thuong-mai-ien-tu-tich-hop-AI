@@ -20,6 +20,7 @@ public static class DatabaseSeeder
     public static async Task SeedAsync(ApplicationDbContext context)
     {
         await EnsureReviewsTableAsync(context);
+        await EnsureAdminColumnsAsync(context);
 
         bool hasUsers = await context.Users.AnyAsync();
         bool hasProducts = await context.Products.AnyAsync();
@@ -5237,15 +5238,117 @@ public static class DatabaseSeeder
                     "CustomerName TEXT NOT NULL, " +
                     "Rating INTEGER NOT NULL, " +
                     "Comment TEXT NOT NULL, " +
+                    "IsVerifiedPurchase INTEGER DEFAULT 1, " +
+                    "HelpfulCount INTEGER DEFAULT 0, " +
+                    "ShopReply TEXT NULL, " +
+                    "ShopReplyAt TEXT NULL, " +
                     "CreatedAt TEXT NOT NULL, " +
                     "UpdatedAt TEXT NULL, " +
                     "FOREIGN KEY (ProductId) REFERENCES Products(Id) ON DELETE CASCADE);"
                 );
+
+                var conn = context.Database.GetDbConnection();
+                var shouldClose = false;
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                    shouldClose = true;
+                }
+
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info(Reviews);";
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                var columnsToAdd = new (string ColName, string Ddl)[]
+                {
+                    ("IsVerifiedPurchase", "ALTER TABLE Reviews ADD COLUMN IsVerifiedPurchase INTEGER DEFAULT 1;"),
+                    ("HelpfulCount", "ALTER TABLE Reviews ADD COLUMN HelpfulCount INTEGER DEFAULT 0;"),
+                    ("ShopReply", "ALTER TABLE Reviews ADD COLUMN ShopReply TEXT NULL;"),
+                    ("ShopReplyAt", "ALTER TABLE Reviews ADD COLUMN ShopReplyAt TEXT NULL;")
+                };
+
+                foreach (var (colName, ddl) in columnsToAdd)
+                {
+                    if (!existingColumns.Contains(colName))
+                    {
+                        using var cmd = conn.CreateCommand();
+                        cmd.CommandText = ddl;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                if (shouldClose)
+                {
+                    await conn.CloseAsync();
+                }
             }
         }
         catch
         {
             // Bỏ qua nếu bảng đã tồn tại hoặc CSDL khác
+        }
+    }
+
+    public static async Task EnsureAdminColumnsAsync(ApplicationDbContext context)
+    {
+        try
+        {
+            if (context.Database.IsSqlite())
+            {
+                var conn = context.Database.GetDbConnection();
+                var shouldClose = false;
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                    shouldClose = true;
+                }
+
+                var existingColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info(Users);";
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                var columnsToAdd = new (string ColName, string Ddl)[]
+                {
+                    ("SellerStatus", "ALTER TABLE Users ADD COLUMN SellerStatus TEXT DEFAULT 'Active';"),
+                    ("IsMallVerified", "ALTER TABLE Users ADD COLUMN IsMallVerified INTEGER DEFAULT 1;"),
+                    ("SuspendedReason", "ALTER TABLE Users ADD COLUMN SuspendedReason TEXT NULL;"),
+                    ("KycNotes", "ALTER TABLE Users ADD COLUMN KycNotes TEXT NULL;"),
+                    ("CommissionRate", "ALTER TABLE Users ADD COLUMN CommissionRate REAL DEFAULT 3.5;")
+                };
+
+                foreach (var (colName, ddl) in columnsToAdd)
+                {
+                    if (!existingColumns.Contains(colName))
+                    {
+                        using var cmd = conn.CreateCommand();
+                        cmd.CommandText = ddl;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                if (shouldClose)
+                {
+                    await conn.CloseAsync();
+                }
+            }
+        }
+        catch
+        {
+            // Bỏ qua nếu có lỗi
         }
     }
 

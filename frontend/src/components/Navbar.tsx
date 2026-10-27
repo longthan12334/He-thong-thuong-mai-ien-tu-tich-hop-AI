@@ -52,12 +52,12 @@ export default function Navbar() {
 
         {/* Menu Điều hướng */}
         <nav className="nav-links flex items-center gap-1 md:gap-3">
-          {/* Seller/Admin: "/" là gian trưng bày / quản trị sàn. Khách hàng: vào khu mua sắm /shop */}
+          {/* Seller: "/" là gian trưng bày. Admin: "/admin" là trung tâm quản trị. Khách hàng: "/shop" */}
           <Link
-            href={isManagement ? '/' : '/shop'}
+            href={isAdmin ? '/admin' : isSeller ? '/' : '/shop'}
             className={`nav-link px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-              (isManagement ? pathname === '/' : pathname === '/shop')
-                ? 'bg-purple-50 text-purple-700'
+              (isAdmin ? pathname.startsWith('/admin') : isSeller ? pathname === '/' : pathname === '/shop')
+                ? 'bg-purple-50 text-purple-700 font-bold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
@@ -180,11 +180,17 @@ export default function Navbar() {
                 title={`Đang đăng nhập: ${displayName} (${user.role})`}
                 className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-full text-xs font-bold text-slate-800"
               >
-                <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">
+                <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold">
                   {initial}
                 </div>
                 <span className="max-w-[120px] truncate">{displayName}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-semibold">
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+                    isAdmin
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-purple-100 text-purple-700'
+                  }`}
+                >
                   {user.role}
                 </span>
               </div>
