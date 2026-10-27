@@ -9,10 +9,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface SellerProductCardProps {
   product: Product;
   onClick: (product: Product) => void;
+  isSeller?: boolean;
 }
 
-const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product, onClick }) => {
-  // Trích xuất thương hiệu và tên tác phẩm
+const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({
+  product,
+  onClick,
+  isSeller = true,
+}) => {
   const parseProductName = (rawName: string) => {
     if (rawName && rawName.includes(' - ')) {
       const idx = rawName.indexOf(' - ');
@@ -49,26 +53,19 @@ const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product,
 
   return (
     <div
-      className="luxury-editorial-card group cursor-pointer flex flex-col transition-all duration-300 transform hover:-translate-y-1.5 hover:shadow-xl rounded-xl"
+      className="luxury-product-card group relative flex flex-col cursor-pointer transition-all duration-300"
       onClick={() => onClick(product)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          onClick(product);
-        }
-      }}
     >
-      {/* 1. KHUNG ẢNH NGHỆ THUẬT XA XỈ (BORDERLESS, STUDIO CANVAS NHƯ GUCCI.COM) */}
-      <div className="luxury-canvas-box relative w-full aspect-[4/5] bg-[#F9F9F9] rounded-sm overflow-hidden flex items-center justify-center p-6 transition-colors duration-300 group-hover:bg-[#F4F4F4]">
-        {/* Tag giảm giá hoặc bộ sưu tập tối giản */}
-        {product.discountPercent && product.discountPercent > 0 ? (
-          <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-wider text-slate-900 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded shadow-sm z-10">
+      {/* 1. KHUNG ẢNH NỀN TRẮNG CHUẨN XA XỈ HAUTE COUTURE */}
+      <div className="relative w-full aspect-[3/4] bg-[#F7F7F7] rounded-none overflow-hidden flex items-center justify-center p-6 transition-all duration-300 group-hover:bg-[#F2F2F2]">
+        {/* Nhãn Giảm Giá Tinh Tế (Góc Trái) */}
+        {(product.discountPercent ?? 0) > 0 ? (
+          <span className="absolute top-3 left-3 px-2 py-0.5 text-[10px] font-bold tracking-widest uppercase bg-slate-900 text-white z-10">
             -{product.discountPercent}%
           </span>
         ) : null}
 
-        {/* Nút lật ảnh trước (<) phong cách Gucci (Image 3) */}
+        {/* Nút lật ảnh trước (<) phong cách Gucci */}
         {images.length > 1 && (
           <button
             type="button"
@@ -94,7 +91,7 @@ const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product,
           />
         </div>
 
-        {/* Nút lật ảnh sau (>) phong cách Gucci (Image 3) */}
+        {/* Nút lật ảnh sau (>) phong cách Gucci */}
         {images.length > 1 && (
           <button
             type="button"
@@ -106,7 +103,7 @@ const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product,
           </button>
         )}
 
-        {/* Thanh chỉ báo tiến độ dạng vạch ngang sát đáy ảnh (Image 3) */}
+        {/* Thanh chỉ báo tiến độ dạng vạch ngang sát đáy ảnh */}
         {images.length > 1 && (
           <div className="absolute bottom-2.5 left-6 right-6 flex gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             {images.map((_, idx) => (
@@ -119,8 +116,6 @@ const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product,
             ))}
           </div>
         )}
-
-
       </div>
 
       {/* 2. THÔNG TIN SẢN PHẨM PHONG CÁCH TỐI GIẢN (CANH TRÁI, THANH LỊCH) */}
@@ -140,15 +135,21 @@ const SellerProductCardComponent: React.FC<SellerProductCardProps> = ({ product,
         </h3>
 
         {/* Giá niêm yết chính hãng */}
-        <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="text-sm font-bold text-slate-900 tracking-tight">
-            {formatVND(product.basePrice)}
-          </span>
-          {product.originalPrice && product.originalPrice > product.basePrice ? (
-            <span className="text-xs text-slate-400 line-through">
-              {formatVND(product.originalPrice)}
+        <div className="flex items-baseline justify-between gap-2 mt-0.5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-bold text-slate-900 tracking-tight">
+              {formatVND(product.basePrice)}
             </span>
-          ) : null}
+            {product.originalPrice && product.originalPrice > product.basePrice ? (
+              <span className="text-xs text-slate-400 line-through">
+                {formatVND(product.originalPrice)}
+              </span>
+            ) : null}
+          </div>
+
+          <span className={`text-[11px] font-semibold text-slate-400 group-hover:text-sky-600 transition-colors`}>
+            {isSeller ? 'Quản lý kho →' : 'Xem chi tiết →'}
+          </span>
         </div>
       </div>
     </div>

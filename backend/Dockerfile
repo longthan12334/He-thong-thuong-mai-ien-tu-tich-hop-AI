@@ -1,36 +1,35 @@
 # ========================================================
-# Stage 1: Build & Publish .NET 10 Web API
+# Backend Web API (.NET 10 - Self-Contained Linux x64)
 # ========================================================
-ARG DOTNET_VERSION=10.0-preview
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
-WORKDIR /src
-
-# Sao chép các file định nghĩa dự án .csproj để tối ưu cache tầng restore
-COPY ["src/Ecommerce.Common/Ecommerce.Common.csproj", "src/Ecommerce.Common/"]
-COPY ["src/Ecommerce.DAL/Ecommerce.DAL.csproj", "src/Ecommerce.DAL/"]
-COPY ["src/Ecommerce.BLL/Ecommerce.BLL.csproj", "src/Ecommerce.BLL/"]
-COPY ["src/Ecommerce.API/Ecommerce.API.csproj", "src/Ecommerce.API/"]
-
-RUN dotnet restore "src/Ecommerce.API/Ecommerce.API.csproj"
-
-# Sao chép toàn bộ mã nguồn và đóng gói Release bundle
-COPY . .
-WORKDIR "/src/src/Ecommerce.API"
-RUN dotnet publish "Ecommerce.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-# ========================================================
-# Stage 2: Runtime Image tinh gọn
-# ========================================================
-FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION} AS final
+FROM ubuntu:24.04 AS final
 WORKDIR /app
+
+# Cài đặt thư viện hệ thống cần thiết cho .NET Core và curl cho healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libc6 \
+    libgcc-s1 \
+    libicu74 \
+    libssl3 \
+    libstdc++6 \
+    zlib1g \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 5000
 ENV ASPNETCORE_URLS=http://+:5000
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
 
-COPY --from=build /app/publish .
+# Sao chép các tệp đã build self-contained
+COPY publish_linux/ /app/
 
-# Tạo thư mục dữ liệu cho CSDL SQLite
+# Đảm bảo quyền thực thi cho binary
+RUN chmod +x /app/Ecommerce.API
+
+# Tạo thư mục dữ liệu và nạp sẵn CSDL SQLite 27.1MB (273 Seller & 1.600+ Reviews)
 RUN mkdir -p /app/data
+COPY src/Ecommerce.API/fashion_mall.db /app/data/fashion_mall.db
+COPY src/Ecommerce.API/fashion_mall.db /app/fashion_mall.db
 
-ENTRYPOINT ["dotnet", "Ecommerce.API.dll"]
+ENTRYPOINT ["./Ecommerce.API"]

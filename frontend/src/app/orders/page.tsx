@@ -1,8 +1,10 @@
 'use client';
 import '@/styles/orders.css';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { orderService } from '@/services/order.service';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Order } from '@/types';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
@@ -18,9 +20,14 @@ import { RefreshCw, FileSpreadsheet, Printer } from 'lucide-react';
 import { signalRService } from '@/services/signalr.service';
 import { exportToCsv, formatDate } from '@/lib/utils';
 
-export default function OrdersPage() {
+function OrdersPageContent() {
   const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop/my-orders');
+  const { user } = useAuth();
   const { showToast } = useToast();
+  const searchParams = useSearchParams();
+  const codeParam = searchParams.get('code') || '';
+
+  const isAdmin = user?.role === 'Admin' || (user?.role as any) === 1 || String(user?.role).toLowerCase() === 'admin';
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,13 +50,33 @@ export default function OrdersPage() {
     try {
       setLoading(true);
       const data = await orderService.getOrders();
-      setOrders(data || []);
+      if (Array.isArray(data)) {
+        setOrders(data);
+
+        // Nếu có mã đơn trên URL, tự động tìm và mở Drawer chi tiết đơn đó
+        if (codeParam) {
+          const matched = data.find(
+            (o) => o.orderCode?.toLowerCase() === codeParam.toLowerCase() || String(o.id) === codeParam
+          );
+          if (matched) {
+            setSelectedOrder(matched);
+            setIsDrawerOpen(true);
+            setActiveTab('ALL');
+            setSearchTerm(codeParam);
+          } else {
+            setSearchTerm('');
+            showToast(`Đơn hàng #${codeParam} không thuộc quyền quản lý của gian hàng bạn.`);
+          }
+        }
+      } else {
+        setOrders([]);
+      }
     } catch {
       setOrders([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [codeParam, showToast]);
 
   useEffect(() => {
     if (!isAuthorized) return;
@@ -182,10 +209,10 @@ export default function OrdersPage() {
   const counts = useMemo(() => {
     return {
       all: orders.length,
-      pending: orders.filter((o) => o.status === 'PENDING').length,
-      confirmed: orders.filter((o) => o.status === 'CONFIRMED' || o.status === 'PROCESSING').length,
-      shipped: orders.filter((o) => o.status === 'SHIPPED').length,
-      delivered: orders.filter((o) => o.status === 'DELIVERED').length,
+      pending: orders.filter((o) => o.status?.toUpperCase() === 'PENDING').length,
+      confirmed: orders.filter((o) => o.status?.toUpperCase() === 'CONFIRMED' || o.status?.toUpperCase() === 'PROCESSING').length,
+      shipped: orders.filter((o) => o.status?.toUpperCase() === 'SHIPPED').length,
+      delivered: orders.filter((o) => o.status?.toUpperCase() === 'DELIVERED').length,
     };
   }, [orders]);
 
@@ -205,8 +232,31 @@ export default function OrdersPage() {
       {/* 1. Header Toolbar */}
       <div className="orders-page-header">
         <div className="orders-header-titles">
-          <h1>Quản Lý Đơn Hàng & Vận Chuyển</h1>
-          <p>Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và in phiếu giao hàng A5</p>
+          <h1>
+            Quản Lý Đơn Hàng & Vận Chuyển
+            {isAdmin && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 650,
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  background: '#0F172A',
+                  color: '#F8FAFC',
+                  marginLeft: '12px',
+                  verticalAlign: 'middle',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Chế Độ Giám Sát Sàn
+              </span>
+            )}
+          </h1>
+          <p>
+            {isAdmin
+              ? 'Giám sát luồng xử lý đơn đặt hàng và hành trình giao nhận bưu kiện trên toàn bộ 273 gian hàng đối tác Aethelgard'
+              : 'Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và in phiếu giao hàng A5'}
+          </p>
         </div>
 
         <div className="orders-header-actions">
@@ -250,6 +300,48 @@ export default function OrdersPage() {
         onFilterChange={setActiveTab}
       />
 
+      {/* Banner thông báo khi mã đơn trên URL không thuộc gian hàng này */}
+      {codeParam && !loading && !orders.some((o) => o.orderCode?.toLowerCase() === codeParam.toLowerCase() || String(o.id) === codeParam) && (
+        <div
+          style={{
+            background: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            padding: '12px 18px',
+            borderRadius: '12px',
+            marginBottom: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.86rem',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+          }}
+        >
+          <span>
+            ⚠️ Đơn hàng <strong>#{codeParam}</strong> không chứa sản phẩm thuộc gian hàng của bạn hoặc không tồn tại. Đang hiển thị danh sách đơn hàng thực tế của bạn bên dưới.
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setSearchTerm('');
+              window.history.replaceState({}, '', '/orders');
+            }}
+            style={{
+              background: '#fef3c7',
+              border: '1px solid #f59e0b',
+              color: '#78350f',
+              padding: '5px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+            }}
+          >
+            Đóng thông báo
+          </button>
+        </div>
+      )}
+
       {/* 3. Thanh bộ lọc (Kèm Date Picker Item 10) */}
       <OrderFilterBar
         currentFilter={activeTab}
@@ -265,11 +357,12 @@ export default function OrdersPage() {
       <OrderTable
         orders={filteredOrders}
         isLoading={loading}
+        isAdmin={isAdmin}
         onSelectOrder={handleOpenDrawer}
-        onConfirmOrder={(o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
-        onShipOrder={(o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
-        onDeliverOrder={(o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
-        onCancelOrder={handleRequestCancel}
+        onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
+        onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
+        onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
+        onCancelOrder={isAdmin ? undefined : handleRequestCancel}
         onPrintPackingSlip={handleOpenPackingSlip}
       />
 
@@ -277,12 +370,13 @@ export default function OrdersPage() {
       <OrderTrackingDrawer
         isOpen={isDrawerOpen}
         order={selectedOrder}
+        isAdmin={isAdmin}
         onClose={handleCloseDrawer}
         onShowToast={showToast}
-        onConfirmOrder={(o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
-        onShipOrder={(o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
-        onDeliverOrder={(o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
-        onCancelOrder={handleRequestCancel}
+        onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
+        onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
+        onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
+        onCancelOrder={isAdmin ? undefined : handleRequestCancel}
       />
 
       {/* 6. Modal In Phiếu Giao Hàng & Đóng Gói A5 (Item 11) */}
@@ -300,5 +394,20 @@ export default function OrdersPage() {
         onConfirmCancel={handleConfirmCancelWithReason}
       />
     </main>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 text-white text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mb-2"></div>
+          <p className="text-sm text-slate-400">Đang tải trung tâm đơn hàng...</p>
+        </div>
+      }
+    >
+      <OrdersPageContent />
+    </Suspense>
   );
 }

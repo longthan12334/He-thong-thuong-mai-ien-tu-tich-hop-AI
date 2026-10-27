@@ -9,6 +9,7 @@ import { OrderTableRowSkeleton } from '@/components/ui/Skeleton';
 interface OrderTableProps {
   orders: Order[];
   isLoading?: boolean;
+  isAdmin?: boolean;
   onSelectOrder: (order: Order) => void;
   onConfirmOrder?: (order: Order) => void;
   onShipOrder?: (order: Order) => void;
@@ -20,7 +21,9 @@ interface OrderTableProps {
 const OrderTableComponent: React.FC<OrderTableProps> = ({
   orders,
   isLoading = false,
+  isAdmin = false,
   onSelectOrder,
+  onConfirmOrder,
   onCancelOrder,
   onPrintPackingSlip,
 }) => {
@@ -122,31 +125,51 @@ const OrderTableComponent: React.FC<OrderTableProps> = ({
                     </div>
                   </td>
                   <td>
-                    <span className={`badge-order-status ${o.status}`}>{o.statusLabel}</span>
+                    <span className={`badge-order-status ${o.status?.toUpperCase()}`}>
+                      {o.statusLabel}
+                    </span>
                   </td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {onPrintPackingSlip && (
-                        <button
-                          type="button"
-                          className="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 hover:border-sky-300 text-slate-600 hover:text-sky-700 transition-all cursor-pointer"
-                          title="In phiếu đóng gói A5"
-                          onClick={() => onPrintPackingSlip(o)}
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                        </button>
+                      {isAdmin ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[0.72rem] font-bold text-slate-500 bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                          Chi tiết ›
+                        </span>
+                      ) : (
+                        <>
+                          {o.status?.toUpperCase() === 'PENDING' && onConfirmOrder && (
+                            <button
+                              type="button"
+                              onClick={() => onConfirmOrder(o)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                              title="Xác nhận đơn hàng ngay"
+                            >
+                              Xác Nhận
+                            </button>
+                          )}
+                          {onPrintPackingSlip && (
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 hover:border-sky-300 text-slate-600 hover:text-sky-700 transition-all cursor-pointer"
+                              title="In phiếu đóng gói A5"
+                              onClick={() => onPrintPackingSlip(o)}
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onCancelOrder && o.status?.toUpperCase() === 'PENDING' && (
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 transition-all cursor-pointer"
+                              title="Hủy đơn hàng"
+                              onClick={() => onCancelOrder(o)}
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <span className="text-slate-400 text-lg font-bold ml-1">›</span>
+                        </>
                       )}
-                      {onCancelOrder && o.status === 'PENDING' && (
-                        <button
-                          type="button"
-                          className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 transition-all cursor-pointer"
-                          title="Hủy đơn hàng"
-                          onClick={() => onCancelOrder(o)}
-                        >
-                          <Ban className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <span className="text-slate-400 text-lg font-bold ml-1">›</span>
                     </div>
                   </td>
                 </tr>
