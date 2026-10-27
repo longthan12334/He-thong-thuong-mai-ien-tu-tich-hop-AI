@@ -101,4 +101,25 @@ public class ProductsController : ControllerBase
         var review = await _productService.AddProductReviewAsync(id, request, userId);
         return CreatedAtAction(nameof(GetReviews), new { id }, review);
     }
+
+    [HttpPost("{id:int}/reviews/{reviewId:int}/helpful")]
+    public async Task<ActionResult<object>> VoteHelpful(int id, int reviewId)
+    {
+        var count = await _productService.ToggleReviewHelpfulAsync(id, reviewId);
+        return Ok(new { helpfulCount = count });
+    }
+
+    [Authorize(Roles = "Seller,Admin")]
+    [HttpPost("{id:int}/reviews/{reviewId:int}/reply")]
+    public async Task<ActionResult<ReviewDto>> ReplyReview(int id, int reviewId, [FromBody] ReplyReviewDto request)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value 
+            ?? User.FindFirst("role")?.Value;
+
+        var review = await _productService.ReplyToReviewAsync(id, reviewId, request.Reply, userId, roleClaim);
+        return Ok(review);
+    }
 }

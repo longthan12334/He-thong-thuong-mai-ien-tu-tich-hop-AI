@@ -7,6 +7,7 @@ import { formatVND } from '@/lib/utils';
 interface OrderTrackingDrawerProps {
   isOpen: boolean;
   order: Order | null;
+  isAdmin?: boolean;
   onClose: () => void;
   onLookup?: (id: string) => void;
   onShowToast?: (message: string) => void;
@@ -19,6 +20,7 @@ interface OrderTrackingDrawerProps {
 export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
   isOpen,
   order,
+  isAdmin = false,
   onClose,
   onLookup,
   onShowToast,
@@ -287,57 +289,75 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
               </div>
 
               {/* Thanh nút thao tác */}
-              <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end">
-                {order.status?.toUpperCase() === 'PENDING' && onConfirmOrder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onConfirmOrder(order);
-                      onClose();
-                    }}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
-                  >
-                    Xác Nhận Đơn Hàng
-                  </button>
-                )}
+              <div className="pt-4 border-t border-slate-200 flex flex-wrap gap-2 justify-end items-center">
+                {isAdmin ? (
+                  <div className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 text-xs font-semibold">
+                    <span className="flex items-center gap-1.5 text-slate-700">
+                      <span className="w-2 h-2 rounded-full bg-slate-500"></span>
+                      Chế độ Giám sát: Quyền xác nhận & xử lý đơn hàng thuộc về chủ gian hàng.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-sm cursor-pointer"
+                    >
+                      In Phiếu Đơn
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {order.status?.toUpperCase() === 'PENDING' && onConfirmOrder && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onConfirmOrder(order);
+                          onClose();
+                        }}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                      >
+                        Xác Nhận Đơn Hàng
+                      </button>
+                    )}
 
-                {(order.status?.toUpperCase() === 'CONFIRMED' || order.status?.toUpperCase() === 'PROCESSING') && onShipOrder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onShipOrder(order);
-                      onClose();
-                    }}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
-                  >
-                    Giao Vận Chuyển FedEx
-                  </button>
-                )}
+                    {(order.status?.toUpperCase() === 'CONFIRMED' || order.status?.toUpperCase() === 'PROCESSING') && onShipOrder && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onShipOrder(order);
+                          onClose();
+                        }}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                      >
+                        Giao Vận Chuyển FedEx
+                      </button>
+                    )}
 
-                {order.status?.toUpperCase() === 'SHIPPED' && onDeliverOrder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDeliverOrder(order);
-                      onClose();
-                    }}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
-                  >
-                    Xác Nhận Đã Giao
-                  </button>
-                )}
+                    {order.status?.toUpperCase() === 'SHIPPED' && onDeliverOrder && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onDeliverOrder(order);
+                          onClose();
+                        }}
+                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                      >
+                        Xác Nhận Đã Giao
+                      </button>
+                    )}
 
-                {order.status?.toUpperCase() !== 'DELIVERED' && order.status?.toUpperCase() !== 'CANCELLED' && onCancelOrder && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onCancelOrder(order);
-                      onClose();
-                    }}
-                    className="px-4 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all cursor-pointer"
-                  >
-                    Hủy Đơn Hàng
-                  </button>
+                    {order.status?.toUpperCase() !== 'DELIVERED' && order.status?.toUpperCase() !== 'CANCELLED' && onCancelOrder && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onCancelOrder(order);
+                          onClose();
+                        }}
+                        className="px-4 py-2 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        Hủy Đơn Hàng
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             </div>
