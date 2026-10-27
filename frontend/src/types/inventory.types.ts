@@ -10,6 +10,9 @@ export interface InventoryItem {
   stockQuantity: number;
   stockStatus: string;
   safetyThreshold: number;
+  costPrice?: number;
+  reservedStock?: number;
+  isActive?: boolean;
 }
 
 export interface InventorySummary {

@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Category } from '@/types';
+import { SlidersHorizontal, X, RotateCcw, Search } from 'lucide-react';
 
 interface ProductFiltersProps {
   categories: Category[];
   totalProductsCount: number;
+  filteredCount?: number;
   categoryFilter: string;
   onCategoryChange: (val: string) => void;
   quickFilterType: string;
@@ -17,6 +19,8 @@ interface ProductFiltersProps {
   sortOrder: string;
   onSortOrderChange: (val: string) => void;
   onReset: () => void;
+  searchTerm?: string;
+  onSearchTermChange?: (val: string) => void;
 }
 
 const PRICE_PRESETS = [
@@ -26,9 +30,22 @@ const PRICE_PRESETS = [
   { label: 'Trên 50 triệu', min: '50000000', max: '' },
 ];
 
+/** Rút gọn tên danh mục để hiển thị ngắn gọn, thanh lịch */
+function simplifyCategoryName(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('giày') || lower.includes('sneaker')) return 'GIÀY DÉP';
+  if (lower.includes('trang phục') || lower.includes('quần') || lower.includes('áo')) return 'TRANG PHỤC';
+  if (lower.includes('túi') || lower.includes('balo')) return 'TÚI XÁCH';
+  if (lower.includes('kính')) return 'KÍNH MẮT';
+  if (lower.includes('phụ kiện') || lower.includes('đồ da')) return 'PHỤ KIỆN';
+  if (lower.includes('trang sức') || lower.includes('đồng hồ')) return 'TRANG SỨC';
+  return name.toUpperCase();
+}
+
 export const ProductFilters: React.FC<ProductFiltersProps> = ({
   categories,
   totalProductsCount,
+  filteredCount,
   categoryFilter,
   onCategoryChange,
   quickFilterType,
@@ -40,162 +57,269 @@ export const ProductFilters: React.FC<ProductFiltersProps> = ({
   sortOrder,
   onSortOrderChange,
   onReset,
+  searchTerm,
+  onSearchTermChange,
 }) => {
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+
+  const getSortName = (order: string) => {
+    switch (order) {
+      case 'price_asc':
+        return 'Giá: Thấp → Cao';
+      case 'price_desc':
+        return 'Giá: Cao → Thấp';
+      case 'rating':
+        return 'Đánh giá cao nhất';
+      case 'newest':
+      default:
+        return 'Khuyên dùng';
+    }
+  };
+
+  const hasActiveFilters = Boolean(
+    categoryFilter || quickFilterType || minPrice || maxPrice || sortOrder !== 'newest' || searchTerm
+  );
+
   return (
-    <aside className="sidebar-filters">
-      <div className="sidebar-header">
-        <h3>Danh Mục Ngành Hàng</h3>
-      </div>
+    <div className="w-full mb-6">
+      {/* 1. THANH DANH MỤC CHÍNH CHỮ ĐEN KHÔNG NỀN — STICKY DƯỚI HEADER Ở GÓC TRÊN CÙNG BÊN TRÁI */}
+      <div className="sticky top-16 z-30 w-full bg-white/75 backdrop-blur-md py-2.5 -mx-4 px-4 sm:-mx-8 sm:px-8 transition-all border-b border-black/5">
+        <div className="flex items-center justify-between gap-4">
+          {/* Chỉ hiển thị các danh mục chính cốt lõi */}
+          <div className="flex items-center justify-start gap-6 sm:gap-8 overflow-x-auto no-scrollbar whitespace-nowrap min-w-0 pr-2">
+            {/* Nút Tất Cả */}
+            <button
+              type="button"
+              onClick={() => {
+                onCategoryChange('');
+                onQuickFilterChange('');
+              }}
+              className={`text-[11px] tracking-[0.14em] uppercase transition-all pb-0.5 cursor-pointer shrink-0 ${
+                categoryFilter === '' && quickFilterType === ''
+                  ? 'font-extrabold text-black border-b-2 border-black'
+                  : 'font-semibold text-neutral-500 hover:text-black'
+              }`}
+            >
+              TẤT CẢ ({totalProductsCount})
+            </button>
 
-      {/* Menu danh mục Haute Couture đồng bộ dữ liệu thật */}
-      <ul className="category-subnav">
-        <li
-          className={`subnav-item ${categoryFilter === '' ? 'active' : ''}`}
-          onClick={() => onCategoryChange('')}
-          style={{ cursor: 'pointer' }}
-        >
-          <span>Tất Cả Sản Phẩm</span>
-          <span className="count-tag">{totalProductsCount}</span>
-        </li>
-        {categories.map((c) => (
-          <li
-            key={c.id}
-            className={`subnav-item ${categoryFilter === String(c.id) ? 'active' : ''}`}
-            onClick={() => onCategoryChange(String(c.id))}
-            style={{ cursor: 'pointer' }}
-          >
-            <span>{c.name}</span>
-            <span className="count-tag">{c.productCount ?? 0}</span>
-          </li>
-        ))}
-      </ul>
+            {/* Chỉ các danh mục chính */}
+            {categories.slice(0, 6).map((cat) => {
+              const isCatActive = categoryFilter === String(cat.id);
+              const displayName = simplifyCategoryName(cat.name);
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    onCategoryChange(isCatActive ? '' : String(cat.id));
+                    onQuickFilterChange('');
+                  }}
+                  className={`text-[11px] tracking-[0.14em] uppercase transition-all pb-0.5 cursor-pointer shrink-0 ${
+                    isCatActive
+                      ? 'font-extrabold text-black border-b-2 border-black'
+                      : 'font-semibold text-neutral-500 hover:text-black'
+                  }`}
+                >
+                  {displayName}
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="filter-divider" />
+          {/* Ô tìm kiếm tức thời tối giản & Nút Bộ lọc gọn gàng ở góc phải */}
+          <div className="shrink-0 flex items-center gap-2">
+            {onSearchTermChange && (
+              <div className="relative flex items-center">
+                <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-2.5 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchTerm || ''}
+                  onChange={(e) => onSearchTermChange(e.target.value)}
+                  placeholder="Tìm kiếm sản phẩm..."
+                  className="h-8 pl-8 pr-6 text-xs rounded-full border border-neutral-200 bg-neutral-50/80 focus:bg-white focus:outline-none focus:border-black w-32 sm:w-44 focus:w-48 sm:focus:w-64 transition-all duration-300 ease-in-out shadow-2xs"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => onSearchTermChange('')}
+                    className="absolute right-2 text-neutral-400 hover:text-black cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
 
-      {/* Lọc tiêu chí nhanh */}
-      <div className="sidebar-header" style={{ marginBottom: '8px' }}>
-        <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Tiêu Chí Tuyển Chọn
-        </h4>
-      </div>
-      <div className="quick-nav-links">
-        <button
-          type="button"
-          className={`quick-link text-left bg-transparent border-0 cursor-pointer ${
-            quickFilterType === 'newest' ? 'font-bold' : ''
-          }`}
-          onClick={() => {
-            onQuickFilterChange('newest');
-            onSortOrderChange('newest');
-          }}
-        >
-          ✦ Hàng Mới Về
-        </button>
-        <button
-          type="button"
-          className={`quick-link text-left bg-transparent border-0 cursor-pointer ${
-            quickFilterType === 'bestseller' ? 'font-bold' : ''
-          }`}
-          onClick={() => onQuickFilterChange('bestseller')}
-        >
-          ★ Kiệt Tác Bán Chạy
-        </button>
-        <button
-          type="button"
-          className={`quick-link text-left bg-transparent border-0 cursor-pointer ${
-            quickFilterType === 'discount' ? 'font-bold' : ''
-          }`}
-          onClick={() => onQuickFilterChange('discount')}
-        >
-          🏷 Ưu Đãi Đặc Biệt
-        </button>
-      </div>
+            <button
+              type="button"
+              onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-wider uppercase transition-all cursor-pointer border ${
+                isFilterDrawerOpen || hasActiveFilters
+                  ? 'bg-black text-white border-black shadow-sm'
+                  : 'bg-transparent text-neutral-800 border-neutral-300 hover:border-black hover:text-black'
+              }`}
+            >
+              <SlidersHorizontal className="w-3 h-3" />
+              <span className="hidden sm:inline">Bộ lọc</span>
+              {hasActiveFilters && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              )}
+            </button>
+          </div>
+        </div>
 
-      <div className="filter-divider" />
-
-      {/* Lọc theo phân khúc giá hàng hiệu */}
-      <div className="filter-group">
-        <label className="filter-label">Phân Khúc Giá (VNĐ)</label>
-        
-        {/* Nút chọn nhanh khoảng giá */}
-        <div className="grid grid-cols-2 gap-1.5 mb-2.5">
-          {PRICE_PRESETS.map((p) => {
-            const isActive = minPrice === p.min && maxPrice === p.max;
-            return (
+        {/* Dòng trạng thái số lượng sản phẩm & sắp xếp */}
+        <div className="flex items-center justify-between pt-1.5 text-[10.5px] text-neutral-500">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-neutral-800">
+              {filteredCount !== undefined ? filteredCount : totalProductsCount} sản phẩm
+            </span>
+            <span>•</span>
+            <span>sắp xếp: <strong className="text-black font-semibold">{getSortName(sortOrder)}</strong></span>
+            {hasActiveFilters && (
               <button
-                key={p.label}
                 type="button"
-                onClick={() => {
-                  if (isActive) {
-                    onMinPriceChange('');
-                    onMaxPriceChange('');
-                  } else {
-                    onMinPriceChange(p.min);
-                    onMaxPriceChange(p.max);
-                  }
-                }}
-                className={`text-[11px] py-1.5 px-2 rounded-lg border font-medium text-center transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-slate-900 border-slate-900 text-white font-bold'
-                    : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
-                }`}
+                onClick={onReset}
+                className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 hover:text-rose-800 transition-colors cursor-pointer"
               >
-                {p.label}
+                <RotateCcw className="w-2.5 h-2.5" />
+                <span>Đặt lại</span>
               </button>
-            );
-          })}
-        </div>
-
-        {/* Ô nhập tùy chỉnh */}
-        <div className="price-inputs">
-          <input
-            type="number"
-            id="min-price"
-            placeholder="Từ giá"
-            min="0"
-            className="form-control"
-            value={minPrice}
-            onChange={(e) => onMinPriceChange(e.target.value)}
-          />
-          <span>-</span>
-          <input
-            type="number"
-            id="max-price"
-            placeholder="Đến giá"
-            min="0"
-            className="form-control"
-            value={maxPrice}
-            onChange={(e) => onMaxPriceChange(e.target.value)}
-          />
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Sắp xếp */}
-      <div className="filter-group">
-        <label htmlFor="sort-select" className="filter-label">
-          Sắp Xếp Showroom
-        </label>
-        <select
-          id="sort-select"
-          className="form-control font-medium"
-          value={sortOrder}
-          onChange={(e) => onSortOrderChange(e.target.value)}
-        >
-          <option value="newest">Showroom tuyển chọn (Xen kẽ)</option>
-          <option value="price_asc">Giá: Thấp đến Cao</option>
-          <option value="price_desc">Giá: Cao đến Thấp</option>
-          <option value="bestseller">Được yêu thích nhất</option>
-        </select>
-      </div>
-
-      <button
-        id="reset-filters-btn"
-        className="btn-secondary btn-full cursor-pointer hover:bg-slate-100 transition-colors"
-        onClick={onReset}
-        type="button"
+      {/* 2. DRAWER BỘ LỌC CHI TIẾT DẠNG ACCORDION MƯỢT MÀ (Item 6) */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out overflow-hidden ${
+          isFilterDrawerOpen
+            ? 'grid-rows-[1fr] opacity-100 mt-3'
+            : 'grid-rows-[0fr] opacity-0 mt-0 pointer-events-none'
+        }`}
       >
-        Đặt Lại Bộ Lọc
-      </button>
-    </aside>
+        <div className="min-h-0">
+          <div className="relative p-4 sm:p-5 rounded-2xl bg-neutral-50/90 border border-neutral-200/80 shadow-xs">
+            <div className="flex items-center justify-between pb-3 border-b border-neutral-200/60 mb-4">
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-black" />
+              <h4 className="text-xs font-bold tracking-wider uppercase text-black">
+                Bộ Lọc & Sắp Xếp Nâng Cao
+              </h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFilterDrawerOpen(false)}
+              className="text-neutral-400 hover:text-black transition-colors cursor-pointer p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Cột 1: Sắp xếp */}
+            <div>
+              <span className="block text-[11px] font-bold tracking-wider uppercase text-neutral-400 mb-2">
+                Thứ Tự Hiển Thị
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {[
+                  { id: 'newest', label: 'Khuyên Dùng' },
+                  { id: 'rating', label: 'Đánh Giá Cao' },
+                  { id: 'price_asc', label: 'Giá Tăng Dần' },
+                  { id: 'price_desc', label: 'Giá Giảm Dần' },
+                ].map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => onSortOrderChange(s.id)}
+                    className={`py-2 px-2.5 text-xs rounded-xl font-medium transition-all text-left border ${
+                      sortOrder === s.id
+                        ? 'bg-black text-white border-black font-semibold'
+                        : 'bg-white text-neutral-700 border-neutral-200 hover:border-black'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cột 2: Mức giá định sẵn */}
+            <div>
+              <span className="block text-[11px] font-bold tracking-wider uppercase text-neutral-400 mb-2">
+                Khoảng Giá Nhanh
+              </span>
+              <div className="grid grid-cols-2 gap-1.5">
+                {PRICE_PRESETS.map((p, idx) => {
+                  const isSelected = minPrice === p.min && maxPrice === p.max;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          onMinPriceChange('');
+                          onMaxPriceChange('');
+                        } else {
+                          onMinPriceChange(p.min);
+                          onMaxPriceChange(p.max);
+                        }
+                      }}
+                      className={`py-2 px-2.5 text-xs rounded-xl font-medium transition-all text-left border ${
+                        isSelected
+                          ? 'bg-black text-white border-black font-semibold'
+                          : 'bg-white text-neutral-700 border-neutral-200 hover:border-black'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cột 3: Nhập giá tùy biến */}
+            <div>
+              <span className="block text-[11px] font-bold tracking-wider uppercase text-neutral-400 mb-2">
+                Khoảng Giá Tùy Chọn (₫)
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  placeholder="Từ (₫)"
+                  value={minPrice}
+                  onChange={(e) => onMinPriceChange(e.target.value)}
+                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:border-black"
+                />
+                <span className="text-neutral-400 text-xs">—</span>
+                <input
+                  type="number"
+                  placeholder="Đến (₫)"
+                  value={maxPrice}
+                  onChange={(e) => onMaxPriceChange(e.target.value)}
+                  className="w-full h-9 px-3 rounded-xl border border-neutral-200 bg-white text-xs focus:outline-none focus:border-black"
+                />
+              </div>
+
+              {hasActiveFilters && (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={onReset}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Xóa toàn bộ bộ lọc</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
   );
 };

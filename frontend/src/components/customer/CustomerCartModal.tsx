@@ -86,7 +86,7 @@ export const CustomerCartModal: React.FC = () => {
           {cart.length === 0 ? (
             <div className="customer-empty-state">
               <p className="empty-cart-msg">Giỏ hàng của bạn đang trống.</p>
-              <Link href="/shop" className="customer-link-btn" onClick={() => setIsCartOpen(false)}>
+              <Link href="/" className="customer-link-btn" onClick={() => setIsCartOpen(false)}>
                 Khám phá sản phẩm &rarr;
               </Link>
             </div>

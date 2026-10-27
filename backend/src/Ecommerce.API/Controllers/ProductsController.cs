@@ -122,4 +122,53 @@ public class ProductsController : ControllerBase
         var review = await _productService.ReplyToReviewAsync(id, reviewId, request.Reply, userId, roleClaim);
         return Ok(review);
     }
+
+    [Authorize(Roles = "Seller,Admin")]
+    [HttpPatch("{id:int}/toggle-status")]
+    public async Task<IActionResult> ToggleStatus(int id)
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
+            ?? User.FindFirst("sub")?.Value;
+        var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+        int? userId = int.TryParse(userIdClaim, out var parsedId) ? parsedId : null;
+
+        var isActive = await _productService.ToggleProductStatusAsync(id, userId, roleClaim);
+        return Ok(new { id, isActive, message = isActive ? "Sản phẩm đã được kích hoạt hiển thị." : "Sản phẩm đã được chuyển sang chế độ tạm ẩn (Nháp)." });
+    }
+
+    [Authorize(Roles = "Seller,Admin")]
+    [HttpPost("upload-image")]
+    public async Task<IActionResult> UploadProductImage(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Không tìm thấy file hình ảnh tải lên." });
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".avif" };
+        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(ext))
+            return BadRequest(new { message = "Định dạng file không hỗ trợ. Vui lòng chọn ảnh JPG, PNG, WebP hoặc AVIF." });
+
+        if (file.Length > 15 * 1024 * 1024)
+            return BadRequest(new { message = "Kích thước ảnh tối đa là 15MB." });
+
+        string publicFolder = Path.Combine(Directory.GetCurrentDirectory(), "frontend", "public", "img", "products");
+        if (!Directory.Exists(publicFolder))
+        {
+            publicFolder = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../frontend/public/img/products"));
+        }
+        if (!Directory.Exists(publicFolder))
+        {
+            Directory.CreateDirectory(publicFolder);
+        }
+
+        var fileName = $"upload-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6]}{ext}";
+        var targetPath = Path.Combine(publicFolder, fileName);
+        using (var stream = new FileStream(targetPath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var relativeUrl = $"/img/products/{fileName}";
+        return Ok(new { url = relativeUrl, message = "Tải ảnh sản phẩm thành công." });
+    }
 }

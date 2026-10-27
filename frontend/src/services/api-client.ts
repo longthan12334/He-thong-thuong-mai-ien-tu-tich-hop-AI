@@ -4,7 +4,7 @@ import { API_BASE_URL, API_TIMEOUT, STORAGE_KEYS } from '@/lib/constants';
 /**
  * Axios instance chung cho toàn bộ app.
  * - Tự động gắn JWT token vào header
- * - Tự động redirect về login khi 401
+ * - Tự động redirect về login khi 401 hết hạn phiên
  */
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -35,7 +35,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && typeof window !== 'undefined' && !isLoginRequest && !isAlreadyOnLoginPage) {
       localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.AUTH_USER);
-      window.location.href = '/login';
+      window.location.href = '/login?expired=1';
     }
     return Promise.reject(error);
   }
