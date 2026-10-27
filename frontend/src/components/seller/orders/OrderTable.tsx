@@ -6,6 +6,7 @@ import { formatVND } from '@/lib/utils';
 
 interface OrderTableProps {
   orders: Order[];
+  isAdmin?: boolean;
   onSelectOrder: (order: Order) => void;
   onConfirmOrder?: (order: Order) => void;
   onShipOrder?: (order: Order) => void;
@@ -15,6 +16,7 @@ interface OrderTableProps {
 
 export const OrderTable: React.FC<OrderTableProps> = ({
   orders,
+  isAdmin = false,
   onSelectOrder,
   onConfirmOrder,
 }) => {
@@ -107,7 +109,11 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                     </span>
                   </td>
                   <td className="text-right" style={{ minWidth: 100 }}>
-                    {o.status?.toUpperCase() === 'PENDING' && onConfirmOrder ? (
+                    {isAdmin ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[0.72rem] font-bold text-slate-500 bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                        Chi tiết ›
+                      </span>
+                    ) : o.status?.toUpperCase() === 'PENDING' && onConfirmOrder ? (
                       <button
                         type="button"
                         onClick={(e) => {
