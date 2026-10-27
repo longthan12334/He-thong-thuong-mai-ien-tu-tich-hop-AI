@@ -98,22 +98,31 @@ export default function HomePage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
-  const sellerTitle = user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '';
-  const isSellerRole = user?.role === 'Seller' || user?.role === 'Admin';
+  // Khách hàng mua sắm: chuyển hướng tự động sang khu mua sắm /shop
+  useEffect(() => {
+    if (user?.role === 'Customer') {
+      router.replace('/shop');
+    }
+  }, [user, router]);
+
+  const isSellerRole = user?.role === 'Seller';
+  const isAdminRole = user?.role === 'Admin';
+  const isManagement = isSellerRole || isAdminRole;
+  const sellerTitle = isSellerRole ? (user?.fullName || user?.email?.split('@')[0]?.toUpperCase() || '') : '';
+  const activeSellerId = isSellerRole && user?.userId && user?.userId > 0 ? user.userId : undefined;
 
   // Tải song song Danh mục & Sản phẩm qua Promise.all (Item 60)
   useEffect(() => {
     let isMounted = true;
-    const sellerId = user?.userId;
-    const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
-    const activeSellerId = isSeller && sellerId && sellerId > 0 ? sellerId : undefined;
 
     setIsLoadingInitial(true);
     Promise.all([
       productService.getCategories(),
       productService.getProducts({
         sellerId: activeSellerId,
-        pageSize: activeSellerId ? 1000 : 48,
+        // Khi Seller đăng nhập: tải toàn bộ kho của shop (1000)
+        // Khi Admin hoặc khách vãng lai: tải toàn bộ để đồng bộ CSDL (10000)
+        pageSize: activeSellerId ? 1000 : 10000,
       }),
     ])
       .then(([cats, res]) => {
@@ -137,7 +146,7 @@ export default function HomePage() {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user, isSellerRole, activeSellerId]);
 
   // Bộ lọc sản phẩm sử dụng debouncedSearch
   const filteredProducts = useMemo(() => {
@@ -192,21 +201,28 @@ export default function HomePage() {
   const categoriesWithCount = useMemo(() => {
     return categories.map((cat) => ({
       ...cat,
-      productCount: products.filter((p) => p.categoryId === cat.id).length,
+      productCount: activeSellerId
+        ? products.filter((p) => p.categoryId === cat.id).length
+        : (cat.productCount || products.filter((p) => p.categoryId === cat.id).length),
     }));
-  }, [categories, products]);
+  }, [categories, products, activeSellerId]);
+
+  const totalCatalogCount = useMemo(() => {
+    if (activeSellerId) return products.length;
+    return categories.reduce((sum, c) => sum + (c.productCount || 0), 0) || products.length;
+  }, [categories, products, activeSellerId]);
 
   // Ổn định các handler bằng useCallback (Item 49)
   const openSellerDrawer = useCallback(
     (p: Product) => {
-      if (!isSellerRole) {
+      if (!isManagement) {
         router.push(`/product-detail/${p.id}`);
         return;
       }
       setDrawerProduct(p);
       setIsDrawerOpen(true);
     },
-    [isSellerRole, router]
+    [isManagement, router]
   );
 
   const closeSellerDrawer = useCallback(() => {
@@ -308,7 +324,7 @@ export default function HomePage() {
 
       {/* 2. BRAND CINEMATIC SHOWCASE (SÂN KHẤU ẢNH CHÍNH) */}
       <BrandCinematicShowcase
-        shopName={sellerTitle || 'Aethelgard Store'}
+        shopName={isSellerRole ? (sellerTitle || 'Gian Hàng') : 'Aethelgard Luxury Mall'}
         products={products}
         onExploreProduct={handleExploreProduct}
         onScrollToCatalog={scrollToCatalog}
@@ -322,9 +338,9 @@ export default function HomePage() {
             <div className="catalog-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2">
               <div>
                 <h2 id="catalog-title" className="text-xl sm:text-2xl font-bold text-slate-900">
-                  {sellerTitle
+                  {isSellerRole && sellerTitle
                     ? `Gian Trưng Bày — ${sellerTitle}`
-                    : 'Sản Phẩm Đang Niêm Yết Trên Sàn'}
+                    : (isAdminRole ? 'Quản Trị Sản Phẩm Toàn Sàn' : 'Sản Phẩm Đang Niêm Yết Trên Sàn')}
                 </h2>
               </div>
 
@@ -357,7 +373,7 @@ export default function HomePage() {
             {/* THANH DANH MỤC */}
             <ProductFilters
               categories={categoriesWithCount}
-              totalProductsCount={products.length}
+              totalProductsCount={totalCatalogCount}
               categoryFilter={categoryFilter}
               onCategoryChange={setCategoryFilter}
               quickFilterType={quickFilterType}
@@ -385,6 +401,7 @@ export default function HomePage() {
                       key={p.id}
                       product={p}
                       onClick={openSellerDrawer}
+                      isSeller={isSellerRole}
                     />
                   ))}
             </div>

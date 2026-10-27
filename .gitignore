@@ -14,6 +14,9 @@ out/
 build/
 dist/
 target/
+publish_linux/
+**/publish_linux/
+*.tsbuildinfo
 
 
 # Environment variables & local secrets
