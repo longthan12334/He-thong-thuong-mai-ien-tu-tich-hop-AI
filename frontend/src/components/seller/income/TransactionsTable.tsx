@@ -70,7 +70,7 @@ export const TransactionsTable: React.FC<TransactionsTableProps> = ({
                     />
                   </td>
                   <td>
-                    <span className="font-mono font-bold text-xs text-purple-700">
+                    <span className="font-mono font-bold text-xs text-sky-700">
                       {tx.id}
                     </span>
                   </td>

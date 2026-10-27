@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { formatVND } from '@/lib/utils';
 
 interface Transaction {
   id: string;
@@ -137,7 +138,7 @@ export default function TransactionsPage() {
 
     const isConfirmed = await confirm({
       title: 'Xác Nhận Lệnh Rút Tiền',
-      message: `Bạn có chắc muốn rút ${withdrawAmount.toLocaleString('vi-VN')} đ về tài khoản ${bankName} (${accountNumber})? Tiền sẽ về tài khoản sau 15-30 phút.`,
+      message: `Bạn có chắc muốn rút ${formatVND(withdrawAmount)} về tài khoản ${bankName} (${accountNumber})? Tiền sẽ về tài khoản sau 15-30 phút.`,
       confirmText: 'Rút Tiền Ngay',
       cancelText: 'Hủy Lệnh',
     });
@@ -166,7 +167,7 @@ export default function TransactionsPage() {
       }));
     }
     setShowWithdrawModal(false);
-    showToast(`Đã tạo lệnh rút ${withdrawAmount.toLocaleString('vi-VN')} đ thành công!`);
+    showToast(`Đã tạo lệnh rút ${formatVND(withdrawAmount)} thành công!`);
   };
 
   return (
@@ -175,7 +176,7 @@ export default function TransactionsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 mb-6 border-b border-slate-200">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Wallet className="w-7 h-7 text-indigo-600" />
+            <Wallet className="w-7 h-7 text-sky-600" />
             <span>Ví Người Bán & Quản Lý Dòng Tiền</span>
           </h1>
           <p className="text-xs text-slate-500">
@@ -187,7 +188,7 @@ export default function TransactionsPage() {
           <button
             type="button"
             onClick={() => setShowWithdrawModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-md shadow-sky-100 transition-all cursor-pointer"
           >
             <ArrowUpRight className="w-4 h-4" />
             <span>Yêu Cầu Rút Tiền</span>
@@ -198,23 +199,23 @@ export default function TransactionsPage() {
       {/* Grid Thẻ Số Dư & Tài Khoản Ngân Hàng */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
         {/* Card 1: Số dư khả dụng */}
-        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-900 to-slate-900 p-6 text-white shadow-lg flex flex-col justify-between">
+        <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-slate-900 to-slate-900 p-6 text-white shadow-lg flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-indigo-200 text-xs font-semibold mb-2">
+            <div className="flex items-center justify-between text-sky-200 text-xs font-semibold mb-2">
               <span>SỐ DƯ VÍ KHẢ DỤNG</span>
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
             </div>
             <div className="text-3xl font-extrabold tracking-tight mb-1">
-              {balance.toLocaleString('vi-VN')} đ
+              {formatVND(balance)}
             </div>
-            <p className="text-[11px] text-indigo-300">
+            <p className="text-[11px] text-sky-300">
               Có thể rút tiền về tài khoản ngân hàng bất kỳ lúc nào 24/7
             </p>
           </div>
 
-          <div className="pt-4 border-t border-indigo-800/80 flex items-center justify-between text-xs text-indigo-200">
+          <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-sky-200">
             <span>Chờ đối soát (Đơn đang giao):</span>
-            <span className="font-bold text-amber-300">+{pendingBalance.toLocaleString('vi-VN')} đ</span>
+            <span className="font-bold text-amber-300">+{formatVND(pendingBalance)}</span>
           </div>
         </div>
 
@@ -228,7 +229,7 @@ export default function TransactionsPage() {
               <button
                 type="button"
                 onClick={() => setIsEditingBank(!isEditingBank)}
-                className="text-xs font-semibold text-indigo-600 hover:underline cursor-pointer"
+                className="text-xs font-semibold text-sky-600 hover:underline cursor-pointer"
               >
                 {isEditingBank ? 'Đóng' : 'Thay đổi'}
               </button>
@@ -262,7 +263,7 @@ export default function TransactionsPage() {
                 />
                 <button
                   type="submit"
-                  className="w-full h-8 rounded-lg bg-indigo-600 text-white text-xs font-bold"
+                  className="w-full h-8 rounded-lg bg-sky-500 text-white text-xs font-bold"
                 >
                   Lưu Thông Tin
                 </button>
@@ -270,7 +271,7 @@ export default function TransactionsPage() {
             ) : (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-                  <Building className="w-4 h-4 text-indigo-600" />
+                  <Building className="w-4 h-4 text-sky-600" />
                   <span>{bankName}</span>
                 </div>
                 <div className="text-lg font-mono font-extrabold text-slate-800 tracking-wider">
@@ -319,13 +320,13 @@ export default function TransactionsPage() {
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
         <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Receipt className="w-5 h-5 text-indigo-600" />
+            <Receipt className="w-5 h-5 text-sky-600" />
             <h3 className="text-base font-bold text-slate-900">Sao Kê Dòng Tiền Người Bán</h3>
           </div>
           <button
             type="button"
             onClick={() => showToast('Đã tải xuống file sao kê định dạng PDF!')}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-sky-600 transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4" />
             <span>Xuất Sao Kê PDF</span>
@@ -361,7 +362,7 @@ export default function TransactionsPage() {
                       </span>
                     )}
                     {tx.type === 'WITHDRAWAL' && (
-                      <span className="inline-flex items-center gap-1 font-bold text-indigo-600">
+                      <span className="inline-flex items-center gap-1 font-bold text-sky-600">
                         <ArrowUpRight className="w-3.5 h-3.5" /> Rút tiền ngân hàng
                       </span>
                     )}
@@ -370,7 +371,7 @@ export default function TransactionsPage() {
                   <td className="py-3 px-4 text-right font-extrabold text-sm">
                     <span className={tx.amount > 0 ? 'text-emerald-600' : 'text-slate-900'}>
                       {tx.amount > 0 ? '+' : ''}
-                      {tx.amount.toLocaleString('vi-VN')} đ
+                      {formatVND(tx.amount)}
                     </span>
                   </td>
                   <td className="py-3 px-4 text-center">
@@ -398,7 +399,7 @@ export default function TransactionsPage() {
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                 <div className="text-slate-500">Ngân hàng thụ hưởng:</div>
                 <div className="font-bold text-slate-900">{bankName}</div>
-                <div className="font-mono text-indigo-600 font-semibold">{accountNumber} • {accountHolder}</div>
+                <div className="font-mono text-sky-600 font-semibold">{accountNumber} • {accountHolder}</div>
               </div>
 
               <div>
@@ -412,11 +413,11 @@ export default function TransactionsPage() {
                   required
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(Number(e.target.value))}
-                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-base font-bold text-indigo-700 focus:outline-none focus:border-indigo-500"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-base font-bold text-sky-700 focus:outline-none focus:border-sky-500"
                 />
                 <div className="flex justify-between text-[11px] text-slate-400 mt-1">
                   <span>Tối thiểu: 100.000 đ</span>
-                  <span>Khả dụng: {balance.toLocaleString('vi-VN')} đ</span>
+                  <span>Khả dụng: {formatVND(balance)}</span>
                 </div>
               </div>
 
@@ -444,7 +445,7 @@ export default function TransactionsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs shadow-md shadow-indigo-100 transition-all cursor-pointer"
+                  className="flex-1 h-11 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-xs shadow-md shadow-sky-100 transition-all cursor-pointer"
                 >
                   Xác Nhận Rút Tiền
                 </button>

@@ -2,23 +2,30 @@
 
 import React from 'react';
 import type { Order } from '@/types';
-import { formatVND } from '@/lib/utils';
+import { formatVND, formatDate } from '@/lib/utils';
+import { Printer, Ban } from 'lucide-react';
+import { OrderTableRowSkeleton } from '@/components/ui/Skeleton';
 
 interface OrderTableProps {
   orders: Order[];
+  isLoading?: boolean;
   isAdmin?: boolean;
   onSelectOrder: (order: Order) => void;
   onConfirmOrder?: (order: Order) => void;
   onShipOrder?: (order: Order) => void;
   onDeliverOrder?: (order: Order) => void;
   onCancelOrder?: (order: Order) => void;
+  onPrintPackingSlip?: (order: Order) => void;
 }
 
-export const OrderTable: React.FC<OrderTableProps> = ({
+const OrderTableComponent: React.FC<OrderTableProps> = ({
   orders,
+  isLoading = false,
   isAdmin = false,
   onSelectOrder,
   onConfirmOrder,
+  onCancelOrder,
+  onPrintPackingSlip,
 }) => {
   return (
     <div className="orders-table-wrapper">
@@ -32,14 +39,26 @@ export const OrderTable: React.FC<OrderTableProps> = ({
             <th>Đơn Vị / Tracking</th>
             <th>Tổng Tiền</th>
             <th>Trạng Thái</th>
-            <th style={{ width: '32px', textAlign: 'right' }} />
+            <th style={{ textAlign: 'right' }}>Thao Tác</th>
           </tr>
         </thead>
         <tbody id="orders-table-body">
-          {orders.length === 0 ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, idx) => (
+              <OrderTableRowSkeleton key={`skeleton-${idx}`} />
+            ))
+          ) : orders.length === 0 ? (
             <tr>
-              <td colSpan={8} className="text-center py-10 text-slate-500">
-                Không tìm thấy đơn hàng nào phù hợp với bộ lọc hiện tại.
+              <td colSpan={8} className="text-center py-16">
+                <div className="flex flex-col items-center justify-center gap-2 max-w-md mx-auto text-slate-500">
+                  <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl mb-1">
+                    📦
+                  </div>
+                  <p className="text-sm font-bold text-slate-800">Chưa Có Đơn Hàng Nào</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Hiện tại gian hàng chưa ghi nhận đơn đặt hàng mới. Đơn hàng từ khách mua sắm sẽ tự động đồng bộ tại đây theo thời gian thực qua SignalR.
+                  </p>
+                </div>
               </td>
             </tr>
           ) : (
@@ -51,7 +70,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
               return (
                 <tr
                   key={o.id || o.orderCode}
-                  className="order-clickable-row cursor-pointer"
+                  className="order-clickable-row cursor-pointer transition-colors duration-200 hover:bg-sky-50/40"
                   onClick={() => onSelectOrder(o)}
                 >
                   <td>
@@ -59,7 +78,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                   </td>
                   <td>
                     <div className="text-[0.82rem] font-semibold text-slate-700">
-                      {o.createdAt}
+                      {formatDate(o.createdAt, 'datetime') || o.createdAt}
                     </div>
                   </td>
                   <td>
@@ -70,7 +89,9 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                     {firstItem ? (
                       <div className="order-item-cell">
                         <img
-                          className="order-thumb-img"
+                          className="order-thumb-img aspect-square object-cover"
+                          loading="lazy"
+                          decoding="async"
                           src={firstItem.imageUrl}
                           alt={firstItem.productName}
                           onError={(e) => {
@@ -82,7 +103,7 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                           <span>
                             {firstItem.specs}{' '}
                             {moreItemsText && (
-                              <strong className="text-purple-600">{moreItemsText}</strong>
+                              <strong className="text-sky-600">{moreItemsText}</strong>
                             )}
                           </span>
                         </div>
@@ -108,26 +129,48 @@ export const OrderTable: React.FC<OrderTableProps> = ({
                       {o.statusLabel}
                     </span>
                   </td>
-                  <td className="text-right" style={{ minWidth: 100 }}>
-                    {isAdmin ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[0.72rem] font-bold text-slate-500 bg-slate-100 group-hover:bg-slate-200 transition-colors">
-                        Chi tiết ›
-                      </span>
-                    ) : o.status?.toUpperCase() === 'PENDING' && onConfirmOrder ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onConfirmOrder(o);
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer whitespace-nowrap"
-                        title="Xác nhận đơn hàng ngay"
-                      >
-                        Xác Nhận
-                      </button>
-                    ) : (
-                      <span className="text-slate-400 text-lg font-bold">›</span>
-                    )}
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      {isAdmin ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[0.72rem] font-bold text-slate-500 bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                          Chi tiết ›
+                        </span>
+                      ) : (
+                        <>
+                          {o.status?.toUpperCase() === 'PENDING' && onConfirmOrder && (
+                            <button
+                              type="button"
+                              onClick={() => onConfirmOrder(o)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer whitespace-nowrap"
+                              title="Xác nhận đơn hàng ngay"
+                            >
+                              Xác Nhận
+                            </button>
+                          )}
+                          {onPrintPackingSlip && (
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg border border-slate-200 hover:bg-sky-50 hover:border-sky-300 text-slate-600 hover:text-sky-700 transition-all cursor-pointer"
+                              title="In phiếu đóng gói A5"
+                              onClick={() => onPrintPackingSlip(o)}
+                            >
+                              <Printer className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onCancelOrder && o.status?.toUpperCase() === 'PENDING' && (
+                            <button
+                              type="button"
+                              className="p-1.5 rounded-lg border border-rose-200 hover:bg-rose-50 text-rose-600 transition-all cursor-pointer"
+                              title="Hủy đơn hàng"
+                              onClick={() => onCancelOrder(o)}
+                            >
+                              <Ban className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <span className="text-slate-400 text-lg font-bold ml-1">›</span>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -138,3 +181,5 @@ export const OrderTable: React.FC<OrderTableProps> = ({
     </div>
   );
 };
+
+export const OrderTable = React.memo(OrderTableComponent);

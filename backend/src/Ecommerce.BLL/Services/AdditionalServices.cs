@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using AutoMapper;
 using Ecommerce.BLL.Interfaces;
@@ -23,9 +23,11 @@ public class StoreService : IStoreService
         _mapper = mapper;
     }
 
-    public async Task<List<StoreDto>> GetAllStoresAsync()
+    public async Task<List<StoreDto>> GetAllStoresAsync(string? brand = null)
     {
-        var stores = await _unitOfWork.Stores.GetAllAsync();
+        var stores = string.IsNullOrWhiteSpace(brand)
+            ? await _unitOfWork.Stores.GetAllAsync()
+            : await _unitOfWork.Stores.FindAsync(s => s.BrandId.ToLower() == brand.ToLower().Trim());
         return _mapper.Map<List<StoreDto>>(stores);
     }
 
@@ -54,6 +56,73 @@ public class StoreService : IStoreService
         _unitOfWork.Stores.Update(store);
         await _unitOfWork.SaveChangesAsync();
         return _mapper.Map<StoreDto>(store);
+    }
+
+    public async Task<StoreProfileDto?> GetStoreProfileAsync(string brandOrSellerId)
+    {
+        int? sellerId = int.TryParse(brandOrSellerId, out int sid) ? sid : null;
+        string brand = brandOrSellerId.ToLower().Trim();
+
+        // 1. Tìm thông tin User/Seller thực tế từ bảng Users
+        var user = sellerId.HasValue
+            ? await _unitOfWork.Users.GetByIdAsync(sellerId.Value)
+            : (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower().StartsWith(brand + "@") || u.FullName.ToLower().Contains(brand))).FirstOrDefault();
+
+        int targetSellerId = user?.Id ?? (sellerId ?? 0);
+        string brandName = user?.FullName ?? (char.ToUpper(brand[0]) + brand.Substring(1) + " Official Flagship");
+        string emailPrefix = (user?.Email ?? brand).Split('@')[0].ToLower();
+
+        // 2. Tính toán chỉ số sản phẩm và đánh giá thực tế 100% từ bảng Products
+        var products = targetSellerId > 0
+            ? await _unitOfWork.Products.FindAsync(p => p.SellerId == targetSellerId)
+            : await _unitOfWork.Products.FindAsync(p => p.Name.ToLower().Contains(brand));
+
+        var prodList = products.ToList();
+        int totalProds = prodList.Count;
+        double avgRating = totalProds > 0 ? Math.Round(prodList.Average(p => (double)p.Rating), 1) : 5.0;
+        int totalReviews = totalProds > 0 ? prodList.Sum(p => p.ReviewCount) : 0;
+
+        // Tính tồn kho thực tế từ bảng ProductVariants
+        int totalStock = prodList.Sum(p => p.StockQuantity);
+        if (totalStock == 0 && totalProds > 0)
+        {
+            var pIds = prodList.Select(p => p.Id).ToList();
+            var variants = await _unitOfWork.ProductVariants.FindAsync(v => pIds.Contains(v.ProductId));
+            totalStock = variants.Sum(v => v.StockQuantity);
+        }
+
+        // 3. Lấy danh sách Boutique thực tế từ bảng Stores trong DB
+        var boutiques = (await _unitOfWork.Stores.FindAsync(s => s.BrandId.ToLower() == emailPrefix || s.BrandId.ToLower() == brand)).ToList();
+
+        // 4. Mã viết tắt
+        string brandCode = brand.Length >= 2 ? brand.Substring(0, 2).ToUpper() : brand.ToUpper();
+        if (brand.Contains("gucci")) brandCode = "GG";
+        else if (brand.Contains("dior")) brandCode = "CD";
+        else if (brand.Contains("chanel")) brandCode = "CC";
+        else if (brand.Contains("louisvuitton") || brand.Contains("vuitton")) brandCode = "LV";
+        else if (brand.Contains("prada")) brandCode = "PR";
+        else if (brand.Contains("balenciaga")) brandCode = "BL";
+        else if (brand.Contains("adidas")) brandCode = "ADI";
+        else if (brand.Contains("nike")) brandCode = "NK";
+
+        string slogan = $"Gian hàng chính hãng {brandName} phân phối trực tiếp tại Aethelgard Mall";
+
+        return new StoreProfileDto
+        {
+            SellerId = targetSellerId,
+            BrandId = emailPrefix,
+            BrandName = brandName,
+            BrandCode = brandCode,
+            Slogan = slogan,
+            Rating = avgRating,
+            ReviewCount = totalReviews,
+            TotalProducts = totalProds,
+            TotalStock = totalStock,
+            BoutiqueCount = boutiques.Count,
+            AvatarUrl = user?.AvatarUrl,
+            CoverBannerUrl = user?.CoverBannerUrl,
+            Boutiques = _mapper.Map<List<StoreDto>>(boutiques)
+        };
     }
 }
 

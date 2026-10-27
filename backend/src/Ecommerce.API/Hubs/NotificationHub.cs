@@ -15,6 +15,7 @@ public class NotificationHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"Seller_{sellerId.Value}");
         }
+        await Groups.AddToGroupAsync(Context.ConnectionId, "Sellers");
     }
 
     public async Task JoinCustomerGroup(string customerEmail)

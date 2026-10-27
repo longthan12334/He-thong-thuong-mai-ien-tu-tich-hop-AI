@@ -34,3 +34,19 @@ public class UpdateStoreDto
     public string? ImageUrl { get; set; }
 }
 
+public class StoreProfileDto
+{
+    public int SellerId { get; set; }
+    public string BrandId { get; set; } = string.Empty;
+    public string BrandName { get; set; } = string.Empty;
+    public string BrandCode { get; set; } = string.Empty;
+    public string Slogan { get; set; } = string.Empty;
+    public double Rating { get; set; }
+    public int ReviewCount { get; set; }
+    public int TotalProducts { get; set; }
+    public int TotalStock { get; set; }
+    public int BoutiqueCount { get; set; }
+    public string? AvatarUrl { get; set; }
+    public string? CoverBannerUrl { get; set; }
+    public List<StoreDto> Boutiques { get; set; } = new();
+}

@@ -8,10 +8,12 @@ import { useShopper } from '@/contexts/ShopperContext';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useCart } from '@/hooks/useCart';
 import { useToast } from '@/hooks/useToast';
+import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CustomerProductCard, ShopSubnav } from '@/components/customer';
 import { formatVND } from '@/lib/utils';
 import { FALLBACK_IMAGE } from '@/lib/constants';
 import { recommendProducts } from '@/lib/customer';
+import { ShoppingBag, Trash2 } from 'lucide-react';
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function WishlistPage() {
   const { products, isLoading } = useCatalog();
   const { addToCart, setIsCartOpen } = useCart();
   const { showToast } = useToast();
+  const { confirm, confirmDialog } = useConfirmDialog();
 
   // Ghép với dữ liệu mới nhất từ sàn để giá / tồn kho luôn chính xác
   const items = useMemo(() => {
@@ -50,6 +53,38 @@ export default function WishlistPage() {
     setIsCartOpen(true);
   };
 
+  const handleAddAllToCart = () => {
+    let addedCount = 0;
+    items.forEach(({ live }) => {
+      if (live && (live.stockQuantity ?? 0) > 0 && (!live.variants || live.variants.length === 0)) {
+        addToCart(live, 1, 'Tiêu chuẩn');
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      showToast(`Đã thêm ${addedCount} sản phẩm sẵn sàng vào giỏ hàng!`);
+      setIsCartOpen(true);
+    } else {
+      showToast('Các sản phẩm yêu cầu chọn size / màu cụ thể trước khi thêm.');
+    }
+  };
+
+  const handleClearAll = async () => {
+    const ok = await confirm({
+      title: 'Xóa Danh Sách Yêu Thích',
+      message: 'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi danh sách yêu thích?',
+      confirmText: 'Xóa Tất Cả',
+      cancelText: 'Giữ Lại',
+      tone: 'danger',
+    });
+
+    if (!ok) return;
+
+    wishlist.forEach((w) => removeFromWishlist(w.id));
+    showToast('Đã xóa toàn bộ danh sách yêu thích.');
+  };
+
   return (
     <div className="customer-page">
       <div className="customer-page-head">
@@ -61,7 +96,29 @@ export default function WishlistPage() {
               : 'Thả tim ♡ trên sản phẩm bất kỳ để lưu lại và nhận gợi ý cá nhân hóa.'}
           </p>
         </div>
-        <ShopSubnav />
+        <div className="flex items-center gap-2">
+          {wishlist.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={handleAddAllToCart}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>Thêm Tất Cả Vào Giỏ</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-slate-500 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                title="Xóa toàn bộ"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+          <ShopSubnav />
+        </div>
       </div>
 
       {wishlist.length === 0 ? (
@@ -140,6 +197,8 @@ export default function WishlistPage() {
           </div>
         </section>
       )}
+
+      {confirmDialog}
     </div>
   );
 }

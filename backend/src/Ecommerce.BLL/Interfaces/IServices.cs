@@ -20,6 +20,7 @@ public interface IProductService
     Task<ProductDto> CreateProductAsync(CreateProductDto request, int sellerId);
     Task<ProductDto> UpdateProductAsync(int id, CreateProductDto request, int? currentUserId = null, string? currentRole = null);
     Task<bool> DeleteProductAsync(int id, int? currentUserId = null, string? currentRole = null);
+    Task<bool> ToggleProductStatusAsync(int id, int? currentUserId = null, string? currentRole = null);
     Task<List<CategoryDto>> GetCategoriesAsync();
     Task<List<ReviewDto>> GetProductReviewsAsync(int productId);
     Task<ReviewDto> AddProductReviewAsync(int productId, CreateReviewDto request, int? userId = null);
@@ -57,7 +58,8 @@ public interface IAIService
 
 public interface IStoreService
 {
-    Task<List<StoreDto>> GetAllStoresAsync();
+    Task<List<StoreDto>> GetAllStoresAsync(string? brand = null);
     Task<StoreDto?> GetStoreByCodeAsync(string storeCode);
     Task<StoreDto?> UpdateStoreAsync(string storeCode, UpdateStoreDto dto);
+    Task<StoreProfileDto?> GetStoreProfileAsync(string brandOrSellerId);
 }

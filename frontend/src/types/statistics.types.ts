@@ -24,7 +24,8 @@ export interface Transaction {
 export interface CategoryRevenue {
   categoryName: string;
   revenue: number;
-  itemsSold: number;
+  itemsSold?: number;
+  orderCount?: number;
   percentage: number;
 }
 
@@ -38,7 +39,8 @@ export interface IncomeSummary {
   newCustomers?: number;
   conversionRate?: number;
   growthPercent: number;
+  shopViews?: number;
+  categoryBreakdown?: CategoryRevenue[];
   monthlyMatrix: MonthlyData[];
   recentTransactions: Transaction[];
-  categoryBreakdown?: CategoryRevenue[];
 }

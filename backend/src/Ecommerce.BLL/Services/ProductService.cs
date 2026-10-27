@@ -1,3 +1,4 @@
+﻿using Microsoft.Extensions.Caching.Memory;
 using AutoMapper;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
@@ -119,6 +120,10 @@ public class ProductService : IProductService
     public async Task<ProductDto> CreateProductAsync(CreateProductDto request, int sellerId)
     {
         var slug = GenerateSlug(request.Name);
+        var galleryUrlsJson = request.GalleryUrls != null && request.GalleryUrls.Count > 0
+            ? System.Text.Json.JsonSerializer.Serialize(request.GalleryUrls)
+            : null;
+
         var product = new Product
         {
             SellerId = sellerId,
@@ -130,11 +135,16 @@ public class ProductService : IProductService
             Description = request.Description,
             BasePrice = request.BasePrice,
             OriginalPrice = request.OriginalPrice ?? request.BasePrice,
+            CostPrice = request.CostPrice,
+            DiscountPercent = request.DiscountPercent,
             ImageUrl = request.ImageUrl,
+            GalleryUrlsJson = galleryUrlsJson,
             StockQuantity = request.StockQuantity,
             StockStatus = request.StockQuantity > 0 ? StockStatus.InStock : StockStatus.OutOfStock,
             Material = request.Material,
-            IsActive = true
+            CareInstructions = request.CareInstructions,
+            CountryOfOrigin = request.CountryOfOrigin,
+            IsActive = request.IsActive
         };
 
         await _unitOfWork.Products.AddAsync(product);
@@ -161,10 +171,19 @@ public class ProductService : IProductService
         product.Description = request.Description;
         product.BasePrice = request.BasePrice;
         product.OriginalPrice = request.OriginalPrice;
+        product.CostPrice = request.CostPrice;
+        product.DiscountPercent = request.DiscountPercent;
         product.ImageUrl = request.ImageUrl;
+        if (request.GalleryUrls != null)
+        {
+            product.GalleryUrlsJson = System.Text.Json.JsonSerializer.Serialize(request.GalleryUrls);
+        }
         product.StockQuantity = request.StockQuantity;
         product.StockStatus = request.StockQuantity > 0 ? StockStatus.InStock : StockStatus.OutOfStock;
         product.Material = request.Material;
+        product.CareInstructions = request.CareInstructions;
+        product.CountryOfOrigin = request.CountryOfOrigin;
+        product.IsActive = request.IsActive;
 
         _unitOfWork.Products.Update(product);
         await _unitOfWork.SaveChangesAsync();
@@ -292,5 +311,20 @@ public class ProductService : IProductService
             .Replace("/", "-")
             .Replace("'", "")
             .Replace("\"", "");
+    }
+
+    public async Task<bool> ToggleProductStatusAsync(int id, int? currentUserId = null, string? currentRole = null)
+    {
+        var product = await _unitOfWork.Products.GetByIdAsync(id);
+        if (product == null) throw new NotFoundException("Sản phẩm", id);
+
+        if (currentUserId.HasValue && currentRole != "Admin" && product.SellerId != currentUserId.Value)
+        {
+            throw new UnauthorizedException("Bạn không có quyền thay đổi trạng thái sản phẩm của người bán khác.");
+        }
+
+        product.IsActive = !product.IsActive;
+        await _unitOfWork.SaveChangesAsync();
+        return product.IsActive;
     }
 }
