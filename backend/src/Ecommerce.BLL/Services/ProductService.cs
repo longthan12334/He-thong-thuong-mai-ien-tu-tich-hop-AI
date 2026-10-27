@@ -240,6 +240,8 @@ public class ProductService : IProductService
             CustomerName = string.IsNullOrWhiteSpace(request.CustomerName) ? "Khách Hàng Aethelgard" : request.CustomerName.Trim(),
             Rating = Math.Clamp(request.Rating, 1, 5),
             Comment = request.Comment?.Trim() ?? string.Empty,
+            IsVerifiedPurchase = true,
+            HelpfulCount = 0,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -257,6 +259,46 @@ public class ProductService : IProductService
             _unitOfWork.Products.Update(product);
             await _unitOfWork.SaveChangesAsync();
         }
+
+        return _mapper.Map<ReviewDto>(review);
+    }
+
+    public async Task<int> ToggleReviewHelpfulAsync(int productId, int reviewId)
+    {
+        var review = await _unitOfWork.Reviews.Query()
+            .FirstOrDefaultAsync(r => r.Id == reviewId && r.ProductId == productId);
+
+        if (review == null)
+            throw new NotFoundException("Đánh giá", reviewId);
+
+        review.HelpfulCount += 1;
+        _unitOfWork.Reviews.Update(review);
+        await _unitOfWork.SaveChangesAsync();
+
+        return review.HelpfulCount;
+    }
+
+    public async Task<ReviewDto> ReplyToReviewAsync(int productId, int reviewId, string replyText, int? currentUserId = null, string? currentRole = null)
+    {
+        var review = await _unitOfWork.Reviews.Query()
+            .FirstOrDefaultAsync(r => r.Id == reviewId && r.ProductId == productId);
+
+        if (review == null)
+            throw new NotFoundException("Đánh giá", reviewId);
+
+        var product = await _unitOfWork.Products.GetByIdAsync(productId);
+        if (product == null)
+            throw new NotFoundException("Sản phẩm", productId);
+
+        if (currentRole != "Admin" && (currentUserId == null || product.SellerId != currentUserId.Value))
+        {
+            throw new UnauthorizedException("Chỉ chủ gian hàng của sản phẩm này hoặc Quản trị viên mới có quyền phản hồi đánh giá.");
+        }
+
+        review.ShopReply = replyText.Trim();
+        review.ShopReplyAt = DateTime.UtcNow;
+        _unitOfWork.Reviews.Update(review);
+        await _unitOfWork.SaveChangesAsync();
 
         return _mapper.Map<ReviewDto>(review);
     }
