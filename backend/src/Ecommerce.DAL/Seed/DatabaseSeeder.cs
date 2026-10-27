@@ -5285,6 +5285,25 @@ public static class DatabaseSeeder
                     }
                 }
 
+                                // Bo sung cot CostPrice cho bang Products neu thieu
+                var existingProductColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = "PRAGMA table_info(Products);";
+                    using var reader = await cmd.ExecuteReaderAsync();
+                    while (await reader.ReadAsync())
+                    {
+                        existingProductColumns.Add(reader.GetString(1));
+                    }
+                }
+
+                if (!existingProductColumns.Contains("CostPrice"))
+                {
+                    using var cmd = conn.CreateCommand();
+                    cmd.CommandText = "ALTER TABLE Products ADD COLUMN CostPrice REAL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
                 if (shouldClose)
                 {
                     await conn.CloseAsync();
@@ -5324,6 +5343,8 @@ public static class DatabaseSeeder
 
                 var columnsToAdd = new (string ColName, string Ddl)[]
                 {
+                    ("CoverBannerUrl", "ALTER TABLE Users ADD COLUMN CoverBannerUrl TEXT NULL;"),
+                    ("IsActive", "ALTER TABLE Users ADD COLUMN IsActive INTEGER DEFAULT 1;"),
                     ("SellerStatus", "ALTER TABLE Users ADD COLUMN SellerStatus TEXT DEFAULT 'Active';"),
                     ("IsMallVerified", "ALTER TABLE Users ADD COLUMN IsMallVerified INTEGER DEFAULT 1;"),
                     ("SuspendedReason", "ALTER TABLE Users ADD COLUMN SuspendedReason TEXT NULL;"),
