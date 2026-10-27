@@ -4,6 +4,7 @@ import '@/styles/orders.css';
 import React, { useState, useMemo, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { orderService } from '@/services/order.service';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Order } from '@/types';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
@@ -121,10 +122,13 @@ const defaultOrders: Order[] = [
 
 function OrdersPageContent() {
   const { isAuthorized, isLoading: isGuardLoading } = useSellerGuard('/shop/my-orders');
+  const { user } = useAuth();
   const { showToast } = useToast();
   const { confirm, confirmDialog } = useConfirmDialog();
   const searchParams = useSearchParams();
   const codeParam = searchParams.get('code') || '';
+
+  const isAdmin = user?.role === 'Admin' || (user?.role as any) === 1 || String(user?.role).toLowerCase() === 'admin';
 
   const [orders, setOrders] = useState<Order[]>(defaultOrders);
   const [loading, setLoading] = useState(false);
@@ -269,8 +273,31 @@ function OrdersPageContent() {
       {/* 1. Header Toolbar chuẩn bản sắc dự án */}
       <div className="orders-page-header">
         <div className="orders-header-titles">
-          <h1>Quản Lý Đơn Hàng & Vận Chuyển</h1>
-          <p>Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và xuất phiếu kho</p>
+          <h1>
+            Quản Lý Đơn Hàng & Vận Chuyển
+            {isAdmin && (
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 650,
+                  padding: '3px 10px',
+                  borderRadius: '9999px',
+                  background: '#0F172A',
+                  color: '#F8FAFC',
+                  marginLeft: '12px',
+                  verticalAlign: 'middle',
+                  letterSpacing: '0.02em',
+                }}
+              >
+                Chế Độ Giám Sát Sàn
+              </span>
+            )}
+          </h1>
+          <p>
+            {isAdmin
+              ? 'Giám sát luồng xử lý đơn đặt hàng và hành trình giao nhận bưu kiện trên toàn bộ 273 gian hàng đối tác Aethelgard'
+              : 'Theo dõi luồng xử lý đơn đặt hàng, hành trình giao nhận bưu kiện và xuất phiếu kho'}
+          </p>
         </div>
 
         <div className="orders-header-actions">
@@ -368,10 +395,11 @@ function OrdersPageContent() {
       {/* 4. Bảng đơn hàng */}
       <OrderTable
         orders={filteredOrders}
+        isAdmin={isAdmin}
         onSelectOrder={handleOpenDrawer}
-        onConfirmOrder={(o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
-        onShipOrder={(o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
-        onDeliverOrder={(o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
+        onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
+        onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
+        onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
         onCancelOrder={handleCancelOrder}
       />
 
@@ -379,11 +407,12 @@ function OrdersPageContent() {
       <OrderTrackingDrawer
         isOpen={isDrawerOpen}
         order={selectedOrder}
+        isAdmin={isAdmin}
         onClose={handleCloseDrawer}
         onShowToast={showToast}
-        onConfirmOrder={(o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
-        onShipOrder={(o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
-        onDeliverOrder={(o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
+        onConfirmOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 2, 'Đã Xác Nhận')}
+        onShipOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 4, 'Đang Vận Chuyển FedEx')}
+        onDeliverOrder={isAdmin ? undefined : (o) => handleUpdateStatus(o.id, 5, 'Giao Hàng Thành Công')}
         onCancelOrder={handleCancelOrder}
       />
 

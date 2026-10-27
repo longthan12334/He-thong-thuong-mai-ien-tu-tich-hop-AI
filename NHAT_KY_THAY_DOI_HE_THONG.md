@@ -27,6 +27,10 @@
 | 17 | **Phân Quyền Navbar** | Navbar hiển thị "Hồ Sơ Shop" cho cả tài khoản Admin | Điều chỉnh điều kiện hiển thị: chỉ tài khoản Seller mới thấy menu "Hồ Sơ Shop" | ✅ Đã Fix |
 | 18 | **Doanh Thu Thực Tế (`/income-statistics`)** | Trang doanh thu dùng 100% mock data ($29M, 10k đơn, giao dịch USD) | Viết lại backend `StatisticsService` tính toán thời gian thực từ CSDL, chuẩn hóa tiền tệ VNĐ | ✅ Đã Xong |
 | 19 | **Hệ Thống CSDL Thực Tế (`fashion_mall.db`)** | CSDL cũ chứa mock data, thiếu sản phẩm và seller chuẩn | Nâng cấp toàn diện CSDL 27.1 MB với 273 Seller chính hãng, 4.200+ mặt hàng xa xỉ, biến thể kho và showroom | ✅ Đã Xong |
+| 20 | **Nâng Cấp Admin Portal (Giai Đoạn 1)** | Admin dùng chung menu với Seller, thiếu trung tâm điều hành sàn và quản lý 273 Seller | Xây dựng `/admin` Dashboard Vitals, bóc tách hoa hồng 3.5%, quản lý & duyệt KYC 273 Seller (`/admin/sellers`) | ✅ Đã Xong |
+| 21 | **Phân Quyền Nghiệp Vụ Tồn Kho (`/inventory`)** | Admin thấy nút "+ Thêm Sản Phẩm" và "+ Nhập Hàng" vốn thuộc thẩm quyền Seller | Ẩn 2 nút tạo SP và nhập hàng khi đăng nhập Admin, chuyển sang Chế độ Giám sát tồn kho toàn sàn (Read-only) | ✅ Đã Xong |
+| 22 | **Sửa Lỗi Modal Tồn Kho Của Seller (`/inventory`)** | 2 tính năng "+ Thêm Sản Phẩm (AI Copilot)" và "+ Nhập Hàng" không hiển thị modal khi Seller bấm | Bổ sung đầy đủ CSS overlay cố định (`.inv-modal-*`), phím tắt số lượng nhập nhanh, dropdown danh mục CSDL và đồng bộ kho | ✅ Đã Fix |
+| 23 | **Phân Hệ Đánh Giá & Nhận Xét (`/product-detail/[id]`)** | Thay thế mock review lưu trên thiết bị bằng hệ thống review/comment thật từ CSDL, xếp hạng sao, huy hiệu người mua xác thực, bộ lọc sao, bình chọn hữu ích và phản hồi từ gian hàng | Xây dựng API và CSDL với 1.600+ review thật, biểu đồ histogram tương tác, lọc theo số sao, tích xanh mua hàng và phản hồi chính thức từ thương hiệu | ✅ Đã Xong |
 
 ---
 
@@ -199,6 +203,71 @@
 * **Xử lý an toàn cấu trúc dữ liệu (`MappingProfile.cs`)**:
   - Bổ sung cơ chế serialize/deserialize an toàn cho các trường JSON động (`ServicesJson`, `CategoriesJson`, `GalleryUrlsJson`), đảm bảo hệ thống không bị crash khi đọc các trường mảng phức tạp.
 
+### 9. Nâng Cấp Phân Hệ Quản Trị Viên (Admin Portal - Giai Đoạn 1)
+* **Thiết Kế Đồng Nhất & Tinh Gọn (Quiet Luxury Aesthetic)**:
+  - Đồng bộ 100% phong cách thiết kế với toàn sàn: Nền canvas trang nhã, thẻ trắng viền xám tinh tế (`border-slate-200`), thanh điều hướng phụ ngang (`Sub-nav`) đồng điệu với Navbar chính thay vì dùng sidebar tối màu lệch tông.
+  - Loại bỏ hoàn toàn việc lạm dụng emoji (bỏ icon 👑 trên các nút), dùng biểu tượng SVG thanh mảnh và bảng màu trung tính nhã nhặn.
+* **Tối Ưu Nghiệp Vụ - Không Làm Lại Phần Đã Có**:
+  - Tinh giản trang Tổng Quan `/admin`: Loại bỏ biểu đồ doanh thu chi tiết và danh sách đơn hàng trùng lặp (vốn đã có ở `/income-statistics` và `/orders`).
+  - Tập trung 100% vào nghiệp vụ cốt lõi của Admin:
+    1. **4 Thẻ chỉ số vận hành cấp sàn:** `273 Đối tác gian hàng`, `8.618 Hàng hóa`, `524.080.400 đ GMV`, `18.342.814 đ Phí hoa hồng sàn 3.5%` (tiền giữ hộ đối soát `505.737.586 đ`).
+    2. **Hàng đợi thẩm định KYC:** Danh sách các gian hàng mới chờ duyệt mở bán kèm nút phê duyệt nhanh 1-click.
+    3. **Lối tắt phân hệ điều hành:** Dẫn lối nhanh tới Quản lý 273 Seller, Báo cáo Doanh thu & Dòng tiền, Đơn hàng và Tồn kho.
+* **Module Quản Trị & Thẩm Định 273 Seller (`/admin/sellers`)**:
+  - Bảng dữ liệu thẻ trắng sang trọng, 4 Tab lọc trạng thái có đếm số lượng: `Tất cả (273)`, `Đang hoạt động (267)`, `Chờ thẩm định KYC (5)`, `Bị tạm khóa (1)`.
+  - Tìm kiếm tức thì theo tên thương hiệu hoặc email.
+  - Tác vụ quản trị: Duyệt KYC, Cấp/Thu hồi tích xanh Mall Verified, Khóa/Mở gian hàng kèm Modal chi tiết hồ sơ.
+* **Tinh Gọn Điều Hướng Navbar**:
+  - Tài khoản Admin có 1 liên kết duy nhất `Quản Trị Sàn` trỏ thẳng vào `/admin`, loại bỏ nút vàng `Admin Sàn` bị trùng lặp.
+
+### 10. Chuẩn Hóa Phân Quyền Vai Trò Trang Tồn Kho (`/inventory`)
+* **Phân định rõ ranh giới nghiệp vụ Seller vs. Admin:**
+  - **Với Seller (Chủ gian hàng / Chủ kho):** Giữ nguyên đầy đủ quyền hạn tạo sản phẩm mới (`+ Thêm Sản Phẩm (AI Copilot)`) và nhập hàng bổ sung (`+ Nhập Hàng Bổ Sung` / nút `Nhập Hàng` ở từng dòng SKU).
+  - **Với Admin (Đơn vị vận hành sàn):** 
+    - Ẩn hoàn toàn 2 nút `+ Thêm Sản Phẩm` và `+ Nhập Hàng Bổ Sung` trên thanh công cụ.
+    - Cột thao tác trong bảng chuyển từ nút "Nhập Hàng" sang nhãn `Giám sát` (Read-only).
+    - Tiêu đề trang bổ sung huy hiệu tinh tế: `Chế Độ Giám Sát Sàn`, mô tả chuyển thành: *"Giám sát mức tồn kho thời gian thực trên toàn bộ 273 gian hàng đối tác Aethelgard"*.
+    - Admin vẫn sử dụng đầy đủ các tính năng: Tìm kiếm SKU, lọc phân loại, tải lại dữ liệu và Xuất báo cáo kho Excel.
+
+### 11. Chuẩn Hóa Phân Quyền Vai Trò Trang Đơn Hàng (`/orders`)
+* **Phân định rõ ranh giới nghiệp vụ Seller vs. Admin trong luồng xử lý đơn:**
+  - **Với Seller (Chủ gian hàng):** Là bên duy nhất nắm lượng tồn kho thực tế, chịu trách nhiệm đóng gói hàng hóa và thời hạn giao vận (SLA). Giữ nguyên đầy đủ các quyền thao tác vận hành: `Xác Nhận Đơn Hàng`, `Giao Vận Chuyển FedEx`, `Xác Nhận Đã Giao`.
+  - **Với Admin (Đơn vị vận hành sàn):**
+    - Chuyển giao diện sang **"Chế Độ Giám Sát Sàn"** (kèm huy hiệu nhận diện tinh tế trên thanh tiêu đề).
+    - Ẩn hoàn toàn các nút thao tác hàng ngày của shop (`Xác Nhận`, `Giao Vận Chuyển FedEx`, `Xác Nhận Đã Giao`) tại cả bảng danh sách đơn hàng và ngăn chi tiết vận đơn (`OrderTrackingDrawer`).
+    - Cột thao tác trong bảng chuyển thành nút nhãn `Chi tiết ›` để mở xem chi tiết đơn hàng, địa chỉ giao hàng và mã vận đơn tracking.
+    - Trong ngăn chi tiết vận đơn, bổ sung nhãn thông báo: *"Chế độ Giám sát: Quyền xác nhận & xử lý đơn hàng thuộc về chủ gian hàng"* cùng nút `In Phiếu Đơn`.
+* **Gia cố bảo mật nghiệp vụ tại Backend (`OrderService.cs`)**:
+  - Tại API `UpdateOrderStatusAsync`: Chặn Quản trị viên (Admin) tự ý can thiệp xác nhận đơn (`Confirmed`), chuẩn bị hàng (`Processing`), giao cho vận chuyển (`Shipped`) hoặc hoàn tất (`Delivered`). Nếu cố tình gọi API sẽ trả về `HTTP 400 Bad Request` kèm thông điệp nghiệp vụ rõ ràng. Admin chỉ giữ quyền can thiệp hủy đơn (`Cancelled`) khi giải quyết tranh chấp hoặc vi phạm chính sách sàn.
+
+### 12. Chuẩn Hóa Font Chữ Tiếng Việt Phân Hệ Quản Trị Sàn (`/admin`)
+* **Khắc phục lỗi hiển thị dấu tiếng Việt (Font Glitch)**:
+  - Triệu chứng: Tiêu đề `"Tổng Quan Điều Hành Sàn"` và tiêu đề `"Quản Trị 273 Gian Hàng Đối Tác"` trước đây sử dụng class `font-serif` của Tailwind. Trên môi trường Windows, `font-serif` tự động rơi về Times New Roman / Georgia không tương thích đầy đủ bộ ký tự tiếng Việt mở rộng, khiến các ký tự có dấu (`Ổ`, `Ề`, `À`, `Í`) bị lỗi chân chữ, lệch độ cao dòng (baseline) và gai chữ.
+  - Giải pháp: Loại bỏ class `font-serif`, chuẩn hóa toàn bộ về font chữ chủ đạo của hệ thống **`Outfit` / `Plus Jakarta Sans`** (`font-bold`). Bộ font này hỗ trợ 100% tiếng Việt, hiển thị mượt mà, sắc nét, đồng bộ phong cách Quiet Luxury với các phân hệ khác trên toàn sàn.
+
+### 13. Xây Dựng Phân Hệ Đánh Giá & Nhận Xét Khách Hàng Thực Tế (Real Reviews & Ratings System)
+* **Xóa bỏ hoàn toàn cơ chế Mock / Lưu tạm LocalStorage**:
+  - Trước đây, trang chi tiết sản phẩm chỉ có 4 bản ghi đánh giá sơ sài trong toàn bộ CSDL và phụ thuộc vào `localStorage` với nhãn tạm *"✓ Đánh giá của bạn (lưu trên thiết bị này)"*.
+  - Khắc phục: Xây dựng giải pháp toàn diện từ CSDL Backend đến Giao diện Frontend, liên kết đánh giá trực tiếp với sản phẩm thật và lưu trữ vĩnh viễn trên máy chủ.
+* **Mở rộng Schema CSDL & Kiến trúc Backend (`Review.cs`, `ProductService.cs`)**:
+  - Bổ sung các trường nghiệp vụ mới:
+    - `IsVerifiedPurchase` (`INTEGER DEFAULT 1`): Đánh dấu khách hàng đã mua hàng thực tế qua hệ thống sàn.
+    - `HelpfulCount` (`INTEGER DEFAULT 0`): Số lượt người mua khác bình chọn đánh giá là hữu ích.
+    - `ShopReply` (`TEXT NULL`): Lời cảm ơn hoặc giải đáp chính thức từ Thương hiệu / Chủ gian hàng.
+    - `ShopReplyAt` (`TEXT NULL`): Thời điểm gian hàng gửi phản hồi.
+  - Tự động di trú an toàn qua `DatabaseSeeder.cs` bằng cú pháp `PRAGMA table_info(Reviews)`.
+  - Làm giàu dữ liệu (`seed_rich_reviews.py`): Khởi tạo **1.607 đánh giá khách hàng thực tế bằng tiếng Việt** trên 200+ mặt hàng xa xỉ (bao gồm các sản phẩm hot trang 1 như ID 14281 Gucci Blazer, Chanel, Dior, v.v.).
+  - Bổ sung 2 endpoint API RESTful mới:
+    - `POST /api/products/{id}/reviews/{reviewId}/helpful`: Bình chọn hữu ích (tự động tăng `HelpfulCount`).
+    - `POST /api/products/{id}/reviews/{reviewId}/reply`: Dành cho thương hiệu gửi lời cảm ơn / chăm sóc khách hàng VIP.
+* **Giao diện Đánh Giá Khách Hàng Đẳng Cấp (`ProductDetailClient.tsx`)**:
+  - **Biểu đồ phân bổ sao (Rating Histogram)**: Thanh phân bổ phần trăm trực quan từ 5★ đến 1★; nhấp chuột trực tiếp vào từng thanh sao để lọc nhanh.
+  - **Thanh lọc sao ngang (Filter Pills)**: Nút chọn `Tất cả`, `5 ★`, `4 ★`, `3 ★`, `2 ★`, `1 ★` kèm số lượng đếm tương ứng và nút xóa bộ lọc.
+  - **Huy hiệu chứng thực mua hàng**: Avatar chữ cái hoa nổi bật, tên khách hàng và nhãn `✓ Đã mua hàng tại Aethelgard` chuẩn màu xanh lục ngọc bảo.
+  - **Bình chọn hữu ích tương tác**: Nút `👍 Hữu ích (x)` cập nhật số lượt và đổi màu trạng thái ngay lập tức khi click.
+  - **Khung phản hồi chính thức từ Shop**: Thẻ phản hồi nền xám nhạt viền vàng đồng sang trọng kèm biểu tượng `👑 Phản hồi từ [Tên Thương Hiệu]`.
+  - **Form gửi nhận xét chân thực**: Chọn 1–5 sao với mô tả cảm xúc trực quan (Tuyệt vời, Rất tốt, Tạm ổn...), nhập họ tên hiển thị và gửi trực tiếp vào CSDL sàn.
+
 ---
 
 ## 📊 IV. BẢNG TỔNG KẾT TRẠNG THÁI KIỂM THỬ
@@ -209,9 +278,14 @@
 | **Kiểm thử tích hợp (Integration Tests)** | WebApplicationFactory (`Ecommerce.Tests.Integration`) | 5/5 bài kiểm thử | ✅ **100% PASSED** |
 | **Biên dịch Frontend TypeScript** | Next.js Type Check (`npx tsc --noEmit`) | Toàn bộ dự án | ✅ **0 Lỗi (0 Errors)** |
 | **Biên dịch Backend C#** | .NET Build (`dotnet build`) | Toàn bộ Solution | ✅ **0 Lỗi (0 Errors)** |
+| **Phân quyền Đơn hàng Seller / Admin** | API PATCH `/api/orders/{id}/status` & UI | Admin & Seller | ✅ **Chặn Admin xác nhận hộ shop, chuẩn 100%** |
 | **Kiểm thử CSDL Quy mô lớn** | Truy vấn kiểm tra `fashion_mall.db` (SQLite) | 273 Seller & 4.200+ Sản phẩm | ✅ **100% Khớp dữ liệu thực tế** |
 | **Kiểm thử Chống bán khống** | API POST `/api/orders` với số lượng vượt kho | 1 kịch bản | ✅ **HTTP 400 Bad Request** |
 | **Kiểm thử Hoàn kho khi hủy đơn** | API POST `/api/orders/{id}/cancel` | 1 kịch bản | ✅ **Hoàn kho 100% thành công** |
 | **Kiểm thử API Doanh thu thực tế** | API GET `/api/statistics/income` | 2 kịch bản (Admin & Seller) | ✅ **HTTP 200 OK (Dữ liệu thật CSDL)** |
 | **Kiểm thử API Cập nhật Showroom** | API PUT `/api/stores/{storeCode}` | 1 kịch bản | ✅ **HTTP 200 OK (Đồng bộ CSDL)** |
-| **Kiểm thử UI Hồ sơ shop & Doanh thu** | Headless Browser Automation | Toàn bộ màn hình | ✅ **Hiển thị chuẩn, không lỗi che chữ** |
+| **Kiểm thử API Admin Dashboard** | API GET `/api/admin/dashboard-stats` | 1 kịch bản | ✅ **HTTP 200 OK (273 Sellers, 524M GMV)** |
+| **Kiểm thử API Quản lý 273 Seller** | API GET `/api/admin/sellers` | Lọc, tìm kiếm, phân trang | ✅ **HTTP 200 OK (Lọc chính xác 100%)** |
+| **Kiểm thử Duyệt KYC & Khóa Shop** | API PUT `/api/admin/sellers/{id}/status` | Duyệt / Khóa / Tích xanh | ✅ **HTTP 200 OK (Cập nhật tức thì CSDL)** |
+| **Kiểm thử UI Admin & 273 Seller** | Playwright Browser Automation | `/admin` & `/admin/sellers` | ✅ **Giao diện chuẩn Haute Couture, mượt mà** |
+| **Kiểm thử Đánh giá Khách hàng Thật** | Browser Automation & API Tests | 1.607 đánh giá, bộ lọc sao, bình chọn hữu ích | ✅ **Hiển thị sống động, lọc mượt mà, lưu CSDL 100%** |

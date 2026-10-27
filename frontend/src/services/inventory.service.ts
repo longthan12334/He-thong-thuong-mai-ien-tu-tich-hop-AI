@@ -30,12 +30,18 @@ export const inventoryService = {
 
   async restock(data: RestockRequest): Promise<boolean> {
     try {
-      await apiClient.post('/inventory/restock', data);
-      return true;
-    } catch {
+      const res = await apiClient.post('/inventory/restock', data);
+      return res.data?.success ?? true;
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
       const p = fallbackProducts.find(x => x.id === data.productId);
-      if (p) p.stockQuantity += data.additionalQuantity;
-      return true;
+      if (p) {
+        p.stockQuantity += data.additionalQuantity;
+        return true;
+      }
+      throw err;
     }
   },
 };
