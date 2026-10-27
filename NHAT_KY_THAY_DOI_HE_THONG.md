@@ -31,6 +31,7 @@
 | 21 | **Phân Quyền Nghiệp Vụ Tồn Kho (`/inventory`)** | Admin thấy nút "+ Thêm Sản Phẩm" và "+ Nhập Hàng" vốn thuộc thẩm quyền Seller | Ẩn 2 nút tạo SP và nhập hàng khi đăng nhập Admin, chuyển sang Chế độ Giám sát tồn kho toàn sàn (Read-only) | ✅ Đã Xong |
 | 22 | **Sửa Lỗi Modal Tồn Kho Của Seller (`/inventory`)** | 2 tính năng "+ Thêm Sản Phẩm (AI Copilot)" và "+ Nhập Hàng" không hiển thị modal khi Seller bấm | Bổ sung đầy đủ CSS overlay cố định (`.inv-modal-*`), phím tắt số lượng nhập nhanh, dropdown danh mục CSDL và đồng bộ kho | ✅ Đã Fix |
 | 23 | **Phân Hệ Đánh Giá & Nhận Xét (`/product-detail/[id]`)** | Thay thế mock review lưu trên thiết bị bằng hệ thống review/comment thật từ CSDL, xếp hạng sao, huy hiệu người mua xác thực, bộ lọc sao, bình chọn hữu ích và phản hồi từ gian hàng | Xây dựng API và CSDL với 1.600+ review thật, biểu đồ histogram tương tác, lọc theo số sao, tích xanh mua hàng và phản hồi chính thức từ thương hiệu | ✅ Đã Xong |
+| 24 | **Đóng Gói Docker Container Cho Toàn Sàn** | Cần môi trường container hóa chuẩn cho cả Backend .NET 10, Frontend Next.js 16 và CSDL SQLite thực tế 27.1 MB | Xây dựng Dockerfile đa tầng (Next.js standalone ~120MB, Backend .NET 10 self-contained trên Ubuntu 24.04), nạp sẵn CSDL 8.620 sản phẩm, cấu hình docker-compose.yml lưu trữ volume bền vững, bổ sung script 1-click docker-start.cmd và docker-stop.cmd | ✅ Đã Xong |
 
 ---
 
@@ -268,6 +269,22 @@
   - **Khung phản hồi chính thức từ Shop**: Thẻ phản hồi nền xám nhạt viền vàng đồng sang trọng kèm biểu tượng `👑 Phản hồi từ [Tên Thương Hiệu]`.
   - **Form gửi nhận xét chân thực**: Chọn 1–5 sao với mô tả cảm xúc trực quan (Tuyệt vời, Rất tốt, Tạm ổn...), nhập họ tên hiển thị và gửi trực tiếp vào CSDL sàn.
 
+### 14. Hoàn Thiện Giải Pháp Đóng Gói Docker Toàn Diện (Docker Containerization)
+* **Backend (.NET 10 Self-Contained Linux x64)**:
+  - Biên dịch Release dạng Self-contained cho nền tảng `linux-x64`, đóng gói trọn gói trên base image `ubuntu:24.04` từ Docker Hub, triệt để tránh phụ thuộc vào các registry có thể bị hạn chế mạng/firewall.
+  - Tích hợp `curl` phục vụ `healthcheck` tự động trên endpoint `/api/products?pageSize=1`.
+  - Nạp sẵn tệp CSDL SQLite 27.1 MB (273 Seller chính hãng, 8.620 sản phẩm, 1.607 đánh giá thật) trực tiếp vào image và ánh xạ ra volume `sqlite_data:/app/data` để bảo toàn dữ liệu bền vững qua các lần khởi động lại.
+* **Frontend (Next.js 16 Standalone Container)**:
+  - Áp dụng kỹ thuật Multi-stage build (`node:20-alpine`) kết hợp `output: 'standalone'` trong `next.config.mjs`, giảm dung lượng image từ ~1GB xuống chỉ còn **~120MB**.
+  - Tách người dùng chạy an toàn `nextjs:nodejs` (không dùng root).
+  - Hỗ trợ truyền biến môi trường build `ARG NEXT_PUBLIC_API_URL` linh hoạt cho nhiều môi trường triển khai.
+* **Cụm Điều Phối Docker Compose ([docker-compose.yml](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/docker-compose.yml))**:
+  - Tự động liên kết mạng nội bộ bảo mật `aethelgard-network`.
+  - Phân vùng volume `sqlite_data` lưu trữ CSDL SQLite độc lập với vòng đời container.
+* **Script Khởi Chạy Nhanh Cho Windows**:
+  - [docker-start.cmd](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/docker-start.cmd): Script 1-click kiểm tra Docker Engine, tự động biên dịch backend Linux nếu cần, khởi chạy nền và mở trình duyệt `http://localhost:3001`.
+  - [docker-stop.cmd](file:///c:/Users/ADMIN/CDTH/He-thong-thuong-mai-ien-tu-tich-hop-AI/docker-stop.cmd): Script 1-click dừng và giải phóng container an toàn.
+
 ---
 
 ## 📊 IV. BẢNG TỔNG KẾT TRẠNG THÁI KIỂM THỬ
@@ -289,3 +306,4 @@
 | **Kiểm thử Duyệt KYC & Khóa Shop** | API PUT `/api/admin/sellers/{id}/status` | Duyệt / Khóa / Tích xanh | ✅ **HTTP 200 OK (Cập nhật tức thì CSDL)** |
 | **Kiểm thử UI Admin & 273 Seller** | Playwright Browser Automation | `/admin` & `/admin/sellers` | ✅ **Giao diện chuẩn Haute Couture, mượt mà** |
 | **Kiểm thử Đánh giá Khách hàng Thật** | Browser Automation & API Tests | 1.607 đánh giá, bộ lọc sao, bình chọn hữu ích | ✅ **Hiển thị sống động, lọc mượt mà, lưu CSDL 100%** |
+| **Kiểm thử Đóng gói Docker Compose** | Docker CLI & Playwright Automation | Cụm container Backend .NET 10 & Frontend Next.js 16 | ✅ **Build thành công, Up & Healthy, tải mượt 8.620 SP** |
