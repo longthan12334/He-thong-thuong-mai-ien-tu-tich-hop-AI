@@ -10,9 +10,11 @@ import { useToast } from '@/hooks/useToast';
 import { useConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Skeleton } from '@/components/ui';
 import { CustomerOrderCard, ShopSubnav } from '@/components/customer';
-import { formatVND } from '@/lib/utils';
+import { exportToCsv, formatDate, formatVND } from '@/lib/utils';
+import { FileSpreadsheet } from 'lucide-react';
 import { getErrorMessage, normalizeStatus } from '@/lib/customer';
 import { invalidateCatalog } from '@/hooks/useCatalog';
+import { signalRService } from '@/services/signalr.service';
 
 const TABS: { key: string; label: string; match: (s: string) => boolean }[] = [
   { key: 'all', label: 'Tất cả', match: () => true },
@@ -58,6 +60,12 @@ function MyOrdersContent() {
 
   useEffect(() => {
     if (!authLoading && token) loadOrders();
+    const unsubscribe = signalRService.subscribe((notif) => {
+      if (notif.type === 'ORDER_STATUS' || notif.type === 'ORDER_CREATED' || notif.type === 'PAYMENT_CONFIRMED') {
+        loadOrders();
+      }
+    });
+    return () => unsubscribe();
   }, [authLoading, token, loadOrders]);
 
   // Cuộn tới đơn vừa đặt khi đi từ màn hình "Đặt hàng thành công"
@@ -141,6 +149,29 @@ function MyOrdersContent() {
     }
   };
 
+  const handleExportCSV = () => {
+    if (visibleOrders.length === 0) {
+      showToast('Không có đơn hàng nào để xuất báo cáo.');
+      return;
+    }
+    exportToCsv(
+      visibleOrders,
+      [
+        { key: (o) => o.orderCode || o.id, label: 'Mã Đơn Hàng' },
+        { key: (o) => formatDate(o.createdAt, 'datetime'), label: 'Thời Gian Đặt' },
+        { key: (o) => o.customerName || '', label: 'Người Nhận' },
+        { key: (o) => o.customerPhone || '', label: 'Số Điện Thoại' },
+        { key: (o) => o.shippingAddress || '', label: 'Địa Chỉ Giao' },
+        { key: (o) => o.paymentMethod || '', label: 'Thanh Toán' },
+        { key: (o) => o.statusLabel || o.status || '', label: 'Trạng Thái' },
+        { key: (o) => o.totalAmount || 0, label: 'Tổng Tiền (VNĐ)' },
+        { key: (o) => o.items?.map((i) => `${i.productName} (x${i.quantity})`).join('; ') || '', label: 'Danh Sách Món' },
+      ],
+      `lich-su-don-hang-${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    showToast(`Đã xuất ${visibleOrders.length} đơn hàng ra file CSV.`);
+  };
+
   return (
     <div className="customer-page">
       <div className="customer-page-head">
@@ -150,7 +181,20 @@ function MyOrdersContent() {
             Theo dõi hành trình kiện hàng, xem lại chi tiết thanh toán và hủy đơn khi shop chưa xác nhận.
           </p>
         </div>
-        <ShopSubnav />
+        <div className="flex items-center gap-2">
+          {orders.length > 0 && (
+            <button
+              type="button"
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              title="Xuất lịch sử đơn hàng ra file CSV Excel"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-sky-600" />
+              <span>Xuất CSV</span>
+            </button>
+          )}
+          <ShopSubnav />
+        </div>
       </div>
 
       {isSellerView && (
