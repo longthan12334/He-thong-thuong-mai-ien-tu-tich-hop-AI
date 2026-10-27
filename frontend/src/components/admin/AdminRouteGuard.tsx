@@ -15,7 +15,7 @@ export default function AdminRouteGuard({ children }: Props) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-600">
-        <div className="w-8 h-8 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-xs uppercase tracking-widest font-semibold text-slate-500">
           Đang xác thực quyền Quản trị...
         </p>

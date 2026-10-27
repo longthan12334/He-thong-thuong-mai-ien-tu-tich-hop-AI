@@ -10,7 +10,9 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.Customer;
     public string? PhoneNumber { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? CoverBannerUrl { get; set; }
     public bool IsEmailVerified { get; set; } = true;
+    public bool IsActive { get; set; } = true;
     public string? ResetOtp { get; set; }
     public DateTime? ResetOtpExpiry { get; set; }
 
@@ -23,4 +25,3 @@ public class User : BaseEntity
 
     public ICollection<Order> Orders { get; set; } = new List<Order>();
 }
-

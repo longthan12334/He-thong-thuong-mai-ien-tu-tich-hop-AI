@@ -21,9 +21,11 @@ export default function NotificationBell() {
   const [hasNewPulse, setHasNewPulse] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+  const isSeller = user?.role === 'Seller';
+  const isAdmin = user?.role === 'Admin';
+  const isManagement = isSeller || isAdmin;
 
-  // Dọn dẹp key cũ không phân quyền để loại bỏ triệt để thông báo rác 24/10
+  // Dọn dẹp key cũ không phân quyền để loại bỏ triệt để thông báo rác
   useEffect(() => {
     try {
       localStorage.removeItem('aethelgard_signalr_notifications');
@@ -67,7 +69,7 @@ export default function NotificationBell() {
   useEffect(() => {
     const unsubscribe = signalRService.subscribe((notif) => {
       // Phân quyền: Khách hàng tuyệt đối không nhận thông báo tạo đơn của Người bán
-      if (notif.type === 'ORDER_CREATED' && !isSeller) {
+      if (notif.type === 'ORDER_CREATED' && !isManagement) {
         return;
       }
 
@@ -106,7 +108,7 @@ export default function NotificationBell() {
     return () => {
       unsubscribe();
     };
-  }, [showToast, isSeller, user?.id, user?.email]);
+  }, [showToast, isManagement, user?.id, user?.email]);
 
   // Đóng dropdown khi click bên ngoài
   useEffect(() => {
@@ -125,7 +127,7 @@ export default function NotificationBell() {
 
   // Lọc thông báo: Người mua hàng sẽ không thấy thông báo tạo đơn của Người bán
   const visibleNotifications = notifications.filter((n) => {
-    if (n.type === 'ORDER_CREATED') return isSeller;
+    if (n.type === 'ORDER_CREATED') return isManagement;
     return true;
   });
 
@@ -151,7 +153,9 @@ export default function NotificationBell() {
   };
 
   const getTargetHref = (notif: SignalRNotification) => {
-    const isSeller = user?.role === 'Seller' || user?.role === 'Admin';
+    if (isAdmin) {
+      return '/admin';
+    }
     if (isSeller) {
       return notif.orderCode ? `/orders?code=${encodeURIComponent(notif.orderCode)}` : '/orders';
     }
@@ -166,9 +170,9 @@ export default function NotificationBell() {
       case 'ORDER_CREATED':
         return <ShoppingBag className="w-4 h-4 text-emerald-600" />;
       case 'ORDER_STATUS':
-        return <Truck className="w-4 h-4 text-indigo-600" />;
+        return <Truck className="w-4 h-4 text-sky-600" />;
       case 'PAYMENT_CONFIRMED':
-        return <CheckCircle2 className="w-4 h-4 text-purple-600" />;
+        return <CheckCircle2 className="w-4 h-4 text-sky-600" />;
       default:
         return <Bell className="w-4 h-4 text-slate-600" />;
     }
@@ -194,17 +198,17 @@ export default function NotificationBell() {
         onClick={() => setIsOpen(!isOpen)}
         className={`relative p-2.5 rounded-xl border transition-all flex items-center justify-center cursor-pointer ${
           hasNewPulse
-            ? 'border-purple-500 bg-purple-50 scale-105 shadow-md shadow-purple-200'
+            ? 'border-sky-500 bg-sky-50 scale-105 shadow-md shadow-sky-200'
             : isOpen
-            ? 'border-purple-300 bg-purple-50'
-            : 'border-slate-200 hover:border-purple-300 hover:bg-purple-50'
+            ? 'border-sky-300 bg-sky-50'
+            : 'border-slate-200 hover:border-sky-300 hover:bg-sky-50'
         }`}
         title="Thông báo hệ thống theo thời gian thực"
         aria-label="Thông báo thời gian thực"
       >
-        <Bell className={`w-5 h-5 text-slate-700 ${hasNewPulse ? 'animate-bounce text-purple-600' : ''}`} />
+        <Bell className={`w-4 h-4 text-slate-700 ${hasNewPulse ? 'animate-bounce text-sky-600' : ''}`} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 rounded-full bg-rose-600 text-white text-[11px] font-black flex items-center justify-center shadow-sm animate-pulse">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-4.5 px-1 rounded-full bg-rose-600 text-white text-[10px] font-black flex items-center justify-center shadow-xs animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -214,7 +218,7 @@ export default function NotificationBell() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-fade-in">
           {/* Header Dropdown */}
-          <div className="p-3.5 bg-gradient-to-r from-slate-900 to-purple-950 text-white flex items-center justify-between">
+          <div className="p-3.5 bg-gradient-to-r from-slate-900 to-sky-950 text-white flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -229,7 +233,7 @@ export default function NotificationBell() {
                 <button
                   type="button"
                   onClick={markAllAsRead}
-                  className="text-[11px] text-purple-200 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                  className="text-[11px] text-sky-200 hover:text-white flex items-center gap-1 font-medium transition-colors cursor-pointer"
                 >
                   <Check className="w-3 h-3" /> Đã đọc
                 </button>
@@ -262,7 +266,7 @@ export default function NotificationBell() {
                   href={getTargetHref(notif)}
                   onClick={() => setIsOpen(false)}
                   className={`block p-3.5 hover:bg-slate-50 transition-colors text-left ${
-                    !notif.read ? 'bg-purple-50/50' : ''
+                    !notif.read ? 'bg-sky-50/50' : ''
                   }`}
                   style={{ textDecoration: 'none' }}
                 >
@@ -283,13 +287,13 @@ export default function NotificationBell() {
                         {notif.message}
                       </p>
                       {notif.orderCode && (
-                        <span className="inline-block mt-1 text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-1 text-[10px] font-bold text-sky-700 bg-sky-100 px-1.5 py-0.5 rounded">
                           {notif.orderCode}
                         </span>
                       )}
                     </div>
                     {!notif.read && (
-                      <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0 mt-2"></span>
+                      <span className="w-2 h-2 rounded-full bg-sky-600 shrink-0 mt-2"></span>
                     )}
                   </div>
                 </Link>
