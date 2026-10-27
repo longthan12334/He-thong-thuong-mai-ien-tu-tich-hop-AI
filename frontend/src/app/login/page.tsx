@@ -22,8 +22,18 @@ const DUAL_IMAGE_PAIRS = [
  * - Seller/Admin giữ nguyên hành vi cũ
  */
 function resolvePostLoginPath(role: string | undefined, savedPath: string | null): string {
-  if (savedPath && savedPath !== '/login' && savedPath !== '/shop') return savedPath;
-  return '/';
+  if (role === 'Admin') {
+    if (savedPath && savedPath !== '/login') return savedPath;
+    return '/admin';
+  }
+  if (role === 'Seller') {
+    if (savedPath && savedPath !== '/login' && savedPath !== '/shop') return savedPath;
+    return '/';
+  }
+  if (savedPath && savedPath !== '/login' && !savedPath.startsWith('/inventory') && !savedPath.startsWith('/orders') && !savedPath.startsWith('/income') && savedPath !== '/shop-profile') {
+    return savedPath;
+  }
+  return '/shop';
 }
 
 export default function LoginPage() {

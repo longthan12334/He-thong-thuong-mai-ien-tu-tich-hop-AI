@@ -18,19 +18,26 @@ export interface Transaction {
   qty: number;
   unitPrice: string;
   total: string;
+  date?: string;
 }
 
 export interface CategoryRevenue {
   categoryName: string;
   revenue: number;
+  itemsSold?: number;
+  orderCount?: number;
   percentage: number;
-  orderCount: number;
 }
 
 export interface IncomeSummary {
   totalRevenue: number;
   monthlyRevenue: number;
+  weeklyRevenue?: number;
+  yearlyRevenue?: number;
   totalOrders: number;
+  totalCustomers?: number;
+  newCustomers?: number;
+  conversionRate?: number;
   growthPercent: number;
   shopViews?: number;
   categoryBreakdown?: CategoryRevenue[];

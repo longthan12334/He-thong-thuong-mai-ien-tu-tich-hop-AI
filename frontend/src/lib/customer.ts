@@ -38,7 +38,16 @@ const BRAND_PATTERNS: { brand: string; keys: string[] }[] = [
 export function extractBrand(p: Pick<AnyProduct, 'name'> & { collectionName?: string }): string {
   const haystack = ` ${p.name || ''} ${p.collectionName || ''} `.toLowerCase();
   const found = BRAND_PATTERNS.find((b) => b.keys.some((k) => haystack.includes(k)));
-  return found ? found.brand : '';
+  if (found) return found.brand;
+
+  if (p.name && p.name.includes(' - ')) {
+    const candidate = p.name.split(' - ')[0].trim();
+    if (candidate.length > 1 && candidate.length < 35) {
+      return candidate;
+    }
+  }
+
+  return '';
 }
 
 /* ------------------------------------------------------------------ */

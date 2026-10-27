@@ -108,14 +108,23 @@ class SignalRService {
         this.notifyListeners(notif);
       });
 
+      this.connection.on('ReceiveCatalogUpdated', (data: any) => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('aethelgard:catalog-updated', { detail: data }));
+          window.dispatchEvent(new CustomEvent('aethelgard:request-catalog-reload', { detail: data }));
+        }
+      });
+
       await this.connection.start();
 
-      // Tự động tham gia group của Seller
+      // Tự động tham gia group của Seller hoặc Admin
       const storedUser = localStorage.getItem('aethelgard_user');
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
-          if (user && user.userId && (user.role === 'Seller' || user.role === 'Admin')) {
+          if (user?.role === 'Admin') {
+            await this.joinAdminGroup();
+          } else if (user?.userId && user?.role === 'Seller') {
             await this.joinSellerGroup(user.userId);
           }
         } catch {}
@@ -127,20 +136,28 @@ class SignalRService {
     }
   }
 
-  public async joinSellerGroup(sellerId: number): Promise<void> {
-    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-      try {
+  public async joinAdminGroup(): Promise<void> {
+    try {
+      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
+        await this.connection.invoke('JoinAdminGroup');
+      }
+    } catch {}
+  }
+
+  public async joinSellerGroup(sellerId?: number): Promise<void> {
+    try {
+      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected && sellerId) {
         await this.connection.invoke('JoinSellerGroup', sellerId);
-      } catch {}
-    }
+      }
+    } catch {}
   }
 
   public async joinCustomerGroup(customerEmail: string): Promise<void> {
-    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-      try {
-        await this.connection.invoke('JoinCustomerGroup', customerEmail);
-      } catch {}
-    }
+    try {
+      if (this.connection && this.connection.state === signalR.HubConnectionState.Connected && customerEmail) {
+        await this.connection.invoke('JoinCustomerGroup', customerEmail.trim().toLowerCase());
+      }
+    } catch {}
   }
 
   public subscribe(listener: NotificationListener): () => void {

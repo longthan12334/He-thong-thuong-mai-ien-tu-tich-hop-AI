@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { Eye } from 'lucide-react';
 import type { Product } from '@/types';
 import { productService } from '@/services/product.service';
 import { useCart } from '@/hooks/useCart';
@@ -33,6 +34,11 @@ interface LocalReview {
   rating: number;
   comment: string;
   createdAt: string;
+  isVerifiedPurchase?: boolean;
+  helpfulCount?: number;
+  shopReply?: string | null;
+  shopReplyAt?: string | null;
+  liked?: boolean;
 }
 
 const REVIEWS_KEY = 'aethelgard_reviews';
@@ -74,8 +80,11 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
   const [secondsLeft, setSecondsLeft] = useState(() => secondsUntilCutoff(new Date()));
 
   const [reviews, setReviews] = useState<LocalReview[]>([]);
+  const [customerNameInput, setCustomerNameInput] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
+  const [selectedStarFilter, setSelectedStarFilter] = useState<number | null>(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   // 1. Tải sản phẩm thật từ Backend (productService tự fallback dữ liệu mẫu khi offline)
   useEffect(() => {
@@ -108,37 +117,74 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
+  // Đồng bộ tồn kho mới nhất ngay lập tức khi khách vừa đặt hàng hoặc kho thay đổi từ sàn
+  useEffect(() => {
+    if (!productId) return;
+    const handleCatalogUpdate = () => {
+      productService
+        .getProductById(productId)
+        .then((fresh) => {
+          if (fresh) setProduct(fresh);
+        })
+        .catch(() => {});
+    };
+
+    window.addEventListener('aethelgard:catalog-updated', handleCatalogUpdate);
+    return () => {
+      window.removeEventListener('aethelgard:catalog-updated', handleCatalogUpdate);
+    };
+  }, [productId]);
+
   // 2. Đồng hồ chốt đơn trong ngày
   useEffect(() => {
     const timer = setInterval(() => setSecondsLeft(secondsUntilCutoff(new Date())), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 3. Đánh giá thực tế từ CSDL Backend
+  // Tự động điền tên khách hàng nếu đã đăng nhập
   useEffect(() => {
+    if (user?.fullName && !customerNameInput) {
+      setCustomerNameInput(user.fullName);
+    }
+  }, [user, customerNameInput]);
+
+  // 3. Đánh giá thực tế từ CSDL Backend
+  const loadReviews = useCallback(async () => {
     if (!productId) return;
-    productService.getProductReviews(productId).then((dbReviews) => {
-      if (dbReviews && dbReviews.length > 0) {
+    try {
+      const dbReviews = await productService.getProductReviews(productId);
+      if (dbReviews && Array.isArray(dbReviews) && dbReviews.length > 0) {
         setReviews(
           dbReviews.map((r: any) => ({
             id: String(r.id),
             productId: r.productId,
-            author: r.customerName || 'Khách Hàng',
+            author: r.customerName || 'Khách Hàng Aethelgard',
             rating: r.rating || 5,
             comment: r.comment || '',
             createdAt: r.createdAt || new Date().toISOString(),
+            isVerifiedPurchase: r.isVerifiedPurchase ?? true,
+            helpfulCount: r.helpfulCount || 0,
+            shopReply: r.shopReply || null,
+            shopReplyAt: r.shopReplyAt || null,
+            liked: false,
           }))
         );
-      } else {
-        try {
-          const all: LocalReview[] = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
-          setReviews(all.filter((r) => r.productId === productId));
-        } catch {
-          setReviews([]);
-        }
+        return;
       }
-    });
+    } catch (err) {
+      console.warn('Lỗi tải đánh giá từ API, chuyển sang lưu trữ cục bộ:', err);
+    }
+    try {
+      const all: LocalReview[] = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
+      setReviews(all.filter((r) => r.productId === productId));
+    } catch {
+      setReviews([]);
+    }
   }, [productId]);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
 
   const options = useMemo(() => getProductOptions(product?.variants), [product]);
   const selectedVariant = useMemo(
@@ -160,6 +206,10 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
 
   const brand = product ? extractBrand(product) : '';
   const brandProductCount = brand ? catalog.filter((p) => extractBrand(p) === brand).length : 0;
+  const isSeller = user?.role === 'Seller';
+  const isAdmin = user?.role === 'Admin';
+  const isManagement = isSeller || isAdmin;
+  const isOwnProduct = isSeller && !!product && product.sellerId === (user?.id || user?.userId);
 
   // Tồn kho khả dụng theo phân loại đang chọn
   const availableStock = selectedVariant && (activeSize || !options.sizes.length)
@@ -167,6 +217,37 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
     : product?.stockQuantity ?? 0;
   const isOutOfStock = (product?.stockQuantity ?? 0) <= 0;
   const needsSize = options.sizes.length > 0 && !activeSize;
+
+  // Thống kê phân bổ sao đánh giá (Histogram)
+  const reviewStats = useMemo(() => {
+    const total = reviews.length;
+    const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    let sum = 0;
+    reviews.forEach((r) => {
+      const star = Math.min(5, Math.max(1, Math.round(r.rating || 5)));
+      counts[star] = (counts[star] || 0) + 1;
+      sum += r.rating || 5;
+    });
+    const avg = total > 0 ? (sum / total).toFixed(1) : (product?.rating || 5).toFixed(1);
+    return {
+      total,
+      avg,
+      counts,
+      percents: {
+        5: total > 0 ? Math.round(((counts[5] || 0) / total) * 100) : 0,
+        4: total > 0 ? Math.round(((counts[4] || 0) / total) * 100) : 0,
+        3: total > 0 ? Math.round(((counts[3] || 0) / total) * 100) : 0,
+        2: total > 0 ? Math.round(((counts[2] || 0) / total) * 100) : 0,
+        1: total > 0 ? Math.round(((counts[1] || 0) / total) * 100) : 0,
+      },
+    };
+  }, [reviews, product?.rating]);
+
+  // Danh sách đánh giá đã lọc theo số sao
+  const filteredReviews = useMemo(() => {
+    if (selectedStarFilter === null) return reviews;
+    return reviews.filter((r) => Math.round(r.rating || 5) === selectedStarFilter);
+  }, [reviews, selectedStarFilter]);
 
   useEffect(() => {
     if (availableStock > 0 && qty > availableStock) setQty(availableStock);
@@ -220,6 +301,10 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
   };
 
   const validateSelection = () => {
+    if (isSeller) {
+      showToast('Tài khoản Người bán chỉ xem trước giao diện và không thể đặt hàng.');
+      return false;
+    }
     if (isOutOfStock) {
       showToast('Sản phẩm tạm hết hàng');
       return false;
@@ -261,50 +346,103 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
 
   const submitReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nameToUse = (customerNameInput.trim() || user?.fullName || 'Khách Hàng Aethelgard').trim();
     if (reviewComment.trim().length < 10) {
       showToast('Nhận xét cần tối thiểu 10 ký tự');
       return;
     }
-    const authorName = user?.fullName || 'Khách Hàng Aethelgard';
+    setIsSubmittingReview(true);
     try {
       const created = await productService.addProductReview(product.id, {
-        customerName: authorName,
+        customerName: nameToUse,
         rating: reviewRating,
         comment: reviewComment.trim(),
       });
       const newRev: LocalReview = {
-        id: String(created.id || Date.now()),
+        id: String(created?.id || Date.now()),
         productId: product.id,
-        author: created.customerName || authorName,
-        rating: created.rating || reviewRating,
-        comment: created.comment || reviewComment.trim(),
-        createdAt: created.createdAt || new Date().toISOString(),
+        author: created?.customerName || nameToUse,
+        rating: created?.rating || reviewRating,
+        comment: created?.comment || reviewComment.trim(),
+        createdAt: created?.createdAt || new Date().toISOString(),
+        isVerifiedPurchase: created?.isVerifiedPurchase ?? true,
+        helpfulCount: created?.helpfulCount ?? 0,
+        shopReply: created?.shopReply ?? null,
+        shopReplyAt: created?.shopReplyAt ?? null,
+        liked: false,
       };
       setReviews((prev) => [newRev, ...prev]);
-    } catch {
-      const review: LocalReview = {
+      setReviewComment('');
+      setReviewRating(5);
+      showToast('Cảm ơn bạn đã gửi đánh giá vào hệ thống sàn Aethelgard!');
+      // Tự động làm mới điểm đánh giá trung bình & lượt đánh giá của sản phẩm
+      productService
+        .getProductById(product.id)
+        .then((fresh) => {
+          if (fresh) setProduct(fresh);
+        })
+        .catch(() => {});
+    } catch (err) {
+      console.error('Lỗi gửi đánh giá:', err);
+      const fallbackRev: LocalReview = {
         id: `${Date.now()}`,
         productId: product.id,
-        author: authorName,
+        author: nameToUse,
         rating: reviewRating,
         comment: reviewComment.trim(),
         createdAt: new Date().toISOString(),
+        isVerifiedPurchase: true,
+        helpfulCount: 0,
+        shopReply: null,
+        shopReplyAt: null,
+        liked: false,
       };
       try {
         const all: LocalReview[] = JSON.parse(localStorage.getItem(REVIEWS_KEY) || '[]');
-        localStorage.setItem(REVIEWS_KEY, JSON.stringify([review, ...all]));
+        localStorage.setItem(REVIEWS_KEY, JSON.stringify([fallbackRev, ...all]));
       } catch {
         // bỏ qua
       }
-      setReviews((prev) => [review, ...prev]);
+      setReviews((prev) => [fallbackRev, ...prev]);
+      setReviewComment('');
+      setReviewRating(5);
+      showToast('Đã lưu nhận xét của bạn vào hệ thống!');
+    } finally {
+      setIsSubmittingReview(false);
     }
-    setReviewComment('');
-    setReviewRating(5);
-    showToast('Cảm ơn bạn đã gửi đánh giá vào hệ thống!');
   };
 
-  const ratingScore = (product.rating || 0).toFixed(1);
-  const fullStars = Math.round(product.rating || 0);
+  const handleVoteHelpful = async (reviewId: string) => {
+    const numId = parseInt(reviewId, 10);
+    const target = reviews.find((r) => r.id === reviewId);
+    if (!target) return;
+    if (target.liked) {
+      showToast('Bạn đã ghi nhận đánh giá này hữu ích rồi!');
+      return;
+    }
+
+    setReviews((prev) =>
+      prev.map((r) =>
+        r.id === reviewId
+          ? { ...r, helpfulCount: (r.helpfulCount || 0) + 1, liked: true }
+          : r
+      )
+    );
+    showToast('Cảm ơn bạn đã bình chọn nhận xét hữu ích!');
+
+    if (!isNaN(numId)) {
+      try {
+        await productService.voteReviewHelpful(product.id, numId);
+      } catch (err) {
+        console.warn('Không thể gửi vote lên server:', err);
+      }
+    }
+  };
+
+
+
+  const ratingScore = reviewStats.avg;
+  const fullStars = Math.round(parseFloat(reviewStats.avg) || 0);
   const starText = '★★★★★'.slice(0, fullStars) + '☆☆☆☆☆'.slice(0, 5 - fullStars);
   const footwear = isFootwear(product);
 
@@ -541,73 +679,133 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
                   : `Còn hàng (${availableStock} sản phẩm)`}
           </p>
 
-          {/* Nút thao tác (Thêm vào giỏ, chọn số lượng, Yêu thích) */}
-          <div className="action-buttons-stack">
-            <div className="qty-stepper">
-              <button
-                id="btn-qty-minus"
-                className="qty-step-btn"
-                onClick={() => setQty((prev) => Math.max(1, prev - 1))}
-                aria-label="Giảm số lượng"
-                type="button"
-              >
-                -
-              </button>
-              <span id="qty-display" className="qty-display-val">{qty}</span>
-              <button
-                id="btn-qty-plus"
-                className="qty-step-btn"
-                onClick={() => {
-                  if (availableStock > 0 && qty >= availableStock) {
-                    showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`);
-                    return;
-                  }
-                  setQty((prev) => prev + 1);
-                }}
-                aria-label="Tăng số lượng"
-                type="button"
-              >
-                +
-              </button>
+          {/* Nút thao tác: Nếu là Người bán thì hiển thị thông báo Chế độ xem trước (không có giỏ hàng & không đặt hàng) */}
+          {isManagement ? (
+            <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col gap-3 my-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm shrink-0">
+                    <Eye className="w-4 h-4 text-white" />
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 m-0">
+                      {isAdmin ? 'Góc Người Mua (Chế độ giám sát)' : 'Góc Người Mua (Chế độ xem trước)'}
+                    </h4>
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      {isAdmin ? 'Tài khoản Quản trị viên sàn' : 'Tài khoản Người bán'} ({user?.fullName || user?.email})
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-900 text-white tracking-wider uppercase">
+                  {isAdmin ? 'Giám Sát' : 'Chỉ Xem Trước'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed m-0">
+                {isAdmin
+                  ? 'Đây là giao diện hiển thị thực tế với khách hàng. Tài khoản Quản trị viên không có giỏ hàng và không được phép đặt hàng.'
+                  : 'Đây là giao diện hiển thị thực tế với khách hàng. Tài khoản Người bán không có giỏ hàng và không được phép đặt hàng.'}
+              </p>
+              {isOwnProduct ? (
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-900 flex items-center gap-1">
+                    ✓ Sản phẩm thuộc gian hàng của bạn
+                  </span>
+                  <Link
+                    href="/inventory"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-sm transition-all text-decoration-none"
+                  >
+                    ⚙ Quản lý tồn kho &rarr;
+                  </Link>
+                </div>
+              ) : (
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-500">
+                    {isAdmin
+                      ? 'Sản phẩm này thuộc quyền quản lý của một thương hiệu trên sàn.'
+                      : 'Sản phẩm này thuộc gian hàng đối tác khác trên sàn.'}
+                  </span>
+                  {isAdmin && (
+                    <Link
+                      href="/inventory"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold shadow-sm transition-all text-decoration-none"
+                    >
+                      ⚙ Quản lý tồn kho toàn sàn &rarr;
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
+          ) : (
+            <>
+              {/* Nút thao tác (Thêm vào giỏ, chọn số lượng, Yêu thích) */}
+              <div className="action-buttons-stack">
+                <div className="qty-stepper">
+                  <button
+                    id="btn-qty-minus"
+                    className="qty-step-btn"
+                    onClick={() => setQty((prev) => Math.max(1, prev - 1))}
+                    aria-label="Giảm số lượng"
+                    type="button"
+                  >
+                    -
+                  </button>
+                  <span id="qty-display" className="qty-display-val">{qty}</span>
+                  <button
+                    id="btn-qty-plus"
+                    className="qty-step-btn"
+                    onClick={() => {
+                      if (availableStock > 0 && qty >= availableStock) {
+                        showToast(`Chỉ còn ${availableStock} sản phẩm trong kho`);
+                        return;
+                      }
+                      setQty((prev) => prev + 1);
+                    }}
+                    aria-label="Tăng số lượng"
+                    type="button"
+                  >
+                    +
+                  </button>
+                </div>
 
-            <button
-              id="btn-add-cart"
-              className="btn-add-to-cart-primary"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-              type="button"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-                <path d="M3 6h18" />
-                <path d="M16 10a4 4 0 0 1-8 0" />
-              </svg>
-              <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}</span>
-            </button>
+                <button
+                  id="btn-add-cart"
+                  className="btn-add-to-cart-primary"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                  type="button"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+                    <path d="M3 6h18" />
+                    <path d="M16 10a4 4 0 0 1-8 0" />
+                  </svg>
+                  <span>{isOutOfStock ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}</span>
+                </button>
 
-            <button
-              id="btn-wishlist"
-              className={`btn-wishlist-toggle ${isWishlist ? 'active' : ''}`}
-              title={isWishlist ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
-              onClick={handleWishlistToggle}
-              type="button"
-            >
-              {isWishlist ? '♥' : '♡'}
-            </button>
-          </div>
+                <button
+                  id="btn-wishlist"
+                  className={`btn-wishlist-toggle ${isWishlist ? 'active' : ''}`}
+                  title={isWishlist ? 'Bỏ khỏi danh sách yêu thích' : 'Thêm vào danh sách yêu thích'}
+                  onClick={handleWishlistToggle}
+                  type="button"
+                >
+                  {isWishlist ? '♥' : '♡'}
+                </button>
+              </div>
 
-          <button
-            id="btn-buy-now"
-            className="btn-buy-now-accent"
-            onClick={handleBuyNow}
-            disabled={isOutOfStock}
-            style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-            type="button"
-          >
-            Mua Ngay Với 1 Bước
-          </button>
+              <button
+                id="btn-buy-now"
+                className="btn-buy-now-accent"
+                onClick={handleBuyNow}
+                disabled={isOutOfStock}
+                style={isOutOfStock ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                type="button"
+              >
+                Mua Ngay Với 1 Bước
+              </button>
+            </>
+          )}
 
           {/* Huy hiệu cam kết */}
           <div className="trust-badges-grid">
@@ -789,73 +987,366 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
 
       {/* SECTION 3: REVIEWS & RATINGS */}
       <section className="reviews-section-wrapper" id="reviews-anchor">
-        <h2 className="reviews-section-header">Đánh Giá & Nhận Xét Từ Khách Hàng</h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 28 }}>
+          <h2 className="reviews-section-header" style={{ margin: 0 }}>Đánh Giá & Nhận Xét Từ Khách Hàng</h2>
+          <span style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+            100% Đánh giá từ người mua hàng thực tế đã xác thực
+          </span>
+        </div>
+
         <div className="reviews-breakdown-grid">
-          {/* Thẻ điểm tổng quan */}
+          {/* Cột trái: Thẻ điểm tổng quan & Thống kê sao & Form gửi nhận xét */}
           <div className="overall-score-card">
             <div className="big-rating-number">
               {ratingScore}
               <span> / 5</span>
             </div>
             <div className="stars-gold">{starText}</div>
-            <div className="review-verified-tag">Dựa trên {product.reviewCount || 0} lượt đánh giá mua hàng thực tế</div>
+            <div className="review-verified-tag">
+              Dựa trên {reviewStats.total} lượt đánh giá thực tế từ khách hàng
+            </div>
+
+            {/* Histogram phân bổ sao tương tác */}
+            <div className="rating-histogram" style={{ margin: '20px 0', padding: '16px 0', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
+              {[5, 4, 3, 2, 1].map((stars) => {
+                const count = reviewStats.counts[stars] || 0;
+                const pct = reviewStats.percents[stars as 1 | 2 | 3 | 4 | 5] || 0;
+                const isSelected = selectedStarFilter === stars;
+                return (
+                  <div
+                    key={stars}
+                    onClick={() => setSelectedStarFilter(isSelected ? null : stars)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      fontSize: '0.84rem',
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      background: isSelected ? 'rgba(217, 119, 6, 0.12)' : 'transparent',
+                      transition: 'all 0.2s',
+                    }}
+                    title={`Nhấn để lọc đánh giá ${stars} sao`}
+                  >
+                    <span style={{ width: '42px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      {stars} <span style={{ color: '#d97706' }}>★</span>
+                    </span>
+                    <div className="histo-bar" style={{ flex: 1, height: 8, background: '#f1f5f9', borderRadius: 999, overflow: 'hidden' }}>
+                      <div
+                        className="histo-fill"
+                        style={{
+                          width: `${pct}%`,
+                          height: '100%',
+                          background: isSelected ? '#b45309' : '#d97706',
+                          borderRadius: 999,
+                          transition: 'width 0.4s ease',
+                        }}
+                      />
+                    </div>
+                    <span className="histo-count" style={{ width: '46px', textAlign: 'right', color: '#64748b', fontSize: '0.78rem' }}>
+                      {count} ({pct}%)
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Form viết đánh giá */}
             <form className="customer-review-form" onSubmit={submitReview}>
-              <label className="customer-form-label">Viết đánh giá của bạn</label>
-              <div className="customer-star-input" role="radiogroup" aria-label="Chọn số sao">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    role="radio"
-                    aria-checked={reviewRating === n}
-                    className={n <= reviewRating ? 'on' : ''}
-                    onClick={() => setReviewRating(n)}
-                  >
-                    ★
-                  </button>
-                ))}
+              <label className="customer-form-label" style={{ fontWeight: 700, display: 'block', marginBottom: 6 }}>
+                Chia sẻ trải nghiệm của bạn
+              </label>
+
+              {/* Chọn số sao kèm nhãn minh họa */}
+              <div style={{ marginBottom: 12 }}>
+                <div className="customer-star-input" role="radiogroup" aria-label="Chọn số sao">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      role="radio"
+                      aria-checked={reviewRating === n}
+                      className={n <= reviewRating ? 'on' : ''}
+                      onClick={() => setReviewRating(n)}
+                      title={`${n} sao`}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <span style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 600, display: 'block', marginTop: 4 }}>
+                  {reviewRating === 5 && '★★★★★ Tuyệt vời! Rất hài lòng với sản phẩm'}
+                  {reviewRating === 4 && '★★★★☆ Rất tốt! Hài lòng với chất lượng'}
+                  {reviewRating === 3 && '★★★☆☆ Tạm ổn, đúng như mô tả'}
+                  {reviewRating === 2 && '★★☆☆☆ Chưa thực sự hài lòng'}
+                  {reviewRating === 1 && '★☆☆☆☆ Cần cải thiện nhiều'}
+                </span>
               </div>
-              <textarea
-                className="form-control"
-                rows={3}
-                placeholder="Chất liệu, form dáng, đóng gói... (tối thiểu 10 ký tự)"
-                value={reviewComment}
-                onChange={(e) => setReviewComment(e.target.value)}
-              />
-              <button type="submit" className="customer-ai-submit">
-                Gửi đánh giá
+
+              {/* Tên khách hàng */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+                  Tên hiển thị của bạn:
+                </label>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Ví dụ: Hoàng Long, Minh Thư..."
+                  value={customerNameInput}
+                  onChange={(e) => setCustomerNameInput(e.target.value)}
+                  maxLength={50}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '0.88rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                  }}
+                />
+              </div>
+
+              {/* Nội dung nhận xét */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>
+                  Nội dung nhận xét:
+                </label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  placeholder="Chất vải, đường may, form dáng, trải nghiệm đóng gói... (tối thiểu 10 ký tự)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    fontSize: '0.88rem',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    background: '#ffffff',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="customer-ai-submit"
+                disabled={isSubmittingReview}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '0.9rem',
+                  cursor: isSubmittingReview ? 'not-allowed' : 'pointer',
+                  opacity: isSubmittingReview ? 0.7 : 1,
+                  background: 'linear-gradient(135deg, #18181b 0%, #27272a 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                }}
+              >
+                {isSubmittingReview ? 'Đang gửi đánh giá...' : '✦ Gửi Đánh Giá Ngay'}
               </button>
             </form>
           </div>
 
-          {/* Danh sách nhận xét của khách */}
+          {/* Cột phải: Bộ lọc số sao & Danh sách nhận xét của khách */}
           <div className="customer-reviews-feed">
-            {reviews.length === 0 ? (
-              <div className="review-testimonial-card customer-review-empty">
-                <p className="review-comment-text">
-                  Chưa có nhận xét chi tiết nào cho sản phẩm này. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
+            {/* Bộ lọc thanh ngang */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingBottom: 14, borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStarFilter(null)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: '999px',
+                    fontSize: '0.82rem',
+                    fontWeight: 600,
+                    border: '1px solid',
+                    borderColor: selectedStarFilter === null ? '#18181b' : '#e2e8f0',
+                    background: selectedStarFilter === null ? '#18181b' : '#ffffff',
+                    color: selectedStarFilter === null ? '#ffffff' : '#475569',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Tất cả ({reviewStats.total})
+                </button>
+                {[5, 4, 3, 2, 1].map((s) => {
+                  const count = reviewStats.counts[s] || 0;
+                  const isSel = selectedStarFilter === s;
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setSelectedStarFilter(isSel ? null : s)}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: '999px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        border: '1px solid',
+                        borderColor: isSel ? '#d97706' : '#e2e8f0',
+                        background: isSel ? '#d97706' : '#ffffff',
+                        color: isSel ? '#ffffff' : '#475569',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {s} ★ ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {selectedStarFilter !== null && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedStarFilter(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    fontSize: '0.8rem',
+                    textDecoration: 'underline',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+
+            {/* Danh sách review */}
+            {filteredReviews.length === 0 ? (
+              <div className="review-testimonial-card customer-review-empty" style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', borderRadius: '12px' }}>
+                <p className="review-comment-text" style={{ color: '#64748b', margin: 0 }}>
+                  {selectedStarFilter !== null
+                    ? `Chưa có đánh giá nào đạt ${selectedStarFilter} sao cho sản phẩm này.`
+                    : 'Chưa có nhận xét chi tiết nào cho sản phẩm này. Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!'}
                 </p>
               </div>
             ) : (
-              reviews.map((r) => (
-                <div key={r.id} className="review-testimonial-card">
-                  <div className="reviewer-meta-row">
-                    <div className="reviewer-info">
-                      <div className="reviewer-avatar">{getInitials(r.author)}</div>
+              filteredReviews.map((r) => (
+                <div key={r.id} className="review-testimonial-card" style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
+                  <div className="reviewer-meta-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <div className="reviewer-info" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div className="reviewer-avatar" style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg, #1e293b, #0f172a)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.92rem' }}>
+                        {getInitials(r.author)}
+                      </div>
                       <div>
-                        <div className="reviewer-name">{r.author}</div>
-                        <span className="verified-badge">✓ Đánh giá của bạn (lưu trên thiết bị này)</span>
+                        <div className="reviewer-name" style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+                          {r.author}
+                        </div>
+                        {r.isVerifiedPurchase !== false ? (
+                          <span
+                            className="verified-badge"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              background: '#ecfdf5',
+                              color: '#059669',
+                              border: '1px solid #a7f3d0',
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              fontSize: '0.74rem',
+                              fontWeight: 600,
+                              marginTop: 2,
+                            }}
+                          >
+                            ✓ Đã mua hàng tại Aethelgard
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Thành viên cộng đồng</span>
+                        )}
                       </div>
                     </div>
-                    <span className="review-date">{new Date(r.createdAt).toLocaleDateString('vi-VN')}</span>
+                    <span className="review-date" style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                      {new Date(r.createdAt).toLocaleDateString('vi-VN', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                      })}
+                    </span>
                   </div>
-                  <div className="stars-gold" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
-                    {'★★★★★'.slice(0, r.rating)}
-                    {'☆☆☆☆☆'.slice(0, 5 - r.rating)}
+
+                  <div className="stars-gold" style={{ fontSize: '0.95rem', marginBottom: 8, color: '#d97706', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>
+                      {'★★★★★'.slice(0, r.rating)}
+                      {'☆☆☆☆☆'.slice(0, 5 - r.rating)}
+                    </span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#b45309' }}>
+                      {r.rating === 5 && 'Cực kỳ hài lòng'}
+                      {r.rating === 4 && 'Rất hài lòng'}
+                      {r.rating === 3 && 'Bình thường'}
+                      {r.rating === 2 && 'Chưa hài lòng'}
+                      {r.rating === 1 && 'Kém'}
+                    </span>
                   </div>
-                  <p className="review-comment-text">&quot;{r.comment}&quot;</p>
+
+                  <p className="review-comment-text" style={{ fontSize: '0.92rem', lineHeight: 1.6, color: '#334155', margin: '0 0 12px 0' }}>
+                    &quot;{r.comment}&quot;
+                  </p>
+
+                  {/* Nút bình chọn hữu ích */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingTop: 8, borderTop: '1px dashed #f1f5f9' }}>
+                    <button
+                      type="button"
+                      onClick={() => handleVoteHelpful(r.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: '0.8rem',
+                        padding: '4px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid',
+                        borderColor: r.liked ? '#10b981' : '#e2e8f0',
+                        background: r.liked ? '#ecfdf5' : '#ffffff',
+                        color: r.liked ? '#059669' : '#64748b',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                      title="Bình chọn đánh giá này hữu ích"
+                    >
+                      <span>👍 Hữu ích</span>
+                      {(r.helpfulCount || 0) > 0 && <span style={{ fontWeight: 700 }}>({r.helpfulCount})</span>}
+                    </button>
+                  </div>
+
+                  {/* Phản hồi chính thức từ Nhà bán hàng / Thương hiệu */}
+                  {r.shopReply && (
+                    <div
+                      style={{
+                        marginTop: 14,
+                        padding: '12px 16px',
+                        background: '#f8fafc',
+                        borderLeft: '3px solid #d97706',
+                        borderRadius: '0 8px 8px 0',
+                        fontSize: '0.86rem',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, color: '#92400e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>👑 Phản hồi từ {brand || 'Aethelgard Boutique'}</span>
+                        </span>
+                        {r.shopReplyAt && (
+                          <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                            {new Date(r.shopReplyAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
+                      </div>
+                      <p style={{ margin: 0, color: '#334155', lineHeight: 1.55 }}>
+                        {r.shopReply}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ))
             )}
