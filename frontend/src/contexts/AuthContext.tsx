@@ -44,45 +44,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  // Bảo vệ trang: chuyển về đăng nhập nếu chưa xác thực (trừ trang đăng nhập & trang công khai)
+  const isLoginPage = pathname === '/login';
+
+  // Khu mua sắm công khai: cho phép xem danh mục sản phẩm & tra cứu đơn hàng
+  const isPublicShopperPage =
+    pathname === '/shop' ||
+    pathname.startsWith('/shop/track-order') ||
+    pathname.startsWith('/shop/wishlist') ||
+    pathname.startsWith('/product-detail');
+
+  // Trang nghiệp vụ dành riêng cho Seller hoặc Admin
+  const isSellerAdminOnlyPage =
+    pathname === '/inventory' ||
+    pathname === '/orders' ||
+    pathname === '/income-statistics' ||
+    pathname === '/vouchers' ||
+    pathname === '/transactions' ||
+    pathname === '/shop-profile' ||
+    pathname.startsWith('/seller') ||
+    pathname.startsWith('/admin');
+
+  // Bảo vệ trang: Mặc định chưa đăng nhập thì tự động chuyển về /login
   useEffect(() => {
     if (isLoading) return;
-    const isLoginPage = pathname === '/login';
-    // Khu mua sắm công khai: khách vãng lai được xem sản phẩm & tra cứu đơn không cần đăng nhập
-    const isPublicShopperPage =
-      pathname === '/shop' ||
-      pathname.startsWith('/shop/track-order') ||
-      pathname.startsWith('/shop/wishlist') ||
-      pathname.startsWith('/product-detail');
 
-    const isSellerOnlyPage =
-      pathname === '/' ||
-      pathname === '/inventory' ||
-      pathname === '/orders' ||
-      pathname === '/income-statistics' ||
-      pathname === '/vouchers' ||
-      pathname === '/transactions' ||
-      pathname === '/shop-profile';
-
+    // 1. Chưa đăng nhập: Mặc định chuyển hướng về /login (trừ khi đang ở /login hoặc trang mua sắm công khai)
     if (!token && !isLoginPage && !isPublicShopperPage) {
-      if (pathname === '/') {
-        router.replace('/shop');
-        return;
-      }
       sessionStorage.setItem(STORAGE_KEYS.REDIRECT_PATH, pathname);
       router.replace('/login');
-    } else if (token && user?.role === 'Customer' && isSellerOnlyPage) {
+      return;
+    }
+
+    // 2. Tài khoản Customer cố truy cập trang Seller/Admin hoặc Showroom nội bộ -> chuyển về /shop
+    if (token && user?.role === 'Customer' && (isSellerAdminOnlyPage || pathname === '/')) {
       router.replace(pathname === '/orders' ? '/shop/my-orders' : '/shop');
-    } else if (token && isLoginPage) {
+      return;
+    }
+
+    // 3. Tài khoản Seller cố truy cập trang /admin -> chuyển về trang chính /
+    if (token && user?.role === 'Seller' && pathname.startsWith('/admin')) {
+      router.replace('/');
+      return;
+    }
+
+    // 4. Đã đăng nhập nhưng đang ở /login -> chuyển về trang mặc định theo vai trò
+    if (token && isLoginPage) {
       const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
       const isCustomer = user?.role === 'Customer';
-      const defaultPath = isCustomer ? '/shop' : '/';
-      const isInvalidForCustomer = isCustomer && (!saved || saved === '/' || saved === '/login' || saved.startsWith('/inventory') || saved.startsWith('/orders') || saved.startsWith('/income'));
+      const isAdmin = user?.role === 'Admin';
+      const defaultPath = isAdmin ? '/admin' : isCustomer ? '/shop' : '/';
+      const isInvalidForCustomer = isCustomer && (!saved || saved === '/' || saved === '/login' || isSellerAdminOnlyPage);
       const redirect = isInvalidForCustomer ? defaultPath : (saved || defaultPath);
       sessionStorage.removeItem(STORAGE_KEYS.REDIRECT_PATH);
       router.replace(redirect);
     }
-  }, [token, isLoading, pathname, router, user]);
+  }, [token, isLoading, pathname, router, user, isLoginPage, isPublicShopperPage, isSellerAdminOnlyPage]);
 
   const login = useCallback((newToken: string, newUser: AuthUser) => {
     const userWithId = { ...newUser, id: newUser.id ?? newUser.userId };
@@ -92,7 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(userWithId);
 
     const isCustomer = newUser.role === 'Customer';
-    const defaultPath = isCustomer ? '/shop' : '/';
+    const isAdmin = newUser.role === 'Admin';
+    const defaultPath = isAdmin ? '/admin' : isCustomer ? '/shop' : '/';
     const saved = sessionStorage.getItem(STORAGE_KEYS.REDIRECT_PATH);
     const isInvalidSaved = !saved || saved === '/' || saved === '/login' || (isCustomer && (saved === '/' || saved.startsWith('/inventory') || saved.startsWith('/orders') || saved.startsWith('/income')));
     const redirect = isInvalidSaved ? defaultPath : saved;
@@ -109,9 +126,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login');
   }, [router]);
 
-  // Chỉ render nội dung trang nếu đang ở /login HOẶC đã xác thực thành công (có token)
-  const isLoginPage = pathname === '/login';
-  const canRender = isLoginPage || (!isLoading && !!token);
+  // Cho phép render nếu: đang ở /login HOẶC ở trang mua sắm công khai HOẶC đã có token đăng nhập
+  const canRender = !isLoading && (isLoginPage || isPublicShopperPage || !!token);
 
   return (
     <AuthContext.Provider value={{
@@ -135,13 +151,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             width: '44px',
             height: '44px',
             border: '3px solid #f1f5f9',
-            borderTop: '3px solid #7c3aed',
+            borderTop: '3px solid #0284c7',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
           <div style={{ textAlign: 'center' }}>
             <p style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.95rem', margin: 0 }}>
-              Aethelgard Shopping Mall
+              Aethelgard
             </p>
             <p style={{ color: '#64748b', fontSize: '0.82rem', marginTop: '4px' }}>
               Đang xác thực phiên đăng nhập...
