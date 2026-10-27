@@ -12,6 +12,7 @@ export interface Product {
   description: string;
   basePrice: number;
   originalPrice?: number;
+  costPrice?: number;
   discountPercent?: number;
   imageUrl: string;
   galleryUrls?: string[];
@@ -22,6 +23,7 @@ export interface Product {
   countryOfOrigin?: string;
   rating: number;
   reviewCount: number;
+  isActive?: boolean;
   variants?: ProductVariant[];
 }
 

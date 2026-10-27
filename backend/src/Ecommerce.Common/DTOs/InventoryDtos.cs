@@ -20,6 +20,9 @@ public class InventoryItemDto
     public int StockQuantity { get; set; }
     public string StockStatus { get; set; } = string.Empty;
     public int SafetyThreshold { get; set; } = 10;
+    public decimal CostPrice { get; set; }
+    public int ReservedStock { get; set; }
+    public bool IsActive { get; set; } = true;
 }
 
 public class RestockRequestDto

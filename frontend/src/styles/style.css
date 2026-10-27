@@ -379,9 +379,9 @@ body {
   max-width: 100%;
   padding: 0 4vw;
   margin: 0 auto;
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 /* BỘ LỌC THANH BÊN */
@@ -535,16 +535,17 @@ body {
   font-weight: 500;
 }
 
-/* LƯỚI THẺ SẢN PHẨM TOÀN CHIỀU RỘNG */
+/* LƯỚI THẺ SẢN PHẨM TOÀN CHIỀU RỘNG CHUẨN XA XỈ 4 CỘT (EDITORIAL LUXURY) */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 28px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 36px 20px;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1400px) {
   .product-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px 18px;
   }
 }
 
@@ -554,12 +555,14 @@ body {
   }
   .product-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 24px 14px;
   }
 }
 
 @media (max-width: 600px) {
   .product-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px 10px;
   }
 }
 
