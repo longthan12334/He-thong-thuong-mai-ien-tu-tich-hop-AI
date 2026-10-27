@@ -18,7 +18,14 @@ export const inventoryService = {
   },
 
   async restock(data: RestockRequest): Promise<boolean> {
-    await apiClient.post('/inventory/restock', data);
-    return true;
+    try {
+      const res = await apiClient.post('/inventory/restock', data);
+      return res.data?.success ?? true;
+    } catch (err: any) {
+      if (err.response?.data?.message) {
+        throw new Error(err.response.data.message);
+      }
+      throw err;
+    }
   },
 };

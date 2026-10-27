@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IStoreService, StoreService>();
         services.AddScoped<IAIService, AIService>();
         services.AddScoped<IVnpayService, VnpayService>();
+        services.AddScoped<IAdminService, AdminService>();
         services.AddHttpClient();
 
         // 4. Cấu hình AutoMapper
