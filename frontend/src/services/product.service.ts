@@ -78,4 +78,18 @@ export const productService = {
     const res = await apiClient.post(`/products/${productId}/reviews`, data);
     return res.data;
   },
+
+  async voteReviewHelpful(productId: number, reviewId: number): Promise<number> {
+    try {
+      const res = await apiClient.post(`/products/${productId}/reviews/${reviewId}/helpful`);
+      return res.data?.helpfulCount ?? 0;
+    } catch {
+      return 0;
+    }
+  },
+
+  async replyToReview(productId: number, reviewId: number, reply: string): Promise<any> {
+    const res = await apiClient.post(`/products/${productId}/reviews/${reviewId}/reply`, { reply });
+    return res.data;
+  },
 };

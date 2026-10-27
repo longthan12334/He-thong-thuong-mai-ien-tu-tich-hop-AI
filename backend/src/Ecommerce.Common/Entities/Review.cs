@@ -9,4 +9,8 @@ public class Review : BaseEntity
     public string CustomerName { get; set; } = string.Empty;
     public int Rating { get; set; } = 5;
     public string Comment { get; set; } = string.Empty;
+    public bool IsVerifiedPurchase { get; set; } = true;
+    public int HelpfulCount { get; set; } = 0;
+    public string? ShopReply { get; set; }
+    public DateTime? ShopReplyAt { get; set; }
 }
