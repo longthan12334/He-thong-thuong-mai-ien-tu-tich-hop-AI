@@ -10,10 +10,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format số thành tiền VNĐ: 2,790,000 đ
+ * Format số thành tiền VNĐ chuẩn: 2.790.000 ₫ (Item 22)
  */
-export function formatVND(amount: number): string {
-  return amount.toLocaleString('vi-VN') + ' đ';
+export function formatVND(amount?: number | null): string {
+  if (amount === undefined || amount === null || isNaN(amount)) return '0 ₫';
+  return amount.toLocaleString('vi-VN') + ' ₫';
 }
 
 /**
@@ -24,12 +25,72 @@ export function formatUSD(amount: number): string {
 }
 
 /**
+ * Định dạng ngày giờ chuẩn tiếng Việt (Item 35)
+ */
+export function formatDate(
+  dateInput?: string | Date | null,
+  formatType: 'date' | 'time' | 'datetime' | 'relative' = 'date'
+): string {
+  if (!dateInput) return '';
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  if (isNaN(date.getTime())) return '';
+
+  if (formatType === 'time') {
+    return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  if (formatType === 'datetime') {
+    return `${date.toLocaleDateString('vi-VN')} ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  return date.toLocaleDateString('vi-VN');
+}
+
+/**
+ * Xuất dữ liệu ra file CSV chuẩn UTF-8 có BOM (Item 38)
+ */
+export function exportToCsv<T>(
+  data: T[],
+  columns: { key: keyof T | ((item: T) => any); label: string }[],
+  filename: string
+): void {
+  if (!data || data.length === 0) return;
+
+  const headerRow = columns.map((col) => `"${col.label.replace(/"/g, '""')}"`).join(',');
+  const rows = data.map((item) =>
+    columns
+      .map((col) => {
+        let val: any;
+        if (typeof col.key === 'function') {
+          val = col.key(item);
+        } else {
+          val = item[col.key];
+        }
+        if (val === undefined || val === null) val = '';
+        return `"${String(val).replace(/"/g, '""')}"`;
+      })
+      .join(',')
+  );
+
+  const csvContent = '\uFEFF' + [headerRow, ...rows].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename.endsWith('.csv') ? filename : `${filename}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
  * Lấy chữ cái đầu từ tên (cho avatar)
  */
 export function getInitials(name: string): string {
   return name
     .split(' ')
-    .map(word => word.charAt(0))
+    .map((word) => word.charAt(0))
     .join('')
     .toUpperCase()
     .substring(0, 2);
@@ -47,7 +108,7 @@ export function truncateText(text: string, maxLength: number): string {
  * Hàm tạm dừng cho các thao tác bất đồng bộ
  */
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

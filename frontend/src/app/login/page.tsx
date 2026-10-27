@@ -22,10 +22,8 @@ const DUAL_IMAGE_PAIRS = [
  * - Seller/Admin giữ nguyên hành vi cũ
  */
 function resolvePostLoginPath(role: string | undefined, savedPath: string | null): string {
-  const isCustomer = !role || role === 'Customer';
-  if (!isCustomer) return savedPath || '/';
-  if (savedPath && savedPath !== '/' && savedPath !== '/login') return savedPath;
-  return '/shop';
+  if (savedPath && savedPath !== '/login' && savedPath !== '/shop') return savedPath;
+  return '/';
 }
 
 export default function LoginPage() {
@@ -464,7 +462,7 @@ export default function LoginPage() {
                       style={{ zIndex: 20 }}
                       aria-label="Hiện/ẩn mật khẩu"
                     >
-                      {showLoginPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
+                      {showLoginPassword ? <EyeOff className="w-5 h-5 text-sky-600" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
                 </div>
@@ -530,7 +528,7 @@ export default function LoginPage() {
                       style={{ zIndex: 20 }}
                       aria-label="Hiện/ẩn mật khẩu"
                     >
-                      {showRegPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
+                      {showRegPassword ? <EyeOff className="w-5 h-5 text-sky-600" /> : <Eye className="w-5 h-5" />}
                     </button>
                   </div>
 
@@ -802,7 +800,7 @@ export default function LoginPage() {
                         style={{ zIndex: 20 }}
                         aria-label="Hiện/ẩn mật khẩu"
                       >
-                        {showNewPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
+                        {showNewPassword ? <EyeOff className="w-5 h-5 text-sky-600" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
 
@@ -849,7 +847,7 @@ export default function LoginPage() {
                         style={{ zIndex: 20 }}
                         aria-label="Hiện/ẩn mật khẩu"
                       >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5 text-purple-600" /> : <Eye className="w-5 h-5" />}
+                        {showConfirmPassword ? <EyeOff className="w-5 h-5 text-sky-600" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>

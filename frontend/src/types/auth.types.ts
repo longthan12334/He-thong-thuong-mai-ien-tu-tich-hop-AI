@@ -4,6 +4,7 @@ export interface AuthUser {
   userId: number;
   fullName: string;
   email: string;
+  phoneNumber?: string;
   role: 'Admin' | 'Seller' | 'Customer';
   avatarUrl?: string;
 }
@@ -17,6 +18,7 @@ export interface RegisterRequest {
   fullName: string;
   email: string;
   password: string;
+  phoneNumber?: string;
   /** Mặc định đăng ký tài khoản Khách hàng; nâng cấp Seller qua luồng "Mở Gian Hàng" */
   role?: 'Customer' | 'Seller';
 }
@@ -26,6 +28,7 @@ export interface LoginResponse {
   userId: number;
   fullName: string;
   email: string;
+  phoneNumber?: string;
   role: 'Admin' | 'Seller' | 'Customer';
   avatarUrl?: string;
 }
@@ -48,7 +51,8 @@ export interface ResetPasswordRequest {
 export interface ApplySellerRequest {
   storeName: string;
   phoneNumber?: string;
-  address?: string;
-  description?: string;
+  identityCardNumber?: string;
+  identityCardName?: string;
+  businessAddress?: string;
+  taxNumber?: string;
 }
-
