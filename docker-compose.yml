@@ -13,6 +13,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/fashion_mall.db
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Gemini__Model=gemini-3-flash-preview
       - Jwt__Key=AethelgardSuperSecretKey2026NguyenDucManh9999!
@@ -28,7 +29,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 25s
 
   # ========================================================
   # 2. Frontend Web App (Next.js 16)
@@ -37,6 +38,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
     container_name: aethelgard-frontend
     restart: unless-stopped
     ports:
@@ -44,7 +47,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3001
-      - NEXT_PUBLIC_API_URL=http://localhost:5000/api
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
     depends_on:
       backend:
         condition: service_started
