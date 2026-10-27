@@ -23,6 +23,8 @@ public interface IProductService
     Task<List<CategoryDto>> GetCategoriesAsync();
     Task<List<ReviewDto>> GetProductReviewsAsync(int productId);
     Task<ReviewDto> AddProductReviewAsync(int productId, CreateReviewDto request, int? userId = null);
+    Task<int> ToggleReviewHelpfulAsync(int productId, int reviewId);
+    Task<ReviewDto> ReplyToReviewAsync(int productId, int reviewId, string replyText, int? currentUserId = null, string? currentRole = null);
 }
 
 public interface IOrderService
