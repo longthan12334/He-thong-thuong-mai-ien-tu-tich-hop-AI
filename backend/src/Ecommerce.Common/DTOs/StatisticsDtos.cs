@@ -11,9 +11,10 @@ public class IncomeSummaryDto
     public int NewCustomers { get; set; }
     public double ConversionRate { get; set; }
     public double GrowthPercent { get; set; }
+    public int ShopViews { get; set; }
+    public List<CategoryRevenueDto> CategoryBreakdown { get; set; } = new();
     public List<MonthlyDataDto> MonthlyMatrix { get; set; } = new();
     public List<TransactionDto> RecentTransactions { get; set; } = new();
-    public List<CategoryRevenueDto> CategoryBreakdown { get; set; } = new();
 }
 
 public class CategoryRevenueDto
@@ -22,6 +23,7 @@ public class CategoryRevenueDto
     public decimal Revenue { get; set; }
     public int ItemsSold { get; set; }
     public double Percentage { get; set; }
+    public int OrderCount { get; set; }
 }
 
 public class MonthlyDataDto

@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
 import ProductDetailClient from './ProductDetailClient';
-import { fallbackProducts } from '@/lib/mock-data';
-import { API_BASE_URL } from '@/lib/constants';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -19,7 +17,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   let product: any = null;
 
   try {
-    const res = await fetch(`${API_BASE_URL}/products/${numId}`, {
+    const res = await fetch(`http://localhost:5000/api/products/${numId}`, {
       next: { revalidate: 60 },
     });
     if (res.ok) {
@@ -29,9 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Dự phòng dữ liệu mẫu nếu API backend ngắt kết nối
   }
 
-  if (!product) {
-    product = fallbackProducts.find((p) => p.id === numId);
-  }
+  
 
   if (!product) {
     return {
@@ -85,15 +81,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   let product: any = null;
   try {
-    const res = await fetch(`${API_BASE_URL}/products/${numId}`, {
+    const res = await fetch(`http://localhost:5000/api/products/${numId}`, {
       next: { revalidate: 60 },
     });
     if (res.ok) product = await res.json();
   } catch {}
 
-  if (!product) {
-    product = fallbackProducts.find((p) => p.id === numId);
-  }
+  
 
   // Schema Markup chuẩn JSON-LD cho Google Shopping & Rich Results
   const jsonLd = product
