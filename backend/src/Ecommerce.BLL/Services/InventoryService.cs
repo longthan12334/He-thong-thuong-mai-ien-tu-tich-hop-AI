@@ -1,8 +1,9 @@
-using Ecommerce.BLL.Interfaces;
+﻿using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Ecommerce.Common.Enums;
 using Ecommerce.Common.Exceptions;
 using Ecommerce.DAL.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.BLL.Services;
 
@@ -39,6 +40,18 @@ public class InventoryService : IInventoryService
         var totalStockValue = products.Sum(p => p.BasePrice * p.StockQuantity);
         var lowStockCount = products.Count(p => p.StockQuantity <= 10);
 
+        var pendingOrders = await _unitOfWork.Orders.Query()
+            .AsNoTracking()
+            .Where(o => o.Status == OrderStatus.Pending || o.Status == OrderStatus.Confirmed || o.Status == OrderStatus.Processing)
+            .Include(o => o.Items)
+            .ToListAsync();
+
+        var reservedCounts = pendingOrders
+            .SelectMany(o => o.Items)
+            .Where(i => i.ProductId.HasValue)
+            .GroupBy(i => i.ProductId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity));
+
         var items = products.Select(p => new InventoryItemDto
         {
             Id = p.Id,
@@ -49,7 +62,10 @@ public class InventoryService : IInventoryService
             Price = p.BasePrice,
             StockQuantity = p.StockQuantity,
             StockStatus = p.StockQuantity == 0 ? "OUT_OF_STOCK" : (p.StockQuantity <= 10 ? "LOW_STOCK" : "IN_STOCK"),
-            SafetyThreshold = 10
+            SafetyThreshold = 10,
+            CostPrice = p.CostPrice > 0 ? p.CostPrice : Math.Round(p.BasePrice * 0.6m),
+            ReservedStock = reservedCounts.TryGetValue(p.Id, out var rQty) ? rQty : 0,
+            IsActive = p.IsActive
         }).ToList();
 
         return new InventorySummaryDto

@@ -20,11 +20,20 @@ export interface Transaction {
   total: string;
 }
 
+export interface CategoryRevenue {
+  categoryName: string;
+  revenue: number;
+  percentage: number;
+  orderCount: number;
+}
+
 export interface IncomeSummary {
   totalRevenue: number;
   monthlyRevenue: number;
   totalOrders: number;
   growthPercent: number;
+  shopViews?: number;
+  categoryBreakdown?: CategoryRevenue[];
   monthlyMatrix: MonthlyData[];
   recentTransactions: Transaction[];
 }

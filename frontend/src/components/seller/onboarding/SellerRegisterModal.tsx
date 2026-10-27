@@ -80,14 +80,14 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
             <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4 animate-bounce" />
             <h3 className="text-2xl font-bold text-slate-900 mb-2">Đăng Ký Thành Công!</h3>
             <p className="text-slate-600 text-sm">
-              Gian hàng <span className="font-semibold text-indigo-600">{storeName}</span> của bạn đã sẵn sàng.
+              Gian hàng <span className="font-semibold text-sky-600">{storeName}</span> của bạn đã sẵn sàng.
               Đang chuyển hướng đến Trang Quản Trị Seller...
             </p>
           </div>
         ) : (
           <>
             <div className="flex items-center gap-3 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+              <div className="w-12 h-12 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
                 <Store className="w-6 h-6" />
               </div>
               <div>
@@ -115,7 +115,7 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
                     placeholder="Ví dụ: Gucci Official Store"
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all"
                   />
                 </div>
               </div>
@@ -132,7 +132,7 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="0988 888 888"
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all"
                   />
                 </div>
               </div>
@@ -148,7 +148,7 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Địa chỉ gửi hàng & trả hàng"
-                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full h-11 pl-10 pr-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all"
                   />
                 </div>
               </div>
@@ -164,7 +164,7 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Mặt hàng chủ lực, phân khúc..."
-                    className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all"
+                    className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all"
                   />
                 </div>
               </div>
@@ -181,7 +181,7 @@ export function SellerRegisterModal({ isOpen, onClose, user, onSuccess }: Seller
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-md shadow-indigo-100 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                  className="flex-1 h-11 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-semibold text-sm shadow-md shadow-sky-100 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
                 >
                   {loading ? 'Đang kích hoạt...' : 'Kích Hoạt Gian Hàng Ngay'}
                 </button>

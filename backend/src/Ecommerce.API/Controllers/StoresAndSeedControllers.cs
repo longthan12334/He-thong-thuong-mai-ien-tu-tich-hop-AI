@@ -19,10 +19,18 @@ public class StoresController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<StoreDto>>> GetAllStores()
+    public async Task<ActionResult<List<StoreDto>>> GetAllStores([FromQuery] string? brand = null)
     {
-        var stores = await _storeService.GetAllStoresAsync();
+        var stores = await _storeService.GetAllStoresAsync(brand);
         return Ok(stores);
+    }
+
+    [HttpGet("profile/{brandOrSellerId}")]
+    public async Task<ActionResult<StoreProfileDto>> GetStoreProfile(string brandOrSellerId)
+    {
+        var profile = await _storeService.GetStoreProfileAsync(brandOrSellerId);
+        if (profile == null) return NotFound(new { message = "Không tìm thấy hồ sơ thương hiệu / cửa hàng." });
+        return Ok(profile);
     }
 
     [HttpGet("{storeCode}")]

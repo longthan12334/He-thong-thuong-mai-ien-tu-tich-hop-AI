@@ -8,8 +8,6 @@ export const APP_SHORT_NAME = 'Aethelgard Mall';
 
 /** Cấu hình API */
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
-// Tăng từ 4000ms → 10000ms: Backend .NET cần thời gian warm-up JIT + DB connection pool
-// lần đầu chạy. 4s quá ngắn gây timeout trước khi nhận được response.
 export const API_TIMEOUT = 10000;
 
 /** Khóa lưu trữ localStorage */
@@ -17,6 +15,10 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'aethelgard_token',
   AUTH_USER: 'aethelgard_user',
   REDIRECT_PATH: 'redirect_after_login',
+  STOCK_AUDIT: 'AETHELGARD_STOCK_AUDIT_LOG',
+  SHOP_HERO_TITLE: 'AETHELGARD_SHOP_HERO_TITLE',
+  SHOP_HERO_SUB: 'AETHELGARD_SHOP_HERO_SUB',
+  SHOP_VIEWS: 'AETHELGARD_SHOP_VIEWS',
 } as const;
 
 /** Routes — dùng cho navigation, redirect, guards */
@@ -46,7 +48,7 @@ export const SELLER_NAV_LINKS = [
   { name: 'Hồ sơ shop', href: '/shop-profile' },
 ] as const;
 
-/** Hằng số trạng thái đơn hàng */
+/** Hằng số trạng thái đơn hàng (Item 25) */
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
@@ -70,6 +72,23 @@ export const STOCK_STATUS = {
   IN_STOCK: 'IN_STOCK',
   LOW_STOCK: 'LOW_STOCK',
   OUT_OF_STOCK: 'OUT_OF_STOCK',
+} as const;
+
+/** Danh sách ảnh mẫu dùng chung (Item 26) */
+export const SAMPLE_PRODUCT_IMAGES = [
+  '/img/products/gucci-sneaker.jpg',
+  '/img/products/gucci-runway.jpg',
+  '/img/products/adidas-samba.jpg',
+  '/img/products/adidas-sakura-hoodie.jpg',
+  '/img/products/sample-velora.jpg',
+  '/img/products/gucci-collection.jpg',
+] as const;
+
+/** Hằng số chuỗi sự kiện SignalR dùng chung (Item 30) */
+export const SIGNALR_EVENTS = {
+  RECEIVE_ORDER_CREATED: 'ReceiveOrderCreated',
+  RECEIVE_ORDER_STATUS_UPDATED: 'ReceiveOrderStatusUpdated',
+  RECEIVE_PAYMENT_CONFIRMED: 'ReceivePaymentConfirmed',
 } as const;
 
 /** Pagination */

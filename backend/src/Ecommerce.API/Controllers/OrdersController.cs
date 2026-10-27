@@ -8,6 +8,7 @@ using Ecommerce.DAL.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Ecommerce.API.Controllers;
 
@@ -74,17 +75,31 @@ public class OrdersController : ControllerBase
 
         try
         {
-            // Chỉ gửi thông báo "Đơn hàng mới" tới nhóm Người bán (Sellers / Admin)
-            await _hubContext.Clients.Group("Sellers").SendAsync("ReceiveOrderCreated", new
+            var pIds = result.Items
+                .Where(it => it.ProductId.HasValue)
+                .Select(it => it.ProductId!.Value)
+                .Distinct()
+                .ToList();
+
+            var relevantSellers = await _unitOfWork.Products.Query()
+                .Where(p => pIds.Contains(p.Id))
+                .Select(p => p.SellerId)
+                .Distinct()
+                .ToListAsync();
+
+            foreach (var sId in relevantSellers)
             {
-                orderId = result.Id,
-                orderCode = result.OrderCode,
-                customerName = result.CustomerName,
-                totalAmount = result.TotalAmount,
-                createdAt = result.CreatedAt,
-                title = "Đơn Hàng Mới Cho Shop!",
-                message = $"Khách hàng {result.CustomerName} vừa đặt đơn {result.OrderCode} ({result.TotalAmount:N0} đ)."
-            });
+                await _hubContext.Clients.Group($"Seller_{sId}").SendAsync("ReceiveOrderCreated", new
+                {
+                    orderId = result.Id,
+                    orderCode = result.OrderCode,
+                    customerName = result.CustomerName,
+                    totalAmount = result.TotalAmount,
+                    createdAt = result.CreatedAt,
+                    title = "Đơn Hàng Mới Cho Gian Hàng!",
+                    message = $"Khách hàng {result.CustomerName} vừa đặt đơn #{result.OrderCode} ({result.TotalAmount:N0} đ)."
+                });
+            }
         }
         catch { }
 

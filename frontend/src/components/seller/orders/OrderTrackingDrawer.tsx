@@ -29,7 +29,22 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
 }) => {
   const [lookupId, setLookupId] = useState('');
 
-  if (!isOpen || !order) return null;
+  const [shouldRender, setShouldRender] = useState(isOpen);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen && order) {
+      setShouldRender(true);
+      const timer = setTimeout(() => setIsAnimating(true), 20);
+      return () => clearTimeout(timer);
+    } else {
+      setIsAnimating(false);
+      const timer = setTimeout(() => setShouldRender(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, order]);
+
+  if (!shouldRender || !order) return null;
 
   const handleLookupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,7 +60,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
   return (
     <div
       id="track-order-modal"
-      className="track-drawer-backdrop active"
+      className={`track-drawer-backdrop ${isAnimating ? 'active' : ''}`}
       onClick={(e) => {
         if (
           e.target === e.currentTarget ||
@@ -282,7 +297,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                 )}
                 <div className="flex justify-between text-sm font-extrabold text-slate-900 border-t border-slate-200 pt-2">
                   <span>TỔNG CỘNG:</span>
-                  <span className="text-purple-600">{formatVND(order.totalAmount)}</span>
+                  <span className="text-sky-600">{formatVND(order.totalAmount)}</span>
                 </div>
               </div>
 
@@ -295,7 +310,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                       onConfirmOrder(order);
                       onClose();
                     }}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
                   >
                     Xác Nhận Đơn Hàng
                   </button>
@@ -308,7 +323,7 @@ export const OrderTrackingDrawer: React.FC<OrderTrackingDrawerProps> = ({
                       onShipOrder(order);
                       onClose();
                     }}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs transition-all shadow-sm cursor-pointer"
                   >
                     Giao Vận Chuyển FedEx
                   </button>
