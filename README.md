@@ -62,7 +62,7 @@ Hệ thống E-Commerce thời trang cao cấp hoàn chỉnh với kiến trúc 
 │       ├── services/                          # Tầng API Client (auth, product, order, inventory, stats, store)
 │       ├── types/                             # TypeScript Domain Types (auth, product, order, inventory...)
 │       ├── styles/                            # CSS Design System & Global Styles
-│       └── lib/                               # Tiện ích chung (formatVND, utils, mock-data)
+│       └── lib/                               # Tiện ích chung (formatVND, utils, api-client)
 │
 ├── scripts/
 │   ├── start-backend.cmd                      # Khởi động Backend Web API (.NET) tại Port 5000

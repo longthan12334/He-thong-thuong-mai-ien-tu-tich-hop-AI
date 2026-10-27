@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import ProductDetailClient from './ProductDetailClient';
-import { fallbackProducts } from '@/lib/mock-data';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -28,9 +27,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Dự phòng dữ liệu mẫu nếu API backend ngắt kết nối
   }
 
-  if (!product) {
-    product = fallbackProducts.find((p) => p.id === numId);
-  }
+  
 
   if (!product) {
     return {
@@ -90,9 +87,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
     if (res.ok) product = await res.json();
   } catch {}
 
-  if (!product) {
-    product = fallbackProducts.find((p) => p.id === numId);
-  }
+  
 
   // Schema Markup chuẩn JSON-LD cho Google Shopping & Rich Results
   const jsonLd = product
