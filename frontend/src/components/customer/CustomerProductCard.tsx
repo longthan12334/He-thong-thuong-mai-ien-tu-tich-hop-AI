@@ -99,7 +99,23 @@ export const CustomerProductCard: React.FC<CustomerProductCardProps> = ({ produc
       </div>
 
       <div className="product-info">
-        {brand && <div className="product-brand">{brand}</div>}
+        {brand && (
+          <div
+            className="product-brand inline-flex items-center gap-1 hover:text-sky-600 transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              const prodSellerId = 'sellerId' in product ? (product as any).sellerId : undefined;
+              const shopUrl = prodSellerId
+                ? `/shop-profile?sellerId=${prodSellerId}&brand=${encodeURIComponent(brand)}`
+                : `/shop-profile?brand=${encodeURIComponent(brand)}`;
+              router.push(shopUrl);
+            }}
+            title={`Xem gian hàng chính hãng ${brand}`}
+          >
+            <span>{brand}</span>
+            <span className="text-[10px] text-slate-400">↗</span>
+          </div>
+        )}
         <h3 className="product-title" title={product.name}>
           {parsedTitle || product.name}
         </h3>
