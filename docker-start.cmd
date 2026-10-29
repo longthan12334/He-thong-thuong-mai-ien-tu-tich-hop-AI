@@ -25,26 +25,9 @@ if %ERRORLEVEL% NEQ 0 (
 echo [v] Docker Engine da san sang!
 echo.
 
-:: 2. Kiem tra va dong goi Backend .NET 10 neu chua co
-if not exist "backend\publish_linux\Ecommerce.API" (
-    echo [*] Bien dich Backend .NET 10 cho Linux Container...
-    dotnet publish backend\src\Ecommerce.API\Ecommerce.API.csproj -c Release -r linux-x64 --self-contained true -o backend\publish_linux
-    if %ERRORLEVEL% NEQ 0 (
-        echo [!] Loi bien dich Backend .NET 10.
-        pause
-        popd
-        exit /b 1
-    )
-)
-
-:: 3. Build va Khoi chay Docker Compose
-echo [*] Dang khoi chay cac Container qua Docker Compose...
-docker compose up -d
-
-if %ERRORLEVEL% NEQ 0 (
-    echo [*] Thuc hien build lai container...
-    docker compose up --build -d
-)
+:: 2. Build va Khoi chay Docker Compose (Tu dong build va khoi chay moi nhat)
+echo [*] Dang dong goi va khoi chay cac Container qua Docker Compose...
+docker compose up --build -d
 
 if %ERRORLEVEL% NEQ 0 (
     echo [!] Co loi xay ra trong qua trinh build hoac chay Docker Compose.
