@@ -523,7 +523,16 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
               marginBottom: '20px',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Link
+              href={
+                product?.sellerId
+                  ? `/shop-profile?sellerId=${product.sellerId}&brand=${encodeURIComponent(brand || '')}`
+                  : brand
+                  ? `/shop-profile?brand=${encodeURIComponent(brand)}`
+                  : '/shop-profile'
+              }
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none', color: 'inherit' }}
+            >
               <div
                 style={{
                   width: '42px',
@@ -560,9 +569,15 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
                   {brandProductCount > 0 ? `${brandProductCount} sản phẩm trên sàn` : 'Gian hàng đối tác'} • Bảo đảm hàng chính hãng
                 </div>
               </div>
-            </div>
+            </Link>
             <Link
-              href={brand ? `/shop?brand=${encodeURIComponent(brand)}` : '/shop'}
+              href={
+                product?.sellerId
+                  ? `/shop-profile?sellerId=${product.sellerId}&brand=${encodeURIComponent(brand || '')}`
+                  : brand
+                  ? `/shop-profile?brand=${encodeURIComponent(brand)}`
+                  : '/shop-profile'
+              }
               style={{
                 padding: '8px 16px',
                 background: '#FFFFFF',
@@ -573,6 +588,7 @@ export default function ProductDetailClient({ initialProductId }: { initialProdu
                 color: 'var(--text-main)',
                 textDecoration: 'none',
                 transition: 'all 0.2s',
+                whiteSpace: 'nowrap',
               }}
             >
               Xem Gian Hàng →

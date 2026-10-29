@@ -1,0 +1,166 @@
+name: Aethelgard Mall CI (Continuous Integration)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - hoang
+      - 'feature/**'
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
+  pull_request:
+    branches:
+      - main
+      - master
+      - hoang
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ========================================================
+  # Job 1: Kiểm tra & Kiểm thử tự động Backend .NET 10
+  # ========================================================
+  backend-ci:
+    name: Backend CI (.NET 10 & Tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout Mã Nguồn
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Cài đặt .NET 10 SDK
+        run: |
+          curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 10.0 --install-dir /usr/share/dotnet
+          echo "/usr/share/dotnet" >> $GITHUB_PATH
+          echo "DOTNET_ROOT=/usr/share/dotnet" >> $GITHUB_ENV
+          echo "DOTNET_NOLOGO=true" >> $GITHUB_ENV
+          echo "DOTNET_CLI_TELEMETRY_OPTOUT=1" >> $GITHUB_ENV
+
+      - name: 🔍 Kiểm tra phiên bản .NET SDK
+        run: dotnet --version
+
+      - name: 📦 Restore NuGet Packages
+        run: dotnet restore backend/Ecommerce.slnx
+
+      - name: 🔨 Biên dịch Backend (Release Mode)
+        run: dotnet build backend/Ecommerce.slnx -c Release --no-restore
+
+      - name: 🧪 Chạy Toàn Bộ Unit & Integration Tests
+        run: |
+          dotnet test backend/Ecommerce.slnx -c Release --no-build \
+            --verbosity normal \
+            --collect:"XPlat Code Coverage" \
+            --results-directory backend/TestResults
+
+      - name: 📊 Upload Kết quả Kiểm thử (Artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/TestResults
+          retention-days: 7
+
+  # ========================================================
+  # Job 2: Kiểm tra Lint, TypeScript & Build Frontend Next.js
+  # ========================================================
+  frontend-ci:
+    name: Frontend CI (Next.js & TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: 📥 Checkout Mã Nguồn
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Cài đặt Node.js 20 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 📦 Cài đặt NPM Dependencies
+        run: npm ci
+
+      - name: 🔍 Kiểm tra Kiểu Dữ Liệu TypeScript
+        run: npx tsc --noEmit
+
+      - name: 🎨 Kiểm tra Linter (ESLint)
+        run: npm run lint --if-present
+
+      - name: 🚀 Biên dịch Next.js Production Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:5000/api
+          NODE_ENV: production
+
+  # ========================================================
+  # Job 3: Đóng gói và Smoke Test toàn bộ hệ thống Docker
+  # ========================================================
+  docker-smoke-test:
+    name: Docker Compose Smoke Test
+    needs: [backend-ci, frontend-ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout Mã Nguồn
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Thiết lập Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔍 Kiểm tra cú pháp docker-compose.yml
+        run: docker compose config
+
+      - name: 🐳 Đóng gói & Khởi chạy Docker Compose
+        run: |
+          docker compose up --build -d
+          docker compose ps
+
+      - name: 🏥 Kiểm tra Trạng thái Sức khỏe Backend API
+        run: |
+          echo "Đang chờ Backend khởi động và nạp dữ liệu..."
+          for i in {1..30}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/products?pageSize=1 || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Backend API sẵn sàng (HTTP 200)!"
+              curl -s http://localhost:5000/api/products?pageSize=1 | grep -q "totalCount" && echo "✅ CSDL SQLite 8.620 sản phẩm phản hồi thành công!"
+              exit 0
+            fi
+            echo "Đang thử lại ($i/30)... mã HTTP: $STATUS"
+            sleep 3
+          done
+          echo "❌ Backend không phản hồi sau 90 giây!"
+          docker compose logs backend
+          exit 1
+
+      - name: 🌐 Kiểm tra Phản hồi Frontend Web Portal
+        run: |
+          echo "Kiểm tra cổng Frontend 3001..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 || true)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Frontend Web Portal phản hồi HTTP 200 OK!"
+          else
+            echo "❌ Frontend trả về mã: $STATUS"
+            docker compose logs frontend
+            exit 1
+          fi
+
+      - name: 📋 Ghi log toàn bộ Container nếu có lỗi
+        if: failure()
+        run: docker compose logs
+
+      - name: 🛑 Dọn dẹp Docker Containers
+        if: always()
+        run: docker compose down -v
