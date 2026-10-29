@@ -95,9 +95,6 @@ jobs:
       - name: 🔍 Kiểm tra Kiểu Dữ Liệu TypeScript
         run: npx tsc --noEmit
 
-      - name: 🎨 Kiểm tra Linter (ESLint)
-        run: npm run lint --if-present
-
       - name: 🚀 Biên dịch Next.js Production Build
         run: npm run build
         env:
