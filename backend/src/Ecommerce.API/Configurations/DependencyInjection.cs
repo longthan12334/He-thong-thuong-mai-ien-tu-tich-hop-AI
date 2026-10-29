@@ -35,6 +35,33 @@ public static class DependencyInjection
             {
                 var sqliteConn = configuration.GetConnectionString("DefaultConnection") 
                                  ?? "Data Source=fashion_mall.db";
+
+                // Đảm bảo tìm thấy file SQLite fashion_mall.db dù chạy từ bất kỳ thư mục nào (test runner, CLI, Docker)
+                if (sqliteConn.Contains("fashion_mall.db") && !sqliteConn.StartsWith("Data Source=/") && !sqliteConn.Contains(":\\"))
+                {
+                    var baseDir = AppContext.BaseDirectory;
+                    var candidatePaths = new[]
+                    {
+                        Path.Combine(baseDir, "fashion_mall.db"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "fashion_mall.db"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "backend", "fashion_mall.db"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "src", "Ecommerce.API", "fashion_mall.db"),
+                        Path.Combine(Directory.GetCurrentDirectory(), "backend", "src", "Ecommerce.API", "fashion_mall.db"),
+                        Path.Combine(baseDir, "..", "..", "..", "..", "src", "Ecommerce.API", "fashion_mall.db"),
+                        Path.Combine(baseDir, "..", "..", "..", "..", "..", "backend", "src", "Ecommerce.API", "fashion_mall.db")
+                    };
+
+                    foreach (var path in candidatePaths)
+                    {
+                        var fullPath = Path.GetFullPath(path);
+                        if (File.Exists(fullPath) && new FileInfo(fullPath).Length > 1000000)
+                        {
+                            sqliteConn = $"Data Source={fullPath}";
+                            break;
+                        }
+                    }
+                }
+
                 options.UseSqlite(sqliteConn);
             }
         });

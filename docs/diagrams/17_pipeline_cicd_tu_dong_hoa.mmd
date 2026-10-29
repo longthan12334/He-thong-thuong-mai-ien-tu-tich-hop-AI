@@ -1,0 +1,30 @@
+flowchart TD
+    subgraph Developer["👨‍💻 Lập Trình Viên"]
+        LocalCode["Mã Nguồn Cục Bộ"]
+        LocalCI["scripts/run-ci-local.cmd"]
+        LocalCode -->|Chạy thử nghiệm| LocalCI
+    end
+
+    subgraph GitHubActions["⚙️ GitHub Actions CI Pipeline (.github/workflows/ci.yml)"]
+        Trigger["Git Push / Pull Request (main, master, hoang)"]
+        
+        subgraph ParallelChecks["Song Song (Parallel Jobs)"]
+            BackendJob["Job 1: Backend CI (.NET 10)<br/>- dotnet restore<br/>- dotnet build (Release)<br/>- dotnet test (8/8 Tests Passed)<br/>- Xuất báo cáo độ bao phủ"]
+            FrontendJob["Job 2: Frontend CI (Next.js 15)<br/>- npm ci<br/>- TypeScript type-check<br/>- ESLint code quality<br/>- Next.js Production Build"]
+        end
+
+        DockerSmoke["Job 3: Docker Smoke Test<br/>- docker compose config validate<br/>- docker compose up --build -d<br/>- Healthcheck Backend :5000<br/>- Healthcheck Frontend :3001<br/>- docker compose down"]
+    end
+
+    subgraph CDPipeline["🚀 GitHub Actions CD Pipeline (.github/workflows/cd.yml)"]
+        CDTrigger["Git Push to main/master hoặc Tag v*.*.*"]
+        GHCR["GitHub Container Registry (ghcr.io)<br/>- ghcr.io/.../backend:latest<br/>- ghcr.io/.../frontend:latest<br/>- Tagged theo Git Commit SHA"]
+    end
+
+    Developer -->|git push| Trigger
+    Trigger --> BackendJob
+    Trigger --> FrontendJob
+    BackendJob --> DockerSmoke
+    FrontendJob --> DockerSmoke
+    DockerSmoke -->|Thành công & Merge main| CDTrigger
+    CDTrigger --> GHCR

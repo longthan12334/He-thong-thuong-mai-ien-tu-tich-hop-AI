@@ -36,16 +36,26 @@ const BRAND_PATTERNS: { brand: string; keys: string[] }[] = [
 
 /** Nhận diện thương hiệu từ tên / bộ sưu tập. Trả về '' nếu không xác định được */
 export function extractBrand(p: Pick<AnyProduct, 'name'> & { collectionName?: string }): string {
-  const haystack = ` ${p.name || ''} ${p.collectionName || ''} `.toLowerCase();
-  const found = BRAND_PATTERNS.find((b) => b.keys.some((k) => haystack.includes(k)));
-  if (found) return found.brand;
-
+  // 1. Tiêu chuẩn toàn sàn: Tên sản phẩm luôn có dạng "[Thương Hiệu] - [Tên Sản Phẩm]"
   if (p.name && p.name.includes(' - ')) {
     const candidate = p.name.split(' - ')[0].trim();
-    if (candidate.length > 1 && candidate.length < 35) {
+    if (candidate.length > 1 && candidate.length < 50) {
       return candidate;
     }
   }
+
+  // 2. Dự phòng: Kiểm tra từ collectionName nếu không có tiền tố ' - '
+  if (p.collectionName) {
+    const colCandidate = p.collectionName.replace(/(Official|Collection|Flagship|Boutique|Store)/gi, '').trim();
+    if (colCandidate.length > 1 && colCandidate.length < 50) {
+      return colCandidate;
+    }
+  }
+
+  // 3. Dự phòng cuối cùng: Từ khóa đặc trưng
+  const haystack = ` ${p.name || ''} ${p.collectionName || ''} `.toLowerCase();
+  const found = BRAND_PATTERNS.find((b) => b.keys.some((k) => haystack.includes(k)));
+  if (found) return found.brand;
 
   return '';
 }
