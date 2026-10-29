@@ -74,14 +74,14 @@ export const STOCK_STATUS = {
   OUT_OF_STOCK: 'OUT_OF_STOCK',
 } as const;
 
-/** Danh sách ảnh mẫu dùng chung (Item 26) */
+/** Danh sách ảnh mẫu dùng chung (Item 26) — 100% ảnh studio chính hãng Cloudinary */
 export const SAMPLE_PRODUCT_IMAGES = [
-  '/img/products/gucci-sneaker.jpg',
-  '/img/products/gucci-runway.jpg',
-  '/img/products/adidas-samba.jpg',
-  '/img/products/adidas-sakura-hoodie.jpg',
-  '/img/products/sample-velora.jpg',
-  '/img/products/gucci-collection.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/262451M134047_1.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/261553M202012_1.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/262011M236006_1.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/262802M178002_1.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/262314M243000_1.jpg',
+  'https://res.cloudinary.com/ssenseweb/image/upload/b_white,c_lpad,g_south,h_1080,w_1080/c_scale,h_480/f_auto,q_auto/262376M180001_1.jpg',
 ] as const;
 
 /** Hằng số chuỗi sự kiện SignalR dùng chung (Item 30) */
@@ -94,5 +94,5 @@ export const SIGNALR_EVENTS = {
 /** Pagination */
 export const DEFAULT_PAGE_SIZE = 12;
 
-/** Ảnh dự phòng */
-export const FALLBACK_IMAGE = '/img/products/adidas-samba.jpg';
+/** Ảnh dự phòng — Sử dụng ảnh moodboard thời trang nội bộ luôn tồn tại */
+export const FALLBACK_IMAGE = '/img/products/fashion-mood-board.jpg';

@@ -21,6 +21,7 @@ Hệ thống E-Commerce thời trang cao cấp hoàn chỉnh với kiến trúc 
   * 📝 [**Nhật Ký Thay Đổi Hệ Thống (Changelog)**](NHAT_KY_THAY_DOI_HE_THONG.md): Nhật ký tổng hợp các nâng cấp, tính năng mới và sửa lỗi gần đây.
   * 📜 [**Lịch Sử Commit (Audit Trail)**](LICH_SU_COMMIT.md): Minh chứng toàn bộ 45 commits từ ngày khởi tạo dự án đến nay.
   * 👥 [**Quy Chuẩn Phối Hợp Làm Việc Nhóm**](TEAM_COLLABORATION_GUIDE.md): Phân chia trách nhiệm module và quy tắc tránh xung đột mã nguồn.
+  * 🔄 [**Kiến Trúc & Đặc Tả Pipeline CI/CD**](docs/CI_CD_PIPELINE.md): Quy trình tự động hóa kiểm thử, build Docker và phát hành lên GHCR.
 
 ---
 
@@ -66,8 +67,13 @@ Hệ thống E-Commerce thời trang cao cấp hoàn chỉnh với kiến trúc 
 │
 ├── scripts/
 │   ├── start-backend.cmd                      # Khởi động Backend Web API (.NET) tại Port 5000
-│   └── start-frontend.cmd                     # Khởi động Frontend (Next.js) tại Port 3001
-├── start-all.cmd                              # Kịch bản 1-click khởi động toàn bộ hệ thống
+│   ├── start-frontend.cmd                     # Khởi động Frontend (Next.js) tại Port 3001
+│   ├── run-ci-local.cmd                       # Chạy toàn bộ kiểm thử CI cục bộ (Windows)
+│   └── run-ci-local.sh                        # Chạy toàn bộ kiểm thử CI cục bộ (Linux/macOS)
+├── docker-compose.yml                         # Cấu hình điều phối Multi-Container Backend, Frontend & SQLite
+├── docker-start.cmd                           # 1-Click build & khởi chạy toàn bộ hệ thống bằng Docker
+├── docker-stop.cmd                            # 1-Click dừng toàn bộ container Docker
+├── start-all.cmd                              # Kịch bản 1-click khởi động trực tiếp trên máy host
 └── .gitignore                                 # Bộ quy chuẩn loại trừ file build nhị phân & cache
 ```
 
@@ -75,7 +81,19 @@ Hệ thống E-Commerce thời trang cao cấp hoàn chỉnh với kiến trúc 
 
 ## 🚀 3. Hướng Dẫn Khởi Động Nhanh (Quickstart)
 
-### Cách 1: Khởi động tự động bằng 1-Click (Khuyên dùng trên Windows)
+### Cách 0: Khởi chạy siêu tốc bằng Docker (Khuyên dùng - Không cần cài đặt SDK)
+Nếu máy bạn đã có **Docker Desktop**:
+* **Trên Windows**: Nhấp đúp chuột vào tệp: **[`docker-start.cmd`](docker-start.cmd)**
+* **Trên macOS / Linux**: Chạy một lệnh duy nhất:
+  ```bash
+  docker compose up --build -d
+  ```
+> [!TIP]
+> Không cần cài đặt .NET 10 SDK, Node.js hay SQL Server. CSDL SQLite (8.620 sản phẩm, 273 seller, 1.607 đánh giá) được nạp tự động vào volume `sqlite_data`.
+
+---
+
+### Cách 1: Khởi động tự động trực tiếp trên Windows (Host Environment)
 Nhấp đúp chuột vào tệp:
 ```cmd
 start-all.cmd
