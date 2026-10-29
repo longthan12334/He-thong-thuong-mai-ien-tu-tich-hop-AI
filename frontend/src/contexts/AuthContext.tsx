@@ -46,11 +46,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isLoginPage = pathname === '/login';
 
-  // Khu mua sắm công khai: cho phép xem danh mục sản phẩm & tra cứu đơn hàng
+  // Khu mua sắm công khai: cho phép xem danh mục sản phẩm, hồ sơ gian hàng & tra cứu đơn hàng
   const isPublicShopperPage =
     pathname === '/shop' ||
     pathname.startsWith('/shop/track-order') ||
     pathname.startsWith('/shop/wishlist') ||
+    pathname.startsWith('/shop-profile') ||
     pathname.startsWith('/product-detail');
 
   // Trang nghiệp vụ dành riêng cho Seller hoặc Admin
@@ -60,7 +61,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     pathname === '/income-statistics' ||
     pathname === '/vouchers' ||
     pathname === '/transactions' ||
-    pathname === '/shop-profile' ||
     pathname.startsWith('/seller') ||
     pathname.startsWith('/admin');
 
