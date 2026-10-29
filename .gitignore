@@ -16,6 +16,8 @@ dist/
 target/
 publish_linux/
 **/publish_linux/
+backend_publish/
+**/backend_publish/
 *.tsbuildinfo
 
 

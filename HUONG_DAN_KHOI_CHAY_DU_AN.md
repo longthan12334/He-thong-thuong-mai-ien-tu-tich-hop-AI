@@ -149,14 +149,16 @@ Hệ thống tích hợp trợ lý thời trang thông minh **Aethelgard AI Styl
 Hệ thống đã tạo sẵn các tài khoản với vai trò khác nhau để phục vụ kiểm thử và phát triển. 
 **Mật khẩu dùng chung cho tất cả các tài khoản:** `Password123@`
 
-| Vai trò (Role) | Email đăng nhập | Họ & Tên | Phạm vi quyền hạn |
-| :--- | :--- | :--- | :--- |
-| **Customer (Khách hàng)**| `esther.howard@example.com` | Esther Howard | Mua sắm `/shop`, tư vấn AI Stylist `/product-detail/[id]`, quản lý đơn `/shop/my-orders`, tra cứu `/shop/track-order`, wishlist `/shop/wishlist` |
-| **Seller (Chủ shop)** | `ducmanh@gmail.com` | Nguyễn Đức Mạnh | Quản lý bộ sưu tập 20 sản phẩm riêng, quản lý kho hàng (`/inventory`), xử lý đơn hàng (`/orders`), xem ma trận doanh thu (`/income-statistics`) |
-| **Admin (Quản trị)** | `admin@gmail.com` | Aethelgard Admin | Toàn quyền kiểm soát tài khoản, duyệt gian hàng, danh mục và đơn hàng toàn sàn |
-| **Boutique Seller (Dior)** | `dior@gmail.com` | Christian Dior Official | Cửa hàng đối tác chính hãng thương hiệu Dior |
-| **Boutique Seller (Gucci)**| `gucci@gmail.com` | Gucci Official | Cửa hàng đối tác chính hãng thương hiệu Gucci |
-| **Boutique Seller (Adidas)**| `adidas@gmail.com` | Adidas Official | Cửa hàng đối tác chính hãng thương hiệu Adidas |
+| Vai trò (Role) | Email đăng nhập | Họ & Tên | Số lượng sản phẩm | Phạm vi quyền hạn & Trải nghiệm |
+| :--- | :--- | :--- | :--- | :--- |
+| **Customer (Khách hàng)**| `esther.howard@example.com` | Esther Howard | — | Mua sắm `/shop`, tư vấn AI Stylist `/product-detail/[id]`, quản lý đơn `/shop/my-orders`, tra cứu `/shop/track-order`, wishlist `/shop/wishlist` |
+| **Admin (Quản trị sàn)** | `admin@gmail.com` | Aethelgard Admin | — | Toàn quyền kiểm soát hệ thống, duyệt gian hàng, danh mục và cấu hình sàn |
+| **Top 1 Seller (Vivienne Westwood)** | `viviennewestwood@gmail.com` | Vivienne Westwood Official | **144 sản phẩm** | Gian hàng phong phú nhất sàn, đầy đủ túi xách, giày dép, trang sức & RTW (`/inventory`, `/orders`, `/income-statistics`) |
+| **Top 2 Seller (The North Face)** | `thenorthface@gmail.com` | The North Face Official | **88 sản phẩm** | Quản lý kho thời trang dã ngoại, áo phao Nuptse, áo khoác gió & balo |
+| **Luxury Seller (Gucci)** | `gucci@gmail.com` | Gucci Official Flagship | **42 sản phẩm** | Gian hàng xa xỉ phẩm, kính mát thời trang cao cấp & đồ may mặc Runway |
+| **Sportswear Seller (Nike)** | `nike@gmail.com` | Nike Official Flagship | **48 sản phẩm** | Bộ sưu tập sneaker thể thao, giày chạy bộ Shox, Air Jordan & thời trang đường phố |
+| **Streetwear Seller (Off-White)** | `off-white@gmail.com` *(hoặc `offwhite@gmail.com`)* | Off-White Official Flagship | **41 sản phẩm** | Bộ sưu tập sneaker streetwear nổi tiếng: Be Right Back, 3.0 Floating Arrow, Vulcanized Low Vintage |
+| **Streetwear Seller (Adidas)** | `adidas@gmail.com` | Adidas Official | **27 sản phẩm** | Chuyên dòng sneaker biểu tượng: Samba OG, Gazelle Lo Pro, Handball Spezial |
 
 ---
 
