@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -24,6 +24,13 @@
     <ProjectReference Include="..\..\src\Ecommerce.Common\Ecommerce.Common.csproj" />
     <ProjectReference Include="..\..\src\Ecommerce.BLL\Ecommerce.BLL.csproj" />
     <ProjectReference Include="..\..\src\Ecommerce.DAL\Ecommerce.DAL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\src\Ecommerce.API\fashion_mall.db">
+      <Link>fashion_mall.db</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

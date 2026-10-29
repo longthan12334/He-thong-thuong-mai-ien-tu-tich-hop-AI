@@ -1,0 +1,104 @@
+name: Aethelgard Mall CD (Continuous Deployment)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Môi trường triển khai (Production / Staging)'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ========================================================
+  # Job: Đóng gói & Phát hành Docker Images lên GitHub Container Registry (GHCR)
+  # ========================================================
+  publish-and-deploy:
+    name: Build & Publish Container Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: 📥 Checkout Mã Nguồn
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Thiết lập Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Đăng nhập GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Khởi tạo Tags và Labels cho Image
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/backend
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=sha,format=short,prefix=sha-
+            type=semver,pattern={{version}}
+
+      - name: 🏷️ Khởi tạo Tags và Labels cho Frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/frontend
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=sha,format=short,prefix=sha-
+            type=semver,pattern={{version}}
+
+      - name: 🐳 Build & Push Backend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🐳 Build & Push Frontend Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
+
+      - name: 🚀 Báo cáo Kết quả Triển khai
+        run: |
+          echo "=========================================================="
+          echo "✅ CD PIPELINE HOÀN TẤT THÀNH CÔNG!"
+          echo "Backend Image:  ${{ steps.meta-backend.outputs.tags }}"
+          echo "Frontend Image: ${{ steps.meta-frontend.outputs.tags }}"
+          echo "Môi trường:     ${{ github.event.inputs.environment || 'Production' }}"
+          echo "Commit SHA:     ${{ github.sha }}"
+          echo "=========================================================="
