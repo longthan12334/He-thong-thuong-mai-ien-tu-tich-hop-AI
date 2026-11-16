@@ -343,6 +343,7 @@ public class AIService : IAIService
 
                         if (parsed != null && !string.IsNullOrWhiteSpace(parsed.Description))
                         {
+                            parsed.IsFallback = false;
                             _cache?.Set(cacheKey, parsed, TimeSpan.FromHours(12));
                             return parsed;
                         }
@@ -360,6 +361,7 @@ public class AIService : IAIService
         var brand = string.IsNullOrWhiteSpace(request.Brand) ? "Aethelgard Signature" : request.Brand;
         var fallbackDto = new GeneratedProductDescriptionResponseDto
         {
+            IsFallback = true,
             SeoTitle = $"{request.ProductName} — BST {brand} Chính Hãng",
             Description = $"Tác phẩm {request.ProductName} thuộc dòng sản phẩm cao cấp của {brand}, được chế tác tỉ mỉ nhằm tôn vinh gu thẩm mỹ độc bản của chủ nhân. Thiết kế kết hợp hài hòa giữa ngôn ngữ hình thể đương đại và phom dáng kinh điển, mang đến diện mạo tự tin và sang trọng cho mọi khoảnh khắc xuất hiện.",
             Material = "Chất liệu thượng hạng tuyển chọn theo tiêu chuẩn kiểm định quốc tế",

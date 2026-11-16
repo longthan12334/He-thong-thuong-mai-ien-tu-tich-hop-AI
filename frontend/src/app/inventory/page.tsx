@@ -167,7 +167,7 @@ export default function InventoryPage() {
         if (res.material) setFormMaterial(res.material);
         if (res.careInstructions) setFormCare(res.careInstructions);
         if (res.seoTitle) setFormSeoTitle(res.seoTitle);
-        showToast('✨ Google Gemini đã hoàn thiện mô tả và gợi ý chất liệu chuẩn SEO!');
+        showToast(res.isFallback ? 'Đang dùng mẫu mô tả dự phòng.' : 'Đã nhận gợi ý mô tả sản phẩm.');
       }
     } catch {
       showToast('Không thể kết nối AI Gemini, vui lòng thử lại sau.');

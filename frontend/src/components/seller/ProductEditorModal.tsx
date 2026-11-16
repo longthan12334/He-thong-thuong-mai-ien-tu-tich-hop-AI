@@ -34,6 +34,7 @@ export function ProductEditorModal({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiNotice, setAiNotice] = useState('');
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [error, setError] = useState('');
@@ -123,9 +124,12 @@ export function ProductEditorModal({
     setError('');
   }, [initialProduct, categories, isOpen]);
 
+  useEffect(() => setAiNotice(''), [isOpen, initialProduct]);
+
   // AI Copilot tích hợp API Gemini (Item 14: Hiệu ứng Shimmer Gradient Pulse)
   const handleGenerateAIDescription = async () => {
     setIsGeneratingAI(true);
+    setAiNotice('');
     setError('');
     try {
       const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name || 'Thời Trang Cao Cấp';
@@ -137,6 +141,7 @@ export function ProductEditorModal({
         keywords: `${formData.material} ${formData.careInstructions}`.trim(),
       });
 
+      setAiNotice(res.isFallback ? 'Đang dùng mẫu mô tả dự phòng.' : 'Đã nhận gợi ý mô tả sản phẩm.');
       if (res?.description) {
         updateField('description', res.description);
       }
@@ -700,8 +705,9 @@ export function ProductEditorModal({
                     }`}
                   >
                     <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAI ? 'animate-spin' : 'text-sky-600 animate-pulse'}`} />
-                    <span>{isGeneratingAI ? 'Gemini AI đang sáng tạo...' : '✨ AI Copilot Viết Mô Tả'}</span>
+                    <span>{isGeneratingAI ? 'AI đang soạn...' : '✨ AI Copilot Viết Mô Tả'}</span>
                   </button>
+                  {aiNotice && <span role="status">{aiNotice}</span>}
                 </div>
                 <textarea
                   rows={3}

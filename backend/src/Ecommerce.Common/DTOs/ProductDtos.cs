@@ -111,6 +111,7 @@ public class GeneratedProductDescriptionResponseDto
     public string Material { get; set; } = string.Empty;
     public string CareInstructions { get; set; } = string.Empty;
     public List<string> SuggestedTags { get; set; } = new();
+    public bool IsFallback { get; set; }
     public string MetaDescription { get; set; } = string.Empty;
 }
 
