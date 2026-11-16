@@ -256,7 +256,13 @@ public class AIService : IAIService
 
     public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request)
     {
-        var cacheKey = $"ai_desc_{request.ProductName.Trim().ToLowerInvariant()}_{request.Brand?.Trim().ToLowerInvariant()}_{request.CategoryName?.Trim().ToLowerInvariant()}";
+        var cacheKey = "ai_desc_" + JsonSerializer.Serialize(new
+        {
+            ProductName = request.ProductName.Trim(),
+            Brand = request.Brand?.Trim(),
+            CategoryName = request.CategoryName?.Trim(),
+            Keywords = request.Keywords?.Trim()
+        });
         if (_cache != null && _cache.TryGetValue(cacheKey, out GeneratedProductDescriptionResponseDto? cached) && cached != null)
         {
             _logger?.LogInformation("Hit AI Cache cho mô tả sản phẩm '{Key}'", cacheKey);
