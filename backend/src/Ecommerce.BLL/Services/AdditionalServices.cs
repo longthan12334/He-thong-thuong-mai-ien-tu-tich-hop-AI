@@ -150,13 +150,13 @@ public class AIService : IAIService
         _httpClient = httpClient ?? DefaultHttpClient;
     }
 
-    public async Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null, CancellationToken cancellationToken = default)
+    public async Task<OutfitRecommendationResponseDto?> GenerateOutfitRecommendationAsync(string query, int? productId = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var normalizedQuery = (query ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey = $"ai_outfit_{productId ?? 0}_{normalizedQuery}";
 
-        if (_cache != null && _cache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrWhiteSpace(cached))
+        if (_cache != null && _cache.TryGetValue(cacheKey, out OutfitRecommendationResponseDto? cached) && cached != null)
         {
             _logger?.LogInformation("Hit AI Cache cho key '{CacheKey}'", cacheKey);
             return cached;
@@ -223,7 +223,7 @@ public class AIService : IAIService
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        var result = $"[AI Fashion Stylist]: {text.Trim()}";
+                        var result = new OutfitRecommendationResponseDto($"[AI Fashion Stylist]: {text.Trim()}", IsFallback: false);
                         _cache?.Set(cacheKey, result, TimeSpan.FromHours(6));
                         return result;
                     }
@@ -251,8 +251,9 @@ public class AIService : IAIService
             fallback = "[AI Fashion Stylist]: Xu hướng phối đồ thời thượng hiện nay là phong cách High-Low kết hợp giữa giày sneaker biểu tượng (Adidas Samba OG hoặc Gucci Ace) cùng áo nỉ form rộng và phụ kiện kính râm tối giản.";
         }
 
-        _cache?.Set(cacheKey, fallback, TimeSpan.FromHours(1));
-        return fallback;
+        var resultFallback = new OutfitRecommendationResponseDto(fallback, IsFallback: true);
+        _cache?.Set(cacheKey, resultFallback, TimeSpan.FromHours(1));
+        return resultFallback;
     }
 
     public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken = default)

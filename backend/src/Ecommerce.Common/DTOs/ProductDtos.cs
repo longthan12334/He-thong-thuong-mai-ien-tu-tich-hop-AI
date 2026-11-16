@@ -113,3 +113,5 @@ public class GeneratedProductDescriptionResponseDto
     public List<string> SuggestedTags { get; set; } = new();
     public string MetaDescription { get; set; } = string.Empty;
 }
+
+public record OutfitRecommendationResponseDto(string Recommendation, bool IsFallback);
