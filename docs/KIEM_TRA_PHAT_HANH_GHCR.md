@@ -5,7 +5,7 @@ Hướng dẫn này dùng để xác nhận hai Docker image của một lần c
 ## Xác định image cần kiểm tra
 
 1. Mở **Actions** và chọn lần chạy **Aethelgard Mall CD** tương ứng với commit cần phát hành.
-2. Mở job **Build & Publish Container Images**. Kiểm tra riêng kết quả hai bước **Build & Push Backend Container Image** và **Build & Push Frontend Container Image**. Cả hai bước dùng `continue-on-error: true`, nên trạng thái xanh của job có thể xuất hiện dù một image chưa được đẩy.
+2. Mở job **Build & Publish Container Images**. Kiểm tra riêng kết quả hai bước **Build & Push Backend Container Image** và **Build & Push Frontend Container Image**. Workflow thử đẩy cả hai image và báo lỗi ở cuối job nếu một bước build/push thất bại hoặc bị bỏ qua.
 3. Trong bước **Báo cáo Kết quả Triển khai**, sao chép tag `sha-…` tương ứng của từng image. Bước này chạy cả khi workflow gặp lỗi và danh sách tag là đầu ra của bước chuẩn bị metadata.
 
 ## Đối chiếu trên registry
