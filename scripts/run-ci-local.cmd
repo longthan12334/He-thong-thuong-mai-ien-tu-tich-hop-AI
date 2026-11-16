@@ -38,7 +38,13 @@ echo.
 :: 2. Frontend: Type Check & Build
 echo [2/3] Dang kiem tra Frontend [Next.js va TypeScript]...
 cd frontend
-call npx tsc --noEmit
+call npm ci
+if errorlevel 1 (
+    color 0C
+    echo [X] LOI: Khong the cai dependencies Frontend tu lockfile!
+    goto error
+)
+call npm run lint
 if %ERRORLEVEL% NEQ 0 (
     cd ..
     color 0C
