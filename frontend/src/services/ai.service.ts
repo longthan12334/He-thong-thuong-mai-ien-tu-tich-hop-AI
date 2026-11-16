@@ -25,7 +25,7 @@ export const aiService = {
     categoryName?: string;
     brand?: string;
     keywords?: string;
-  }): Promise<{
+  }, signal?: AbortSignal): Promise<{
     seoTitle: string;
     description: string;
     material: string;
@@ -33,7 +33,7 @@ export const aiService = {
     isFallback?: boolean;
   }> {
     try {
-      const res = await apiClient.post('/ai/generate-description', data);
+      const res = await apiClient.post('/ai/generate-description', data, { signal });
       return res.data;
     } catch {
       return {
