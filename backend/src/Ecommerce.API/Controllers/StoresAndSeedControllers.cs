@@ -86,9 +86,10 @@ public class AIController : ControllerBase
         }
 
         if (request.ProductName.Length > 200 || request.CategoryName?.Length > 200 ||
-            request.Brand?.Length > 200 || request.Keywords?.Length > 1000)
+            request.Brand?.Length > 200 || request.Keywords?.Length > 1000 ||
+            request.Material?.Length > 500 || request.CareInstructions?.Length > 1000)
         {
-            return BadRequest(new { message = "Tên, danh mục và thương hiệu tối đa 200 ký tự. Từ khóa tối đa 1000 ký tự." });
+            return BadRequest(new { message = "Tên, danh mục và thương hiệu tối đa 200 ký tự. Chất liệu tối đa 500 ký tự, từ khóa và hướng dẫn bảo quản tối đa 1000 ký tự." });
         }
 
         var result = await _aiService.GenerateProductDescriptionAsync(request, cancellationToken);

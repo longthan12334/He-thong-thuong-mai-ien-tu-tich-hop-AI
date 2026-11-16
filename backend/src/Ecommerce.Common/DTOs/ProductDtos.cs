@@ -100,6 +100,7 @@ public class GenerateProductDescriptionRequestDto
     public string? Brand { get; set; }
     public string? Keywords { get; set; }
     public string? Material { get; set; }
+    public string? CareInstructions { get; set; }
     public List<string> KeyFeatures { get; set; } = new();
     public string Tone { get; set; } = "luxury";
 }

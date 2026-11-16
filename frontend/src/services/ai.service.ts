@@ -31,6 +31,8 @@ export const aiService = {
     categoryName?: string;
     brand?: string;
     keywords?: string;
+    material?: string;
+    careInstructions?: string;
   }, signal?: AbortSignal): Promise<{
     seoTitle: string;
     description: string;
@@ -42,12 +44,19 @@ export const aiService = {
       const res = await apiClient.post('/ai/generate-description', data, { signal });
       return res.data;
     } catch {
+      const name = data.productName.trim();
+      const brand = data.brand?.trim();
+      const category = data.categoryName?.trim();
       return {
         isFallback: true,
-        seoTitle: `${data.productName} — Bộ Sưu Tập Thời Trang Cao Cấp Aethelgard`,
-        description: `Tuyệt phẩm ${data.productName} mang đến sự kết hợp hoàn mỹ giữa chất liệu thượng hạng và phong cách thanh lịch đương đại, khẳng định đẳng cấp độc bản của chủ nhân.`,
-        material: 'Vải dệt cao cấp tuyển chọn đạt chuẩn chất lượng quốc tế',
-        careInstructions: 'Bảo quản nơi thoáng mát, tránh ánh nắng trực tiếp và hóa chất tẩy rửa mạnh.',
+        seoTitle: brand ? `${name} — ${brand}` : name,
+        description: [
+          `Sản phẩm: ${name}.`,
+          brand && `Thương hiệu: ${brand}.`,
+          category && `Danh mục: ${category}.`,
+        ].filter(Boolean).join(' '),
+        material: data.material?.trim() ?? '',
+        careInstructions: data.careInstructions?.trim() ?? '',
       };
     }
   },

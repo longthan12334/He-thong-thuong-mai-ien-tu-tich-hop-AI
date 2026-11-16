@@ -264,7 +264,9 @@ public class AIService : IAIService
             ProductName = request.ProductName.Trim(),
             Brand = request.Brand?.Trim(),
             CategoryName = request.CategoryName?.Trim(),
-            Keywords = request.Keywords?.Trim()
+            Keywords = request.Keywords?.Trim(),
+            Material = request.Material?.Trim(),
+            CareInstructions = request.CareInstructions?.Trim()
         });
         if (_cache != null && _cache.TryGetValue(cacheKey, out GeneratedProductDescriptionResponseDto? cached) && cached != null)
         {
@@ -287,12 +289,15 @@ public class AIService : IAIService
                 if (!string.IsNullOrEmpty(request.CategoryName)) promptBuilder.AppendLine($"- Danh mục: {request.CategoryName}");
                 if (!string.IsNullOrEmpty(request.Brand)) promptBuilder.AppendLine($"- Thương hiệu / BST: {request.Brand}");
                 if (!string.IsNullOrEmpty(request.Keywords)) promptBuilder.AppendLine($"- Điểm nổi bật / Từ khóa: {request.Keywords}");
+                if (!string.IsNullOrWhiteSpace(request.Material)) promptBuilder.AppendLine($"- Chất liệu xác nhận: {request.Material}");
+                if (!string.IsNullOrWhiteSpace(request.CareInstructions)) promptBuilder.AppendLine($"- Cách bảo quản xác nhận: {request.CareInstructions}");
+                promptBuilder.AppendLine("Không suy đoán chất liệu hoặc cách bảo quản. Nếu chưa có thông tin, trả chuỗi rỗng cho trường tương ứng.");
                 promptBuilder.AppendLine("YÊU CẦU: Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ không kèm bất kỳ thẻ markdown fence ```json nào, định dạng như sau:");
                 promptBuilder.AppendLine("{");
                 promptBuilder.AppendLine("  \"seoTitle\": \"Tiêu đề sản phẩm chuẩn SEO sang trọng dưới 70 ký tự\",");
                 promptBuilder.AppendLine("  \"description\": \"Đoạn văn mô tả thời trang lôi cuốn, nêu bật phom dáng, chất liệu và phong thái đẳng cấp (từ 2-3 đoạn văn tinh tế)\",");
-                promptBuilder.AppendLine("  \"material\": \"Chất liệu gợi ý (VD: 100% Cotton French Terry 450 GSM hoặc Da bê Ý nguyên tấm)\",");
-                promptBuilder.AppendLine("  \"careInstructions\": \"Hướng dẫn bảo quản chi tiết (VD: Giặt khô chuyên nghiệp, bảo quản nơi thoáng khí)\"");
+                promptBuilder.AppendLine("  \"material\": \"Chất liệu đã xác nhận, hoặc chuỗi rỗng\",");
+                promptBuilder.AppendLine("  \"careInstructions\": \"Hướng dẫn đã xác nhận, hoặc chuỗi rỗng\"");
                 promptBuilder.AppendLine("}");
 
                 var payload = new
@@ -358,14 +363,19 @@ public class AIService : IAIService
 
         cancellationToken.ThrowIfCancellationRequested();
         // Fallback sang mẫu mô tả cao cấp nếu API bận
-        var brand = string.IsNullOrWhiteSpace(request.Brand) ? "Aethelgard Signature" : request.Brand;
+        var name = request.ProductName.Trim();
+        var brand = request.Brand?.Trim();
+        var category = request.CategoryName?.Trim();
+        var facts = new List<string> { $"Sản phẩm: {name}." };
+        if (!string.IsNullOrWhiteSpace(brand)) facts.Add($"Thương hiệu: {brand}.");
+        if (!string.IsNullOrWhiteSpace(category)) facts.Add($"Danh mục: {category}.");
         var fallbackDto = new GeneratedProductDescriptionResponseDto
         {
             IsFallback = true,
-            SeoTitle = $"{request.ProductName} — BST {brand} Chính Hãng",
-            Description = $"Tác phẩm {request.ProductName} thuộc dòng sản phẩm cao cấp của {brand}, được chế tác tỉ mỉ nhằm tôn vinh gu thẩm mỹ độc bản của chủ nhân. Thiết kế kết hợp hài hòa giữa ngôn ngữ hình thể đương đại và phom dáng kinh điển, mang đến diện mạo tự tin và sang trọng cho mọi khoảnh khắc xuất hiện.",
-            Material = "Chất liệu thượng hạng tuyển chọn theo tiêu chuẩn kiểm định quốc tế",
-            CareInstructions = "Bảo quản trong túi vải chống bụi, tránh tiếp xúc nhiệt độ cao và hóa chất tẩy rửa mạnh."
+            SeoTitle = string.IsNullOrWhiteSpace(brand) ? name : $"{name} — {brand}",
+            Description = string.Join(" ", facts),
+            Material = request.Material?.Trim() ?? string.Empty,
+            CareInstructions = request.CareInstructions?.Trim() ?? string.Empty
         };
 
         _cache?.Set(cacheKey, fallbackDto, TimeSpan.FromHours(2));

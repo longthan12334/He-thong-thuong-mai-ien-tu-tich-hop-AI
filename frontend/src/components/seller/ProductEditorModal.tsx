@@ -136,6 +136,10 @@ export function ProductEditorModal({
 
   // AI Copilot tích hợp API Gemini (Item 14: Hiệu ứng Shimmer Gradient Pulse)
   const handleGenerateAIDescription = async () => {
+    if (!formData.name.trim()) {
+      setAiNotice('Vui lòng nhập tên sản phẩm trước khi tạo gợi ý.');
+      return;
+    }
     pendingDescription.current?.abort();
     const controller = new AbortController();
     pendingDescription.current = controller;
@@ -143,13 +147,14 @@ export function ProductEditorModal({
     setAiNotice('');
     setError('');
     try {
-      const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name || 'Thời Trang Cao Cấp';
-      const promptName = formData.name.trim() || 'Sản phẩm Haute Couture';
+      const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name;
+      const promptName = formData.name.trim();
       const res = await aiService.generateProductDescription({
         productName: promptName,
         categoryName: selectedCategory,
-        brand: formData.collectionName || 'Aethelgard Signature',
-        keywords: `${formData.material} ${formData.careInstructions}`.trim(),
+        brand: formData.collectionName,
+        material: formData.material,
+        careInstructions: formData.careInstructions,
       }, controller.signal);
 
       if (pendingDescription.current !== controller || controller.signal.aborted) return;
