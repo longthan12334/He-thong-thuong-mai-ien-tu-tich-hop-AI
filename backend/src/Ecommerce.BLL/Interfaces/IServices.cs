@@ -52,7 +52,7 @@ public interface IStatisticsService
 
 public interface IAIService
 {
-    Task<string> GenerateOutfitRecommendationAsync(string query, int? productId = null);
+    Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null);
     Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request);
 }
 

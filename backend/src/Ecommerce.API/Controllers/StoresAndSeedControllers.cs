@@ -72,7 +72,9 @@ public class AIController : ControllerBase
         }
 
         var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query ?? string.Empty, productId);
-        return Ok(new { recommendation });
+        return recommendation == null
+            ? NotFound(new { message = "Không tìm thấy sản phẩm để tư vấn." })
+            : Ok(new { recommendation });
     }
 
     [HttpPost("generate-description")]

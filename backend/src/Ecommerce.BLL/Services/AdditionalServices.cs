@@ -150,7 +150,7 @@ public class AIService : IAIService
         _httpClient = httpClient ?? DefaultHttpClient;
     }
 
-    public async Task<string> GenerateOutfitRecommendationAsync(string query, int? productId = null)
+    public async Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null)
     {
         var normalizedQuery = (query ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey = $"ai_outfit_{productId ?? 0}_{normalizedQuery}";
@@ -165,6 +165,10 @@ public class AIService : IAIService
         if (productId.HasValue)
         {
             product = await _unitOfWork.Products.GetByIdAsync(productId.Value);
+            if (product == null)
+            {
+                return null;
+            }
         }
 
         var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY")
