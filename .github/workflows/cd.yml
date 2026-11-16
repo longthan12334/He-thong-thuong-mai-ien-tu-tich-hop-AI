@@ -74,6 +74,7 @@ jobs:
             type=semver,pattern={{version}}
 
       - name: 🐳 Build & Push Backend Container Image
+        id: publish-backend
         uses: docker/build-push-action@v5
         continue-on-error: true
         with:
@@ -86,6 +87,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=backend
 
       - name: 🐳 Build & Push Frontend Container Image
+        id: publish-frontend
         uses: docker/build-push-action@v5
         continue-on-error: true
         with:
@@ -103,9 +105,14 @@ jobs:
         if: always()
         run: |
           echo "=========================================================="
-          echo "✅ CD PIPELINE HOÀN TẤT THÀNH CÔNG!"
+          echo "Backend publish:  ${{ steps.publish-backend.outcome }}"
+          echo "Frontend publish: ${{ steps.publish-frontend.outcome }}"
           echo "Backend Image:  ${{ steps.meta-backend.outputs.tags }}"
           echo "Frontend Image: ${{ steps.meta-frontend.outputs.tags }}"
           echo "Môi trường:     ${{ github.event.inputs.environment || 'Production' }}"
           echo "Commit SHA:     ${{ github.sha }}"
           echo "=========================================================="
+
+      - name: Fail CD when an image was not published
+        if: ${{ !cancelled() && (steps.publish-backend.outcome != 'success' || steps.publish-frontend.outcome != 'success') }}
+        run: exit 1
