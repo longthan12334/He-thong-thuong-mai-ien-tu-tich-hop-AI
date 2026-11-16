@@ -5,9 +5,9 @@ import apiClient from './api-client';
  * Khi Backend không phản hồi, trả về gợi ý dự phòng để giao diện khách không bị trống.
  */
 export const aiService = {
-  async getOutfitRecommendation(query: string, productId?: number): Promise<{ text: string; isFallback: boolean }> {
+  async getOutfitRecommendation(query: string, productId?: number, signal?: AbortSignal): Promise<{ text: string; isFallback: boolean }> {
     try {
-      const res = await apiClient.get('/ai/recommend', { params: { query, productId } });
+      const res = await apiClient.get('/ai/recommend', { params: { query, productId }, signal });
       const raw: string = res.data?.recommendation || '';
       return { text: raw.replace(/^\[AI Fashion Stylist\]:\s*/i, '').trim(), isFallback: res.data?.isFallback === true };
     } catch {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Product } from '@/types';
 import { aiService } from '@/services/ai.service';
@@ -31,22 +31,37 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
   const [isFallback, setIsFallback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [askedFor, setAskedFor] = useState('');
+  const pending = useRef<AbortController | null>(null);
 
   const ask = async (q: string) => {
     const intent = q.trim() || `Phối đồ cùng ${product.name}`;
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
     setIsLoading(true);
     setAskedFor(q.trim());
-    const res = await aiService.getOutfitRecommendation(intent, product.id);
-    setAnswer(res.text);
-    setIsFallback(res.isFallback);
-    setIsLoading(false);
+    try {
+      const res = await aiService.getOutfitRecommendation(intent, product.id, controller.signal);
+      if (pending.current !== controller || controller.signal.aborted) return;
+      setAnswer(res.text);
+      setIsFallback(res.isFallback);
+    } finally {
+      if (pending.current === controller && !controller.signal.aborted) {
+        pending.current = null;
+        setIsLoading(false);
+      }
+    }
   };
 
   // Gợi ý mặc định ngay khi mở trang sản phẩm
   useEffect(() => {
     setAnswer('');
     setQuery('');
-    ask('');
+    void ask('');
+    return () => {
+      pending.current?.abort();
+      pending.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
