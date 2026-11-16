@@ -115,6 +115,9 @@ jobs:
       - name: 📥 Checkout Mã Nguồn
         uses: actions/checkout@v4
 
+      - name: Unit test Compose readiness probe
+        run: python3 scripts/test_compose_smoke.py
+
       - name: ⚙️ Thiết lập Docker Buildx
         uses: docker/setup-buildx-action@v3
 
