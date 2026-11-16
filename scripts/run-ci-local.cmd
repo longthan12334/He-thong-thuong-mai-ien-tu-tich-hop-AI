@@ -65,11 +65,13 @@ echo.
 
 :: 3. Docker Compose Config Validation
 echo [3/3] Dang kiem tra tinh hop le cua cau hinh Docker Compose...
-docker compose config >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+docker compose version >nul 2>&1
+if errorlevel 1 (
     color 0E
-    echo [!] Canh bao: Khong the kiem tra docker compose [vui long dam bao Docker Desktop dang bat].
+    echo [!] Bo qua kiem tra Compose vi lenh docker compose khong kha dung.
 ) else (
+    docker compose config --quiet
+    if errorlevel 1 goto error
     echo [V] File docker-compose.yml hoan toan hop le!
 )
 
