@@ -17,4 +17,4 @@ docker buildx imagetools inspect "ghcr.io/longthan12334/he-thong-thuong-mai-ien-
 docker buildx imagetools inspect "ghcr.io/longthan12334/he-thong-thuong-mai-ien-tu-tich-hop-ai/frontend:sha-<id>"
 ```
 
-Ghi lại digest của từng image. Chỉ xác nhận phát hành đủ hai image khi cả hai bước build/push thành công và cả hai lệnh trả về manifest. Nếu thiếu manifest, đối chiếu tag và quyền đọc package rồi xem log bước build/push tương ứng. Hai manifest xác nhận image đã có trên registry. Việc cập nhật container trên máy chủ cần xác minh ở môi trường chạy ứng dụng.
+Đối chiếu digest từ registry với trường **Backend Digest** hoặc **Frontend Digest** trong báo cáo CD của cùng lần chạy. Chỉ xác nhận phát hành đủ hai image khi cả hai bước build/push thành công và cả hai lệnh trả về manifest. Nếu thiếu manifest, đối chiếu tag và quyền đọc package rồi xem log bước build/push tương ứng. Hai manifest xác nhận image đã có trên registry. Việc cập nhật container trên máy chủ cần xác minh ở môi trường chạy ứng dụng.
