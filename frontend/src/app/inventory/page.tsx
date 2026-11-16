@@ -171,7 +171,9 @@ export default function InventoryPage() {
         productName: formName.trim(),
         categoryName: formCategory,
         brand: formBrand,
-        keywords: formKeyFeatures.trim() || 'Thời trang cao cấp, đường may tỉ mỉ, phom dáng thanh lịch tôn dáng',
+        keywords: formKeyFeatures.trim(),
+        material: formMaterial,
+        careInstructions: formCare,
       }, controller.signal);
 
       if (pendingDescription.current !== controller || controller.signal.aborted) return;
