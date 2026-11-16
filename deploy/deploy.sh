@@ -30,20 +30,18 @@ echo "[2/5] Đang build và khởi động các Container qua Docker Compose..."
 docker compose --env-file .env.production up --build -d
 
 # 4. Kiểm tra sức khỏe hệ thống (Health Check)
-echo "[3/5] Đang kiểm tra trạng thái sức khỏe các dịch vụ..."
-sleep 5
-docker compose ps
+echo "[3/5] Đang kiểm tra trạng thái các dịch vụ..."
+docker compose --env-file .env.production ps
+backend_binding=$(docker compose --env-file .env.production port backend 5000)
+frontend_binding=$(docker compose --env-file .env.production port frontend 3001)
+backend_port=${backend_binding##*:}
+frontend_port=${frontend_binding##*:}
 
-echo "[4/5] Kiểm tra phản hồi Backend API..."
-for i in {1..20}; do
-    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/products?pageSize=1 || true)
-    if [ "$STATUS" = "200" ]; then
-        echo "✅ Backend API sẵn sàng (HTTP 200)!"
-        break
-    fi
-    echo "Đang chờ Backend khởi động ($i/20)..."
-    sleep 3
-done
+echo "[4/5] Đang chờ API và giao diện phản hồi..."
+if ! python3 scripts/check-compose-smoke.py --backend-port "$backend_port" --frontend-port "$frontend_port"; then
+    docker compose --env-file .env.production logs --tail=100 || true
+    exit 1
+fi
 
 # 5. Dọn dẹp tài nguyên thừa
 echo "[5/5] Đang dọn dẹp các Docker image cũ..."
@@ -52,6 +50,6 @@ docker image prune -f
 echo ""
 echo "======================================================================"
 echo "  🎉 WEBSITE ĐÃ ĐƯỢC TRIỂN KHAI THÀNH CÔNG RỰC RỠ!"
-echo "  - Frontend: http://localhost:3001"
-echo "  - Backend:  http://localhost:5000"
+echo "  - Frontend: http://localhost:$frontend_port"
+echo "  - Backend:  http://localhost:$backend_port"
 echo "======================================================================"

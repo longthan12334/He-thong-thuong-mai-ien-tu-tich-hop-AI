@@ -63,5 +63,26 @@ class SmokeCheckTests(unittest.TestCase):
                 self.assertEqual(sleep.call_count, delays)
 
 
+    @patch.object(smoke, 'wait_for')
+    def test_custom_ports_reach_both_services(self, wait_for):
+        wait_for.side_effect = [True, True]
+        self.assertEqual(smoke.main(['--backend-port', '15000', '--frontend-port', '13001']), 0)
+        self.assertEqual([call.args[1] for call in wait_for.call_args_list], [15000, 13001])
+
+    @patch.object(smoke, 'wait_for')
+    def test_main_reports_either_service_failure(self, wait_for):
+        for results, expected_attempts in [([False], 1), ([True, False], 2)]:
+            with self.subTest(results=results):
+                wait_for.reset_mock()
+                wait_for.side_effect = results
+                self.assertEqual(smoke.main([]), 1)
+                self.assertEqual(wait_for.call_count, expected_attempts)
+
+    def test_invalid_port_is_rejected(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exit_info:
+            smoke.main(['--backend-port', '0'])
+        self.assertEqual(exit_info.exception.code, 2)
+
+
 if __name__ == '__main__':
     unittest.main()
