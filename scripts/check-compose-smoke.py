@@ -1,5 +1,6 @@
 """Check that the Compose services are ready before CI tears them down."""
 
+import argparse
 import http.client
 import json
 import sys
@@ -37,7 +38,19 @@ def wait_for(name, port, path, *, require_products=False):
     return False
 
 
-if __name__ == "__main__":
-    backend_ready = wait_for("Backend", 5000, "/api/products?pageSize=1", require_products=True)
-    frontend_ready = backend_ready and wait_for("Frontend", 3001, "/")
-    sys.exit(0 if frontend_ready else 1)
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--backend-port', type=int, default=5000)
+    parser.add_argument('--frontend-port', type=int, default=3001)
+    args = parser.parse_args(argv)
+    if not (1 <= args.backend_port <= 65535 and 1 <= args.frontend_port <= 65535):
+        parser.error('ports must be between 1 and 65535')
+    backend_ready = wait_for(
+        'Backend', args.backend_port, '/api/products?pageSize=1', require_products=True
+    )
+    frontend_ready = backend_ready and wait_for('Frontend', args.frontend_port, '/')
+    return 0 if frontend_ready else 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
