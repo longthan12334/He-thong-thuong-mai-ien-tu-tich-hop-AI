@@ -64,21 +64,21 @@ public class AIController : ControllerBase
     }
 
     [HttpGet("recommend")]
-    public async Task<IActionResult> GetRecommendation([FromQuery] string? query, [FromQuery] int? productId)
+    public async Task<IActionResult> GetRecommendation([FromQuery] string? query, [FromQuery] int? productId, CancellationToken cancellationToken)
     {
         if (query?.Length > 1000 || productId <= 0)
         {
             return BadRequest(new { message = "Câu hỏi tối đa 1000 ký tự và mã sản phẩm phải lớn hơn 0." });
         }
 
-        var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query ?? string.Empty, productId);
+        var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query ?? string.Empty, productId, cancellationToken);
         return recommendation == null
             ? NotFound(new { message = "Không tìm thấy sản phẩm để tư vấn." })
             : Ok(new { recommendation });
     }
 
     [HttpPost("generate-description")]
-    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request)
+    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.ProductName))
         {
@@ -91,7 +91,7 @@ public class AIController : ControllerBase
             return BadRequest(new { message = "Tên, danh mục và thương hiệu tối đa 200 ký tự. Từ khóa tối đa 1000 ký tự." });
         }
 
-        var result = await _aiService.GenerateProductDescriptionAsync(request);
+        var result = await _aiService.GenerateProductDescriptionAsync(request, cancellationToken);
         return Ok(result);
     }
 }

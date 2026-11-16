@@ -150,8 +150,9 @@ public class AIService : IAIService
         _httpClient = httpClient ?? DefaultHttpClient;
     }
 
-    public async Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null)
+    public async Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var normalizedQuery = (query ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey = $"ai_outfit_{productId ?? 0}_{normalizedQuery}";
 
@@ -211,12 +212,12 @@ public class AIService : IAIService
                 };
 
                 var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                using var response = await _httpClient.PostAsync(url, content, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonStr = await response.Content.ReadAsStringAsync();
+                    var jsonStr = await response.Content.ReadAsStringAsync(cancellationToken);
                     using var doc = JsonDocument.Parse(jsonStr);
                     var text = ReadGeminiText(doc.RootElement);
 
@@ -232,12 +233,13 @@ public class AIService : IAIService
                     _logger?.LogWarning("Gemini API call failed with status: {StatusCode}", response.StatusCode);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger?.LogError(ex, "Lỗi khi gọi Google Gemini API.");
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         // Fallback thông minh nếu không có kết nối internet hoặc API lỗi
         string fallback;
         if (product != null)
@@ -253,8 +255,9 @@ public class AIService : IAIService
         return fallback;
     }
 
-    public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request)
+    public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var cacheKey = "ai_desc_" + JsonSerializer.Serialize(new
         {
             ProductName = request.ProductName.Trim(),
@@ -306,12 +309,12 @@ public class AIService : IAIService
                 };
 
                 var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                using var response = await _httpClient.PostAsync(url, content, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonStr = await response.Content.ReadAsStringAsync();
+                    var jsonStr = await response.Content.ReadAsStringAsync(cancellationToken);
                     using var doc = JsonDocument.Parse(jsonStr);
                     var text = ReadGeminiText(doc.RootElement);
 
@@ -345,12 +348,13 @@ public class AIService : IAIService
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger?.LogError(ex, "Lỗi khi gọi Gemini sinh mô tả sản phẩm.");
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         // Fallback sang mẫu mô tả cao cấp nếu API bận
         var brand = string.IsNullOrWhiteSpace(request.Brand) ? "Aethelgard Signature" : request.Brand;
         var fallbackDto = new GeneratedProductDescriptionResponseDto

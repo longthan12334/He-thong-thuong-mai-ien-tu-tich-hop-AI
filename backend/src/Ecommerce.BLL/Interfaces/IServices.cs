@@ -52,8 +52,8 @@ public interface IStatisticsService
 
 public interface IAIService
 {
-    Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null);
-    Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request);
+    Task<string?> GenerateOutfitRecommendationAsync(string query, int? productId = null, CancellationToken cancellationToken = default);
+    Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken = default);
 }
 
 public interface IStoreService
