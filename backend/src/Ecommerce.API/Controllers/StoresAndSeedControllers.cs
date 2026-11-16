@@ -1,0 +1,111 @@
+using Ecommerce.BLL.Interfaces;
+using Ecommerce.Common.DTOs;
+using Ecommerce.DAL.Context;
+using Ecommerce.DAL.Seed;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+
+namespace Ecommerce.API.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class StoresController : ControllerBase
+{
+    private readonly IStoreService _storeService;
+
+    public StoresController(IStoreService storeService)
+    {
+        _storeService = storeService;
+    }
+
+    [HttpGet]
+    public async Task<ActionResult<List<StoreDto>>> GetAllStores([FromQuery] string? brand = null)
+    {
+        var stores = await _storeService.GetAllStoresAsync(brand);
+        return Ok(stores);
+    }
+
+    [HttpGet("profile/{brandOrSellerId}")]
+    public async Task<ActionResult<StoreProfileDto>> GetStoreProfile(string brandOrSellerId)
+    {
+        var profile = await _storeService.GetStoreProfileAsync(brandOrSellerId);
+        if (profile == null) return NotFound(new { message = "Không tìm thấy hồ sơ thương hiệu / cửa hàng." });
+        return Ok(profile);
+    }
+
+    [HttpGet("{storeCode}")]
+    public async Task<ActionResult<StoreDto>> GetStoreByCode(string storeCode)
+    {
+        var store = await _storeService.GetStoreByCodeAsync(storeCode);
+        if (store == null) return NotFound();
+        return Ok(store);
+    }
+
+    [HttpPut("{storeCode}")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Seller")]
+    public async Task<ActionResult<StoreDto>> UpdateStore(string storeCode, [FromBody] UpdateStoreDto dto)
+    {
+        var updated = await _storeService.UpdateStoreAsync(storeCode, dto);
+        if (updated == null) return NotFound(new { message = "Không tìm thấy thông tin cửa hàng." });
+        return Ok(updated);
+    }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+[EnableRateLimiting("AiLimiter")]
+public class AIController : ControllerBase
+{
+    private readonly IAIService _aiService;
+
+    public AIController(IAIService aiService)
+    {
+        _aiService = aiService;
+    }
+
+    [HttpGet("recommend")]
+    public async Task<IActionResult> GetRecommendation([FromQuery] string query, [FromQuery] int? productId)
+    {
+        var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query, productId);
+        return Ok(new { recommendation });
+    }
+
+    [HttpPost("generate-description")]
+    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.ProductName))
+        {
+            return BadRequest(new { message = "Tên sản phẩm không được để trống." });
+        }
+
+        var result = await _aiService.GenerateProductDescriptionAsync(request);
+        return Ok(result);
+    }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+public class SeedController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+    private readonly ILogger<SeedController> _logger;
+
+    public SeedController(ApplicationDbContext context, ILogger<SeedController> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    [HttpPost("run")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RunSeeder()
+    {
+        _logger.LogInformation("Kích hoạt nạp dữ liệu bản phác thảo E-Commerce...");
+        await DatabaseSeeder.SeedAsync(_context);
+        return Ok(new 
+        { 
+            success = true, 
+            message = "Khởi tạo và nạp thành công 20 sản phẩm, đơn hàng FedEx, boutique store và dữ liệu tài chính vào CSDL!" 
+        });
+    }
+}
