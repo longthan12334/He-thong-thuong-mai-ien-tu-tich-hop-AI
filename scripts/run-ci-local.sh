@@ -20,7 +20,8 @@ echo ""
 # 2. Frontend: Type Check & Build
 echo "[2/3] Đang kiểm tra Frontend (Next.js & TypeScript)..."
 cd frontend
-npx tsc --noEmit
+npm ci
+npm run lint
 npm run build
 cd "$ROOT_DIR"
 echo "✅ Frontend Next.js biên dịch hoàn hảo (0 Lỗi)!"
