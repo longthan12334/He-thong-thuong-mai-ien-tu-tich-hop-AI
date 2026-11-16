@@ -9,7 +9,7 @@ export const aiService = {
     try {
       const res = await apiClient.get('/ai/recommend', { params: { query, productId } });
       const raw: string = res.data?.recommendation || '';
-      return { text: raw.replace(/^\[AI Fashion Stylist\]:\s*/i, '').trim(), isFallback: false };
+      return { text: raw.replace(/^\[AI Fashion Stylist\]:\s*/i, '').trim(), isFallback: res.data?.isFallback === true };
     } catch {
       return {
         text:

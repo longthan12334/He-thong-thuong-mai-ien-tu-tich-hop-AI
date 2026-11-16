@@ -74,7 +74,7 @@ public class AIController : ControllerBase
         var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query ?? string.Empty, productId, cancellationToken);
         return recommendation == null
             ? NotFound(new { message = "Không tìm thấy sản phẩm để tư vấn." })
-            : Ok(new { recommendation });
+            : Ok(recommendation);
     }
 
     [HttpPost("generate-description")]

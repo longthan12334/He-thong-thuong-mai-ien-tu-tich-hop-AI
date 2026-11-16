@@ -137,10 +137,10 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
             <p>{answer}</p>
             {!isFallback && Boolean(answer) && (
               <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4f46e5', fontWeight: 600 }}>
-                <span>✨ Gợi ý thời trang tạo bởi Google Gemini 3.0 Flash</span>
+                <span>✨ Gợi ý thời trang tạo bởi Google Gemini</span>
               </div>
             )}
-            {isFallback && <p className="customer-ai-note">Đang dùng gợi ý ngoại tuyến do chưa kết nối được máy chủ AI.</p>}
+            {isFallback && <p className="customer-ai-note">Đang hiển thị mẫu tư vấn dự phòng.</p>}
           </>
         )}
       </div>
