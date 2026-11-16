@@ -59,7 +59,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO_LOWER }}/backend
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event.inputs.environment != 'staging' }}
             type=sha,format=short,prefix=sha-
             type=semver,pattern={{version}}
 
@@ -69,7 +69,7 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO_LOWER }}/frontend
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=raw,value=latest,enable=${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event.inputs.environment != 'staging' }}
             type=sha,format=short,prefix=sha-
             type=semver,pattern={{version}}
 
