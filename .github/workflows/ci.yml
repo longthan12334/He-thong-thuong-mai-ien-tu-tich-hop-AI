@@ -126,35 +126,8 @@ jobs:
           docker compose up --build -d
           docker compose ps
 
-      - name: 🏥 Kiểm tra Trạng thái Sức khỏe Backend API
-        run: |
-          echo "Đang chờ Backend khởi động và nạp dữ liệu..."
-          response_file=$(mktemp)
-          trap 'rm -f "$response_file"' EXIT
-          for i in {1..30}; do
-            STATUS=$(curl -s -o "$response_file" -w "%{http_code}" 'http://localhost:5000/api/products?pageSize=1') || STATUS=000
-            if [ "$STATUS" = "200" ] && python3 -c 'import json, sys; count = json.load(sys.stdin).get("totalCount"); sys.exit(0 if type(count) is int and count > 0 else 1)' < "$response_file" 2>/dev/null; then
-              echo "✅ Backend API sẵn sàng và trả về số sản phẩm hợp lệ!"
-              exit 0
-            fi
-            echo "Đang thử lại ($i/30). HTTP $STATUS, phản hồi chưa đạt kiểm tra số sản phẩm."
-            sleep 3
-          done
-          echo "❌ Backend chưa trả về số sản phẩm hợp lệ sau 90 giây!"
-          docker compose logs backend
-          exit 1
-
-      - name: 🌐 Kiểm tra Phản hồi Frontend Web Portal
-        run: |
-          echo "Kiểm tra cổng Frontend 3001..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3001 || true)
-          if [ "$STATUS" = "200" ]; then
-            echo "✅ Frontend Web Portal phản hồi HTTP 200 OK!"
-          else
-            echo "❌ Frontend trả về mã: $STATUS"
-            docker compose logs frontend
-            exit 1
-          fi
+      - name: Check backend and frontend readiness
+        run: python3 scripts/check-compose-smoke.py
 
       - name: 📋 Ghi log toàn bộ Container nếu có lỗi
         if: failure()
