@@ -109,6 +109,8 @@ jobs:
           echo "Frontend publish: ${{ steps.publish-frontend.outcome }}"
           echo "Backend Image:  ${{ steps.meta-backend.outputs.tags }}"
           echo "Frontend Image: ${{ steps.meta-frontend.outputs.tags }}"
+          echo "Backend Digest:  ${{ steps.publish-backend.outputs.digest }}"
+          echo "Frontend Digest: ${{ steps.publish-frontend.outputs.digest }}"
           echo "Môi trường:     ${{ github.event.inputs.environment || 'Production' }}"
           echo "Commit SHA:     ${{ github.sha }}"
           echo "=========================================================="
