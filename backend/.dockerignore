@@ -6,3 +6,6 @@ obj/
 appsettings.Development.json
 *.db-shm
 *.db-wal
+
+# The runtime image copies the seed database from src/Ecommerce.API.
+/fashion_mall.db
