@@ -53,16 +53,17 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
     }
   };
 
-  // Gợi ý mặc định ngay khi mở trang sản phẩm
+  // Đổi sản phẩm sẽ xóa tư vấn cũ; chỉ gửi khi khách chủ động yêu cầu.
   useEffect(() => {
     setAnswer('');
     setQuery('');
-    void ask('');
+    setAskedFor('');
+    setIsFallback(false);
+    setIsLoading(false);
     return () => {
       pending.current?.abort();
       pending.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
   const completeTheLook = useMemo(() => {
@@ -149,7 +150,7 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
         ) : (
           <>
             {askedFor && <p className="customer-ai-question">“{askedFor}”</p>}
-            <p>{answer}</p>
+            <p>{answer || 'Nhập câu hỏi hoặc chọn một dịp mặc để nhận gợi ý.'}</p>
             {!isFallback && Boolean(answer) && (
               <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4f46e5', fontWeight: 600 }}>
                 <span>✨ Gợi ý thời trang tạo bởi Google Gemini</span>
