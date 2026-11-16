@@ -8,6 +8,8 @@ Hướng dẫn này dùng để xác nhận hai Docker image của một lần c
 2. Mở job **Build & Publish Container Images**. Kiểm tra riêng kết quả hai bước **Build & Push Backend Container Image** và **Build & Push Frontend Container Image**. Workflow thử đẩy cả hai image và báo lỗi ở cuối job nếu một bước build/push thất bại hoặc bị bỏ qua.
 3. Trong bước **Báo cáo Kết quả Triển khai**, sao chép tag `sha-…` tương ứng của từng image. Bước này chạy cả khi workflow gặp lỗi và danh sách tag là đầu ra của bước chuẩn bị metadata.
 
+Khi chạy CD thủ công ở chế độ `staging`, dùng tag `sha-…` trong báo cáo. Lần chạy staging không cập nhật tag `latest`.
+
 ## Đối chiếu trên registry
 
 Thay `sha-<id>` trong từng lệnh bằng tag lấy từ log. Chạy hai lệnh từ môi trường đã đăng nhập GHCR nếu package giới hạn quyền đọc.
