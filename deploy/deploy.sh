@@ -12,9 +12,9 @@ echo "    BẮT ĐẦU TRIỂN KHAI / CẬP NHẬT AETHELGARD SHOPPING MALL"
 echo "======================================================================"
 
 # 1. Kéo mã nguồn mới nhất (nếu là git repo)
-if [ -d .git ]; then
+if [ -e .git ]; then
     echo "[1/5] Đang đồng bộ mã nguồn mới nhất từ Git..."
-    git pull origin main || git pull origin master || git pull origin hoang || true
+    git pull --ff-only
 fi
 
 # 2. Kiểm tra tệp cấu hình môi trường
