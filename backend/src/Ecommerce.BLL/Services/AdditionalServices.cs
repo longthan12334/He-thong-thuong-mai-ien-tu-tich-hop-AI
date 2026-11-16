@@ -214,12 +214,7 @@ public class AIService : IAIService
                 {
                     var jsonStr = await response.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(jsonStr);
-                    var text = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString();
+                    var text = ReadGeminiText(doc.RootElement);
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
@@ -314,12 +309,7 @@ public class AIService : IAIService
                 {
                     var jsonStr = await response.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(jsonStr);
-                    var text = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString();
+                    var text = ReadGeminiText(doc.RootElement);
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
@@ -369,5 +359,41 @@ public class AIService : IAIService
 
         _cache?.Set(cacheKey, fallbackDto, TimeSpan.FromHours(2));
         return fallbackDto;
+    }
+
+    private static string? ReadGeminiText(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("candidates", out var candidates) || candidates.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        foreach (var candidate in candidates.EnumerateArray())
+        {
+            if (candidate.ValueKind != JsonValueKind.Object ||
+                !candidate.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Object ||
+                !content.TryGetProperty("parts", out var parts) || parts.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var text = new StringBuilder();
+            foreach (var part in parts.EnumerateArray())
+            {
+                if (part.ValueKind == JsonValueKind.Object && part.TryGetProperty("text", out var value) &&
+                    value.ValueKind == JsonValueKind.String)
+                {
+                    text.Append(value.GetString());
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(text.ToString()))
+            {
+                return text.ToString();
+            }
+        }
+
+        return null;
     }
 }
