@@ -133,18 +133,21 @@ public class AIService : IAIService
     private readonly IConfiguration? _configuration;
     private readonly ILogger<AIService>? _logger;
     private readonly IMemoryCache? _cache;
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private static readonly HttpClient DefaultHttpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly HttpClient _httpClient;
 
     public AIService(
         IUnitOfWork unitOfWork,
         IConfiguration? configuration = null,
         ILogger<AIService>? logger = null,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        HttpClient? httpClient = null)
     {
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
         _cache = cache;
+        _httpClient = httpClient ?? DefaultHttpClient;
     }
 
     public async Task<string> GenerateOutfitRecommendationAsync(string query, int? productId = null)

@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IStoreService, StoreService>();
-        services.AddScoped<IAIService, AIService>();
+        services.AddHttpClient<IAIService, AIService>(client => client.Timeout = TimeSpan.FromSeconds(15));
         services.AddScoped<IVnpayService, VnpayService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddHttpClient();
