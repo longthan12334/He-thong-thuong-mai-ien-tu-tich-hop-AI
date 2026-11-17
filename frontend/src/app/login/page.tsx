@@ -7,7 +7,7 @@ import { authService } from '@/services/auth.service';
 
 import { AuthSlider } from '@/components/auth/AuthSlider';
 import { useToast } from '@/hooks/useToast';
-import { evaluatePasswordStrength } from '@/lib/password-strength';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 
 /**
  * Điều hướng sau đăng nhập/đăng ký:
@@ -53,8 +53,6 @@ export default function LoginPage() {
   const [confirmPass, setConfirmPass] = useState('');
 
   // Trạng thái độ mạnh mật khẩu
-  const regStrength = evaluatePasswordStrength(regPassword);
-  const forgotStrength = evaluatePasswordStrength(newPass);
   const [resetPending, setResetPending] = useState(false);
   const [authPending, setAuthPending] = useState(false);
 
@@ -191,7 +189,13 @@ export default function LoginPage() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
+    const digits = value.replace(/\D/g, '').slice(0, 6);
+    if (digits.length === 6) {
+      setOtpBoxes(digits.split(''));
+      otpInputsRef.current[5]?.focus();
+      return;
+    }
+    const digit = digits.slice(-1);
     setOtpBoxes((previous) => previous.map((current, i) => i === index ? digit : current));
     if (digit) otpInputsRef.current[index + 1]?.focus();
   };
@@ -226,6 +230,10 @@ export default function LoginPage() {
   const handleForgotStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (resetPending) return;
+    if (newPass.length < 8 || !newPass.trim() || newPass.length > 128) {
+      showToast('Nhập mật khẩu mới từ 8 đến 128 ký tự.', 'error');
+      return;
+    }
     if (newPass !== confirmPass) {
       showToast('Mật khẩu xác nhận không trùng khớp.', 'error');
       return;
@@ -478,6 +486,7 @@ export default function LoginPage() {
                       autoComplete="new-password"
                       minLength={8}
                       maxLength={128}
+                      aria-describedby={regPassword ? "register-password-strength" : undefined}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       className="input-field !pl-4 pr-12"
@@ -502,23 +511,7 @@ export default function LoginPage() {
                   </div>
 
                   {/* Thước đo độ mạnh mật khẩu */}
-                  {regPassword && (
-                    <div className="mt-3 transition-transform motion-reduce:transition-none duration-300">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">Độ mạnh mật khẩu</span>
-                        <span className="text-xs font-semibold" style={{ color: regStrength.color }}>
-                          {regStrength.label}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-1.5">
-                        <div
-                          className="h-full origin-left rounded-full transition-transform motion-reduce:transition-none duration-300"
-                          style={{ transform: regStrength.transform, backgroundColor: regStrength.color }}
-                        />
-                      </div>
-                      <p className="text-[11px] text-slate-400">{regStrength.hint}</p>
-                    </div>
-                  )}
+                  <PasswordStrengthMeter password={regPassword} id="register-password-strength" />
                 </div>
 
                 <button
@@ -654,7 +647,7 @@ export default function LoginPage() {
                         key={idx}
                         ref={(el) => { otpInputsRef.current[idx] = el; }}
                         type="text"
-                        maxLength={1}
+                        maxLength={idx === 0 ? 6 : 1}
                         pattern="[0-9]*"
                         inputMode="numeric"
                         autoComplete={idx === 0 ? "one-time-code" : "off"}
@@ -744,6 +737,7 @@ export default function LoginPage() {
                         autoComplete="new-password"
                         minLength={8}
                         maxLength={128}
+                        aria-describedby={newPass ? "reset-password-strength" : undefined}
                         value={newPass}
                         onChange={(e) => setNewPass(e.target.value)}
                         className="sketch-input pr-12"
@@ -768,22 +762,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Thanh độ mạnh mật khẩu tối giản */}
-                    {newPass && (
-                      <div className="mt-2.5 transition-transform motion-reduce:transition-none duration-300 text-left">
-                        <div className="flex items-center justify-between mb-1 text-xs">
-                          <span className="text-slate-400">Độ mạnh mật khẩu:</span>
-                          <span className="font-semibold" style={{ color: forgotStrength.color }}>
-                            {forgotStrength.label}
-                          </span>
-                        </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-                          <div
-                            className="h-full origin-left rounded-full transition-transform motion-reduce:transition-none duration-300"
-                            style={{ transform: forgotStrength.transform, backgroundColor: forgotStrength.color }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                    <PasswordStrengthMeter password={newPass} id="reset-password-strength" />
                   </div>
 
                   <div>

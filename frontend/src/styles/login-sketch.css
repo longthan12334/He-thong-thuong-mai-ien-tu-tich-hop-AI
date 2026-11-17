@@ -452,3 +452,13 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
         transition-duration: 0.01ms !important;
     }
 }
+
+.login-split-page .otp-box {
+    width: clamp(1.75rem, 10vw, 2.75rem);
+    min-width: 0;
+}
+
+.login-split-page :is(.otp-box, .sketch-input):focus-visible {
+    outline: 2px solid #6953ad;
+    outline-offset: 2px;
+}

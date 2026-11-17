@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Json;
 using Ecommerce.BLL.Services;
 using Ecommerce.Common.DTOs;
 using Ecommerce.Common.Entities;
@@ -40,6 +42,16 @@ public class PasswordLifecycleTests(WebApplicationFactory<Program> factory) : IC
             user.ResetOtpExpiry = DateTime.UtcNow.AddMinutes(5);
             await database.SaveChangesAsync();
             Assert.True(await auth.VerifyOtpAsync(verification));
+            using var client = factory.CreateClient();
+            using var blank = await client.PostAsJsonAsync("/api/auth/reset-password", new ResetPasswordDto
+            {
+                Email = user.Email,
+                Otp = verification.Otp,
+                NewPassword = "        ",
+            });
+            Assert.Equal(HttpStatusCode.BadRequest, blank.StatusCode);
+            Assert.True(await auth.VerifyOtpAsync(verification));
+
             Assert.True(await auth.ResetPasswordAsync(reset));
             database.ChangeTracker.Clear();
             Assert.False(await auth.VerifyOtpAsync(verification));
@@ -56,6 +68,7 @@ public class PasswordLifecycleTests(WebApplicationFactory<Program> factory) : IC
         }
         finally
         {
+            database.ChangeTracker.Clear();
             database.Set<User>().Remove(user);
             await database.SaveChangesAsync();
         }
