@@ -65,13 +65,14 @@ class SmokeCheckTests(unittest.TestCase):
 
     @patch.object(smoke, 'wait_for')
     def test_custom_ports_reach_both_services(self, wait_for):
-        wait_for.side_effect = [True, True]
+        wait_for.side_effect = [True, True, True]
         self.assertEqual(smoke.main(['--backend-port', '15000', '--frontend-port', '13001']), 0)
-        self.assertEqual([call.args[1] for call in wait_for.call_args_list], [15000, 13001])
+        self.assertEqual([call.args[1] for call in wait_for.call_args_list], [15000, 13001, 13001])
+        self.assertEqual(wait_for.call_args_list[-1].args[2], "/login")
 
     @patch.object(smoke, 'wait_for')
     def test_main_reports_either_service_failure(self, wait_for):
-        for results, expected_attempts in [([False], 1), ([True, False], 2)]:
+        for results, expected_attempts in [([False], 1), ([True, False], 2), ([True, True, False], 3)]:
             with self.subTest(results=results):
                 wait_for.reset_mock()
                 wait_for.side_effect = results
