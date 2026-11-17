@@ -1,6 +1,10 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Ecommerce.API.Controllers;
 
@@ -29,13 +33,28 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+    {
+        var subject = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        if (!int.TryParse(subject, out var userId))
+            return Unauthorized();
+
+        await _authService.ChangePasswordAsync(userId, request);
+        return NoContent();
+    }
+
+    [EnableRateLimiting("PasswordReset")]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto request)
     {
-        await _authService.SendPasswordResetOtpAsync(request);
-        return Ok(new { success = true, message = "Mã OTP đặt lại mật khẩu đã được gửi đến email của bạn." });
+        if (!await _authService.SendPasswordResetOtpAsync(request))
+            return StatusCode(503, new { success = false, message = "Dịch vụ email đặt lại mật khẩu hiện chưa khả dụng." });
+        return Ok(new { success = true, message = "Nếu email đã đăng ký, bạn sẽ nhận được mã đặt lại mật khẩu." });
     }
 
+    [EnableRateLimiting("PasswordReset")]
     [HttpPost("verify-otp")]
     public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto request)
     {
@@ -46,6 +65,7 @@ public class AuthController : ControllerBase
         return Ok(new { success = true, message = "Xác thực OTP thành công." });
     }
 
+    [EnableRateLimiting("PasswordReset")]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto request)
     {

@@ -19,6 +19,11 @@ services:
       - Jwt__Key=${Jwt__Key:-AethelgardSuperSecretKey2026NguyenDucManh9999!}
       - Jwt__Issuer=${Jwt__Issuer:-AethelgardMall}
       - Jwt__Audience=${Jwt__Audience:-AethelgardMallClients}
+      - PasswordResetSmtp__Host=${PASSWORD_RESET_SMTP_HOST:-}
+      - PasswordResetSmtp__Port=${PASSWORD_RESET_SMTP_PORT:-587}
+      - PasswordResetSmtp__From=${PASSWORD_RESET_SMTP_FROM:-}
+      - PasswordResetSmtp__Username=${PASSWORD_RESET_SMTP_USERNAME:-}
+      - PasswordResetSmtp__Password=${PASSWORD_RESET_SMTP_PASSWORD:-}
     volumes:
       # Lưu trữ CSDL SQLite bền vững không bị mất dữ liệu khi restart container
       - sqlite_data:/app/data

@@ -556,3 +556,18 @@ button:active,
 .ai-pulse-glow {
   animation: pulseGlow 2s infinite ease-in-out;
 }
+
+@keyframes toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+.toast-progress {
+  animation: toast-countdown linear forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-progress {
+    animation: none;
+  }
+}

@@ -136,6 +136,13 @@ public static class DependencyInjection
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("PasswordReset", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 25,
+                    Window = TimeSpan.FromMinutes(5)
+                }));
             options.AddFixedWindowLimiter("AiLimiter", opt =>
             {
                 opt.PermitLimit = 15;
