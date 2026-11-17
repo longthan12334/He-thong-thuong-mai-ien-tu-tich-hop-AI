@@ -49,7 +49,8 @@ def main(argv=None):
         'Backend', args.backend_port, '/api/products?pageSize=1', require_products=True
     )
     frontend_ready = backend_ready and wait_for('Frontend', args.frontend_port, '/')
-    return 0 if frontend_ready else 1
+    login_ready = frontend_ready and wait_for('Frontend login', args.frontend_port, '/login')
+    return 0 if login_ready else 1
 
 
 if __name__ == '__main__':

@@ -28,11 +28,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify:
+    name: Verify source and Docker Compose
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   # ========================================================
   # Job: Đóng gói & Phát hành Docker Images lên GitHub Container Registry (GHCR)
   # ========================================================
   publish-and-deploy:
     name: Build & Publish Container Images
+    needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 25
 

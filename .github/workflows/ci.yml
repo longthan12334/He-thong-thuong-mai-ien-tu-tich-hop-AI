@@ -1,6 +1,7 @@
 name: Aethelgard Mall CI (Continuous Integration)
 
 on:
+  workflow_call:
   push:
     branches:
       - main
@@ -126,7 +127,7 @@ jobs:
 
       - name: 🐳 Đóng gói & Khởi chạy Docker Compose
         run: |
-          docker compose up --build -d
+          docker compose up --build --wait --wait-timeout 120
           docker compose ps
 
       - name: Check backend and frontend readiness
