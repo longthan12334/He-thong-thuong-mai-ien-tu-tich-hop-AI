@@ -443,3 +443,12 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
         max-width: 100% !important;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .login-split-page *,
+    .login-split-page *::before,
+    .login-split-page *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}

@@ -10,6 +10,7 @@ public interface IAuthService
     Task<bool> SendPasswordResetOtpAsync(ForgotPasswordDto request);
     Task<bool> VerifyOtpAsync(VerifyOtpDto request);
     Task<bool> ResetPasswordAsync(ResetPasswordDto request);
+    Task ChangePasswordAsync(int userId, ChangePasswordDto request);
 }
 
 public interface IProductService

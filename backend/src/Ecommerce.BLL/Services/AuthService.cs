@@ -1,4 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -44,20 +46,11 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
-            throw new UnauthorizedException("Email này chưa được đăng ký tài khoản trong hệ thống.");
+            throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
         }
 
-        var isMasterTestPwd = request.Password == "Password123@" 
-            || request.Password.Equals("Password123@", StringComparison.OrdinalIgnoreCase)
-            || request.Password == "00000000" 
-            || request.Password == "12345678"
-            || request.Password == "123456"
-            || request.Password == "123456789";
-
-        if (user.PasswordHash != hash && !isMasterTestPwd)
-        {
-            throw new UnauthorizedException("Mật khẩu không chính xác. Mật khẩu mặc định là: Password123@ hoặc 00000000");
-        }
+        if (user.PasswordHash != hash)
+            throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
 
         var token = GenerateJwtToken(user);
 
@@ -74,6 +67,9 @@ public class AuthService : IAuthService
 
     public async Task<LoginResponseDto> RegisterAsync(RegisterRequestDto request)
     {
+        if (request.Role is not (Ecommerce.Common.Enums.UserRole.Customer or Ecommerce.Common.Enums.UserRole.Seller))
+            throw new BadRequestException("Vai trò này không hỗ trợ đăng ký công khai.");
+
         var existing = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == request.Email.ToLower())).FirstOrDefault();
         if (existing != null)
         {
@@ -108,52 +104,97 @@ public class AuthService : IAuthService
 
     public async Task<bool> SendPasswordResetOtpAsync(ForgotPasswordDto request)
     {
-        var user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == request.Email.ToLower())).FirstOrDefault();
+        var host = _configuration["PasswordResetSmtp:Host"];
+        var sender = _configuration["PasswordResetSmtp:From"];
+        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(sender))
+            return false;
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        var user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == email)).FirstOrDefault();
         if (user == null)
-        {
-            // Trả về true để bảo mật tránh user enumeration
             return true;
+
+        if (user.ResetOtpExpiry > DateTime.UtcNow.AddMinutes(14))
+            return true;
+
+        var otp = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+        var issuedAt = DateTime.UtcNow;
+        var expiresAt = issuedAt.AddMinutes(15);
+        var allowedBefore = expiresAt.AddMinutes(-1);
+        var account = _unitOfWork.Users.Query().Where(u => u.Id == user.Id);
+        var issued = await account
+            .Where(u => u.ResetOtpExpiry == null || u.ResetOtpExpiry <= allowedBefore)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(u => u.ResetOtp, otp)
+                .SetProperty(u => u.ResetOtpExpiry, expiresAt));
+        if (issued == 0)
+            return true;
+
+        var port = int.TryParse(_configuration["PasswordResetSmtp:Port"], out var smtpPort) ? smtpPort : 587;
+        try
+        {
+            using var client = new SmtpClient(host, port) { EnableSsl = true };
+            var username = _configuration["PasswordResetSmtp:Username"];
+            if (!string.IsNullOrWhiteSpace(username))
+                client.Credentials = new NetworkCredential(username, _configuration["PasswordResetSmtp:Password"]);
+
+            using var message = new MailMessage(sender, user.Email,
+                "Mã đặt lại mật khẩu Aethelgard Mall", $"Mã xác thực của bạn là {otp}. Mã hết hạn sau 15 phút.");
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+            await client.SendMailAsync(message, timeout.Token);
         }
-
-        // Tạo OTP 6 chữ số ngẫu nhiên
-        var otp = RandomNumberGenerator.GetInt32(100000, 999999).ToString();
-        user.ResetOtp = otp;
-        user.ResetOtpExpiry = DateTime.UtcNow.AddMinutes(15);
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.SaveChangesAsync();
-
+        catch
+        {
+            await account.Where(u => u.ResetOtp == otp && u.ResetOtpExpiry == expiresAt)
+                .ExecuteUpdateAsync(set => set
+                    .SetProperty(u => u.ResetOtp, (string?)null)
+                    .SetProperty(u => u.ResetOtpExpiry, (DateTime?)null));
+            throw;
+        }
         return true;
     }
 
     public async Task<bool> VerifyOtpAsync(VerifyOtpDto request)
     {
-        var user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == request.Email.ToLower())).FirstOrDefault();
-        if (user == null || string.IsNullOrEmpty(user.ResetOtp))
-            return false;
-
-        if (user.ResetOtpExpiry < DateTime.UtcNow)
-            return false;
-
-        // Cho phép mã OTP demo "123456" hoặc OTP thực tế
-        return user.ResetOtp == request.Otp || request.Otp == "123456";
+        return await QueryValidResetCode(request.Email, request.Otp).AnyAsync();
     }
 
     public async Task<bool> ResetPasswordAsync(ResetPasswordDto request)
     {
-        var user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == request.Email.ToLower())).FirstOrDefault();
-        if (user == null)
-            throw new NotFoundException("Người dùng không tồn tại.");
-
-        if (user.ResetOtp != request.Otp && request.Otp != "123456")
+        var hash = HashPassword(request.NewPassword);
+        var updated = await QueryValidResetCode(request.Email, request.Otp)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(u => u.PasswordHash, hash)
+                .SetProperty(u => u.ResetOtp, (string?)null)
+                .SetProperty(u => u.ResetOtpExpiry, (DateTime?)null)
+                .SetProperty(u => u.UpdatedAt, DateTime.UtcNow));
+        if (updated == 0)
             throw new BadRequestException("Mã xác thực OTP không đúng hoặc đã hết hạn.");
 
-        user.PasswordHash = HashPassword(request.NewPassword);
-        user.ResetOtp = null;
-        user.ResetOtpExpiry = null;
-        _unitOfWork.Users.Update(user);
-        await _unitOfWork.SaveChangesAsync();
-
         return true;
+    }
+
+    public async Task ChangePasswordAsync(int userId, ChangePasswordDto request)
+    {
+        var currentHash = HashPassword(request.CurrentPassword);
+        var newHash = HashPassword(request.NewPassword);
+        var updated = await _unitOfWork.Users.Query()
+            .Where(u => u.Id == userId && u.PasswordHash == currentHash)
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(u => u.PasswordHash, newHash)
+                .SetProperty(u => u.ResetOtp, (string?)null)
+                .SetProperty(u => u.ResetOtpExpiry, (DateTime?)null)
+                .SetProperty(u => u.UpdatedAt, DateTime.UtcNow));
+        if (updated == 0)
+            throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+    }
+
+    private IQueryable<User> QueryValidResetCode(string address, string code)
+    {
+        var email = address.Trim().ToLowerInvariant();
+        var now = DateTime.UtcNow;
+        return _unitOfWork.Users.Query().Where(u =>
+            u.Email.ToLower() == email && u.ResetOtp == code && u.ResetOtpExpiry > now);
     }
 
     private string GenerateJwtToken(User user)

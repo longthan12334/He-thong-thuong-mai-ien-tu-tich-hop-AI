@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -43,32 +43,16 @@ const PROGRESS_BG = {
 };
 
 function ToastCard({ toast, onRemove }: { toast: ToastItem; onRemove: (id: string) => void }) {
-  const [progress, setProgress] = useState(100);
-
-  useEffect(() => {
-    const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const remaining = Math.max(0, 100 - (elapsed / toast.durationMs) * 100);
-      setProgress(remaining);
-      if (remaining <= 0) {
-        clearInterval(interval);
-      }
-    }, 25);
-
-    return () => clearInterval(interval);
-  }, [toast.durationMs]);
-
   return (
     <div
-      role="alert"
+      role={toast.type === 'error' ? 'alert' : 'status'}
       style={{
         backgroundColor: '#0F172A',
         color: '#FFFFFF',
         borderColor: '#334155',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4)',
       }}
-      className={`relative overflow-hidden flex items-center gap-3.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3.5 rounded-2xl border border-slate-700 shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] min-w-[340px] max-w-md ${
+      className={`relative overflow-hidden flex items-center gap-3.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-3.5 rounded-2xl border border-slate-700 shadow-2xl transition-[transform,opacity] motion-reduce:transition-none duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] w-[min(26rem,calc(100vw-2rem))] ${
         toast.isClosing
           ? 'translate-x-full opacity-0 scale-95'
           : 'translate-x-0 opacity-100 scale-100'
@@ -95,9 +79,9 @@ function ToastCard({ toast, onRemove }: { toast: ToastItem; onRemove: (id: strin
       {/* Thanh tiến trình đếm ngược thời gian */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800/80">
         <div
-          className="h-full transition-all duration-75 ease-linear"
+          className="toast-progress h-full origin-left motion-reduce:hidden"
           style={{
-            width: `${progress}%`,
+            animationDuration: toast.durationMs + "ms",
             backgroundColor: PROGRESS_BG[toast.type],
           }}
         />
@@ -180,7 +164,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ showToast, removeToast, toasts }}>
       {children}
       {/* Vùng hiển thị thông báo góc dưới phải */}
-      <div className="fixed bottom-6 right-6 z-[99999] flex flex-col gap-2.5 pointer-events-auto">
+      <div className="fixed bottom-4 right-4 z-[99999] flex flex-col gap-2.5 pointer-events-auto">
         {toasts.map((toast) => (
           <ToastCard key={toast.id} toast={toast} onRemove={removeToast} />
         ))}

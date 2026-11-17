@@ -18,8 +18,11 @@ export const AuthSlider: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % DUAL_IMAGE_PAIRS.length);
+      if (!preference.matches && !document.hidden) {
+        setCurrentSlide((prev) => (prev + 1) % DUAL_IMAGE_PAIRS.length);
+      }
     }, 15000);
     return () => clearInterval(timer);
   }, []);
@@ -35,6 +38,8 @@ export const AuthSlider: React.FC = () => {
             <div className="dual-col">
               <img
                 src={pair.left}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
                 alt={`Slide ${idx * 2 + 1}`}
                 className="dual-col-img"
                 onError={(e) => {
@@ -45,6 +50,8 @@ export const AuthSlider: React.FC = () => {
             <div className="dual-col">
               <img
                 src={pair.right}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding="async"
                 alt={`Slide ${idx * 2 + 2}`}
                 className="dual-col-img"
                 onError={(e) => {
