@@ -6,12 +6,13 @@ export function evaluatePasswordStrength(password: string) {
     /[0-9]/.test(password),
     /[^\p{L}\p{N}\s]/u.test(password),
   ].filter(Boolean).length;
-  const labels = ['Yếu', 'Yếu', 'Yếu', 'Trung bình', 'Khá', 'Mạnh'];
-  const colors = ['#ef4444', '#ef4444', '#ef4444', '#b45309', '#2563eb', '#047857'];
+  const level = password.length < 8 ? 1 : Math.max(1, score - 1);
+  const labels = ['Yếu', 'Trung bình', 'Khá', 'Mạnh'];
+  const colors = ['#b91c1c', '#b45309', '#1d4ed8', '#047857'];
   return {
-    label: labels[score],
-    color: colors[score],
-    transform: 'scaleX(' + (password ? Math.max(1, score) / 5 : 0) + ')',
+    level,
+    label: labels[level - 1],
+    color: colors[level - 1],
     hint: password.length < 8 ? 'Dùng ít nhất 8 ký tự.' :
       'Ưu tiên mật khẩu dài, riêng cho tài khoản này.',
   };

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { isAxiosError } from 'axios';
 import { authService } from '@/services/auth.service';
-import { evaluatePasswordStrength } from '@/lib/password-strength';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
 import {
@@ -336,6 +336,7 @@ export default function SellerAccountPage() {
                     minLength={8}
                     maxLength={128}
                     placeholder="Tối thiểu 8 ký tự"
+                    aria-describedby={passwordForm.newPassword ? "account-password-strength" : undefined}
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
@@ -343,11 +344,7 @@ export default function SellerAccountPage() {
                 </div>
               </div>
 
-              {passwordForm.newPassword && (
-                <p className="text-xs text-slate-600">
-                  Độ mạnh ước tính · {evaluatePasswordStrength(passwordForm.newPassword).label}
-                </p>
-              )}
+              <PasswordStrengthMeter password={passwordForm.newPassword} id="account-password-strength" />
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
