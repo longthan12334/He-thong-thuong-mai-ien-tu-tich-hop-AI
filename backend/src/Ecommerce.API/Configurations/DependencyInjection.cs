@@ -77,7 +77,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryService, InventoryService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IStoreService, StoreService>();
-        services.AddScoped<IAIService, AIService>();
+        services.AddHttpClient<IAIService, AIService>(client => client.Timeout = TimeSpan.FromSeconds(15));
         services.AddScoped<IVnpayService, VnpayService>();
         services.AddScoped<IAdminService, AdminService>();
         services.AddHttpClient();
@@ -136,6 +136,13 @@ public static class DependencyInjection
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.AddPolicy("PasswordReset", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 25,
+                    Window = TimeSpan.FromMinutes(5)
+                }));
             options.AddFixedWindowLimiter("AiLimiter", opt =>
             {
                 opt.PermitLimit = 15;

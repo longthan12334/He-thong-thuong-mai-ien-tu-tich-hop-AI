@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Product } from '@/types';
 import { aiService } from '@/services/ai.service';
@@ -31,23 +31,39 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
   const [isFallback, setIsFallback] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [askedFor, setAskedFor] = useState('');
+  const pending = useRef<AbortController | null>(null);
 
   const ask = async (q: string) => {
     const intent = q.trim() || `Phối đồ cùng ${product.name}`;
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
     setIsLoading(true);
     setAskedFor(q.trim());
-    const res = await aiService.getOutfitRecommendation(intent, product.id);
-    setAnswer(res.text);
-    setIsFallback(res.isFallback);
-    setIsLoading(false);
+    try {
+      const res = await aiService.getOutfitRecommendation(intent, product.id, controller.signal);
+      if (pending.current !== controller || controller.signal.aborted) return;
+      setAnswer(res.text);
+      setIsFallback(res.isFallback);
+    } finally {
+      if (pending.current === controller && !controller.signal.aborted) {
+        pending.current = null;
+        setIsLoading(false);
+      }
+    }
   };
 
-  // Gợi ý mặc định ngay khi mở trang sản phẩm
+  // Đổi sản phẩm sẽ xóa tư vấn cũ; chỉ gửi khi khách chủ động yêu cầu.
   useEffect(() => {
     setAnswer('');
     setQuery('');
-    ask('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setAskedFor('');
+    setIsFallback(false);
+    setIsLoading(false);
+    return () => {
+      pending.current?.abort();
+      pending.current = null;
+    };
   }, [product.id]);
 
   const completeTheLook = useMemo(() => {
@@ -134,13 +150,13 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
         ) : (
           <>
             {askedFor && <p className="customer-ai-question">“{askedFor}”</p>}
-            <p>{answer}</p>
+            <p>{answer || 'Nhập câu hỏi hoặc chọn một dịp mặc để nhận gợi ý.'}</p>
             {!isFallback && Boolean(answer) && (
               <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#4f46e5', fontWeight: 600 }}>
-                <span>✨ Gợi ý thời trang tạo bởi Google Gemini 3.0 Flash</span>
+                <span>✨ Gợi ý thời trang tạo bởi Google Gemini</span>
               </div>
             )}
-            {isFallback && <p className="customer-ai-note">Đang dùng gợi ý ngoại tuyến do chưa kết nối được máy chủ AI.</p>}
+            {isFallback && <p className="customer-ai-note">Đang hiển thị mẫu tư vấn dự phòng.</p>}
           </>
         )}
       </div>

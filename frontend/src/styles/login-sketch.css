@@ -443,3 +443,22 @@ input[type="password"]::-webkit-credentials-auto-fill-button {
         max-width: 100% !important;
     }
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .login-split-page *,
+    .login-split-page *::before,
+    .login-split-page *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+.login-split-page .otp-box {
+    width: clamp(1.75rem, 10vw, 2.75rem);
+    min-width: 0;
+}
+
+.login-split-page :is(.otp-box, .sketch-input):focus-visible {
+    outline: 2px solid #6953ad;
+    outline-offset: 2px;
+}

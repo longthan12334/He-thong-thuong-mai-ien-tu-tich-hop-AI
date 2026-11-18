@@ -133,26 +133,30 @@ public class AIService : IAIService
     private readonly IConfiguration? _configuration;
     private readonly ILogger<AIService>? _logger;
     private readonly IMemoryCache? _cache;
-    private static readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private static readonly HttpClient DefaultHttpClient = new() { Timeout = TimeSpan.FromSeconds(15) };
+    private readonly HttpClient _httpClient;
 
     public AIService(
         IUnitOfWork unitOfWork,
         IConfiguration? configuration = null,
         ILogger<AIService>? logger = null,
-        IMemoryCache? cache = null)
+        IMemoryCache? cache = null,
+        HttpClient? httpClient = null)
     {
         _unitOfWork = unitOfWork;
         _configuration = configuration;
         _logger = logger;
         _cache = cache;
+        _httpClient = httpClient ?? DefaultHttpClient;
     }
 
-    public async Task<string> GenerateOutfitRecommendationAsync(string query, int? productId = null)
+    public async Task<OutfitRecommendationResponseDto?> GenerateOutfitRecommendationAsync(string query, int? productId = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var normalizedQuery = (query ?? string.Empty).Trim().ToLowerInvariant();
         var cacheKey = $"ai_outfit_{productId ?? 0}_{normalizedQuery}";
 
-        if (_cache != null && _cache.TryGetValue(cacheKey, out string? cached) && !string.IsNullOrWhiteSpace(cached))
+        if (_cache != null && _cache.TryGetValue(cacheKey, out OutfitRecommendationResponseDto? cached) && cached != null)
         {
             _logger?.LogInformation("Hit AI Cache cho key '{CacheKey}'", cacheKey);
             return cached;
@@ -162,6 +166,10 @@ public class AIService : IAIService
         if (productId.HasValue)
         {
             product = await _unitOfWork.Products.GetByIdAsync(productId.Value);
+            if (product == null)
+            {
+                return null;
+            }
         }
 
         var apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY")
@@ -204,23 +212,18 @@ public class AIService : IAIService
                 };
 
                 var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                using var response = await _httpClient.PostAsync(url, content, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonStr = await response.Content.ReadAsStringAsync();
+                    var jsonStr = await response.Content.ReadAsStringAsync(cancellationToken);
                     using var doc = JsonDocument.Parse(jsonStr);
-                    var text = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString();
+                    var text = ReadGeminiText(doc.RootElement);
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        var result = $"[AI Fashion Stylist]: {text.Trim()}";
+                        var result = new OutfitRecommendationResponseDto($"[AI Fashion Stylist]: {text.Trim()}", IsFallback: false);
                         _cache?.Set(cacheKey, result, TimeSpan.FromHours(6));
                         return result;
                     }
@@ -230,12 +233,13 @@ public class AIService : IAIService
                     _logger?.LogWarning("Gemini API call failed with status: {StatusCode}", response.StatusCode);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger?.LogError(ex, "Lỗi khi gọi Google Gemini API.");
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         // Fallback thông minh nếu không có kết nối internet hoặc API lỗi
         string fallback;
         if (product != null)
@@ -247,13 +251,23 @@ public class AIService : IAIService
             fallback = "[AI Fashion Stylist]: Xu hướng phối đồ thời thượng hiện nay là phong cách High-Low kết hợp giữa giày sneaker biểu tượng (Adidas Samba OG hoặc Gucci Ace) cùng áo nỉ form rộng và phụ kiện kính râm tối giản.";
         }
 
-        _cache?.Set(cacheKey, fallback, TimeSpan.FromHours(1));
-        return fallback;
+        var resultFallback = new OutfitRecommendationResponseDto(fallback, IsFallback: true);
+        _cache?.Set(cacheKey, resultFallback, TimeSpan.FromHours(1));
+        return resultFallback;
     }
 
-    public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request)
+    public async Task<GeneratedProductDescriptionResponseDto> GenerateProductDescriptionAsync(GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken = default)
     {
-        var cacheKey = $"ai_desc_{request.ProductName.Trim().ToLowerInvariant()}_{request.Brand?.Trim().ToLowerInvariant()}_{request.CategoryName?.Trim().ToLowerInvariant()}";
+        cancellationToken.ThrowIfCancellationRequested();
+        var cacheKey = "ai_desc_" + JsonSerializer.Serialize(new
+        {
+            ProductName = request.ProductName.Trim(),
+            Brand = request.Brand?.Trim(),
+            CategoryName = request.CategoryName?.Trim(),
+            Keywords = request.Keywords?.Trim(),
+            Material = request.Material?.Trim(),
+            CareInstructions = request.CareInstructions?.Trim()
+        });
         if (_cache != null && _cache.TryGetValue(cacheKey, out GeneratedProductDescriptionResponseDto? cached) && cached != null)
         {
             _logger?.LogInformation("Hit AI Cache cho mô tả sản phẩm '{Key}'", cacheKey);
@@ -275,12 +289,15 @@ public class AIService : IAIService
                 if (!string.IsNullOrEmpty(request.CategoryName)) promptBuilder.AppendLine($"- Danh mục: {request.CategoryName}");
                 if (!string.IsNullOrEmpty(request.Brand)) promptBuilder.AppendLine($"- Thương hiệu / BST: {request.Brand}");
                 if (!string.IsNullOrEmpty(request.Keywords)) promptBuilder.AppendLine($"- Điểm nổi bật / Từ khóa: {request.Keywords}");
+                if (!string.IsNullOrWhiteSpace(request.Material)) promptBuilder.AppendLine($"- Chất liệu xác nhận: {request.Material}");
+                if (!string.IsNullOrWhiteSpace(request.CareInstructions)) promptBuilder.AppendLine($"- Cách bảo quản xác nhận: {request.CareInstructions}");
+                promptBuilder.AppendLine("Không suy đoán chất liệu hoặc cách bảo quản. Nếu chưa có thông tin, trả chuỗi rỗng cho trường tương ứng.");
                 promptBuilder.AppendLine("YÊU CẦU: Hãy trả về DUY NHẤT một chuỗi JSON hợp lệ không kèm bất kỳ thẻ markdown fence ```json nào, định dạng như sau:");
                 promptBuilder.AppendLine("{");
                 promptBuilder.AppendLine("  \"seoTitle\": \"Tiêu đề sản phẩm chuẩn SEO sang trọng dưới 70 ký tự\",");
                 promptBuilder.AppendLine("  \"description\": \"Đoạn văn mô tả thời trang lôi cuốn, nêu bật phom dáng, chất liệu và phong thái đẳng cấp (từ 2-3 đoạn văn tinh tế)\",");
-                promptBuilder.AppendLine("  \"material\": \"Chất liệu gợi ý (VD: 100% Cotton French Terry 450 GSM hoặc Da bê Ý nguyên tấm)\",");
-                promptBuilder.AppendLine("  \"careInstructions\": \"Hướng dẫn bảo quản chi tiết (VD: Giặt khô chuyên nghiệp, bảo quản nơi thoáng khí)\"");
+                promptBuilder.AppendLine("  \"material\": \"Chất liệu đã xác nhận, hoặc chuỗi rỗng\",");
+                promptBuilder.AppendLine("  \"careInstructions\": \"Hướng dẫn đã xác nhận, hoặc chuỗi rỗng\"");
                 promptBuilder.AppendLine("}");
 
                 var payload = new
@@ -298,19 +315,14 @@ public class AIService : IAIService
                 };
 
                 var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+                using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync(url, content);
+                using var response = await _httpClient.PostAsync(url, content, cancellationToken);
                 if (response.IsSuccessStatusCode)
                 {
-                    var jsonStr = await response.Content.ReadAsStringAsync();
+                    var jsonStr = await response.Content.ReadAsStringAsync(cancellationToken);
                     using var doc = JsonDocument.Parse(jsonStr);
-                    var text = doc.RootElement
-                        .GetProperty("candidates")[0]
-                        .GetProperty("content")
-                        .GetProperty("parts")[0]
-                        .GetProperty("text")
-                        .GetString();
+                    var text = ReadGeminiText(doc.RootElement);
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
@@ -336,29 +348,73 @@ public class AIService : IAIService
 
                         if (parsed != null && !string.IsNullOrWhiteSpace(parsed.Description))
                         {
+                            parsed.IsFallback = false;
                             _cache?.Set(cacheKey, parsed, TimeSpan.FromHours(12));
                             return parsed;
                         }
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger?.LogError(ex, "Lỗi khi gọi Gemini sinh mô tả sản phẩm.");
             }
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         // Fallback sang mẫu mô tả cao cấp nếu API bận
-        var brand = string.IsNullOrWhiteSpace(request.Brand) ? "Aethelgard Signature" : request.Brand;
+        var name = request.ProductName.Trim();
+        var brand = request.Brand?.Trim();
+        var category = request.CategoryName?.Trim();
+        var facts = new List<string> { $"Sản phẩm: {name}." };
+        if (!string.IsNullOrWhiteSpace(brand)) facts.Add($"Thương hiệu: {brand}.");
+        if (!string.IsNullOrWhiteSpace(category)) facts.Add($"Danh mục: {category}.");
         var fallbackDto = new GeneratedProductDescriptionResponseDto
         {
-            SeoTitle = $"{request.ProductName} — BST {brand} Chính Hãng",
-            Description = $"Tác phẩm {request.ProductName} thuộc dòng sản phẩm cao cấp của {brand}, được chế tác tỉ mỉ nhằm tôn vinh gu thẩm mỹ độc bản của chủ nhân. Thiết kế kết hợp hài hòa giữa ngôn ngữ hình thể đương đại và phom dáng kinh điển, mang đến diện mạo tự tin và sang trọng cho mọi khoảnh khắc xuất hiện.",
-            Material = "Chất liệu thượng hạng tuyển chọn theo tiêu chuẩn kiểm định quốc tế",
-            CareInstructions = "Bảo quản trong túi vải chống bụi, tránh tiếp xúc nhiệt độ cao và hóa chất tẩy rửa mạnh."
+            IsFallback = true,
+            SeoTitle = string.IsNullOrWhiteSpace(brand) ? name : $"{name} — {brand}",
+            Description = string.Join(" ", facts),
+            Material = request.Material?.Trim() ?? string.Empty,
+            CareInstructions = request.CareInstructions?.Trim() ?? string.Empty
         };
 
         _cache?.Set(cacheKey, fallbackDto, TimeSpan.FromHours(2));
         return fallbackDto;
+    }
+
+    private static string? ReadGeminiText(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object ||
+            !root.TryGetProperty("candidates", out var candidates) || candidates.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        foreach (var candidate in candidates.EnumerateArray())
+        {
+            if (candidate.ValueKind != JsonValueKind.Object ||
+                !candidate.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Object ||
+                !content.TryGetProperty("parts", out var parts) || parts.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            var text = new StringBuilder();
+            foreach (var part in parts.EnumerateArray())
+            {
+                if (part.ValueKind == JsonValueKind.Object && part.TryGetProperty("text", out var value) &&
+                    value.ValueKind == JsonValueKind.String)
+                {
+                    text.Append(value.GetString());
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(text.ToString()))
+            {
+                return text.ToString();
+            }
+        }
+
+        return null;
     }
 }

@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { isAxiosError } from 'axios';
+import { authService } from '@/services/auth.service';
+import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { useToast } from '@/hooks/useToast';
 import { useSellerGuard } from '@/hooks/useSellerGuard';
 import {
@@ -83,27 +86,24 @@ export default function SellerAccountPage() {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isChangingPassword) return;
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast('Mật khẩu mới và xác nhận mật khẩu không khớp!');
-      return;
-    }
-    if (passwordForm.newPassword.length < 6) {
-      showToast('Mật khẩu mới phải có ít nhất 6 ký tự!');
+      showToast('Mật khẩu mới và xác nhận mật khẩu không khớp!', 'error');
       return;
     }
 
     setIsChangingPassword(true);
     try {
-      // Giả lập lưu mật khẩu an toàn
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      showToast('Đổi mật khẩu tài khoản seller thành công!');
+      await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      showToast('Đổi mật khẩu tài khoản seller thành công!', 'success');
       setPasswordForm({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
-    } catch {
-      showToast('Không thể đổi mật khẩu, vui lòng thử lại.');
+    } catch (error) {
+      const message = isAxiosError(error) ? error.response?.data?.message : undefined;
+      showToast(message || 'Không thể đổi mật khẩu, vui lòng thử lại.', 'error');
     } finally {
       setIsChangingPassword(false);
     }
@@ -314,6 +314,7 @@ export default function SellerAccountPage() {
                   <input
                     type="password"
                     required
+                    autoComplete="current-password"
                     placeholder="Nhập mật khẩu hiện tại"
                     value={passwordForm.currentPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
@@ -331,13 +332,19 @@ export default function SellerAccountPage() {
                   <input
                     type="password"
                     required
-                    placeholder="Tối thiểu 6 ký tự"
+                    autoComplete="new-password"
+                    minLength={8}
+                    maxLength={128}
+                    placeholder="Tối thiểu 8 ký tự"
+                    aria-describedby={passwordForm.newPassword ? "account-password-strength" : undefined}
                     value={passwordForm.newPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
+
+              <PasswordStrengthMeter password={passwordForm.newPassword} id="account-password-strength" />
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -348,6 +355,8 @@ export default function SellerAccountPage() {
                   <input
                     type="password"
                     required
+                    autoComplete="new-password"
+                    maxLength={128}
                     placeholder="Nhập lại mật khẩu mới"
                     value={passwordForm.confirmPassword}
                     onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}

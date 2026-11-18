@@ -27,6 +27,10 @@ export const authService = {
     return res.data;
   },
 
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await apiClient.post('/auth/change-password', { currentPassword, newPassword });
+  },
+
   async googleLogin(credential: string): Promise<LoginResponse> {
     const res = await apiClient.post('/auth/google-login', { credential });
     return res.data;

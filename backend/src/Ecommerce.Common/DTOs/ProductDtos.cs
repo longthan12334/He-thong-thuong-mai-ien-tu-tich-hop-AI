@@ -100,6 +100,7 @@ public class GenerateProductDescriptionRequestDto
     public string? Brand { get; set; }
     public string? Keywords { get; set; }
     public string? Material { get; set; }
+    public string? CareInstructions { get; set; }
     public List<string> KeyFeatures { get; set; } = new();
     public string Tone { get; set; } = "luxury";
 }
@@ -111,5 +112,8 @@ public class GeneratedProductDescriptionResponseDto
     public string Material { get; set; } = string.Empty;
     public string CareInstructions { get; set; } = string.Empty;
     public List<string> SuggestedTags { get; set; } = new();
+    public bool IsFallback { get; set; }
     public string MetaDescription { get; set; } = string.Empty;
 }
+
+public record OutfitRecommendationResponseDto(string Recommendation, bool IsFallback);
