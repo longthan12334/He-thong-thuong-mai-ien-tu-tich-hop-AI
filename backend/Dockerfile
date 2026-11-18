@@ -15,7 +15,7 @@ RUN dotnet restore src/Ecommerce.API/Ecommerce.API.csproj
 # Sao chép toàn bộ mã nguồn và biên dịch Release bundle
 COPY . .
 WORKDIR /src/src/Ecommerce.API
-RUN dotnet publish Ecommerce.API.csproj -c Release -o /app/publish
+RUN dotnet publish Ecommerce.API.csproj -c Release --no-restore -o /app/publish
 
 # ========================================================
 # Stage 2: Runtime Image tinh gọn (.NET 10 ASP.NET)

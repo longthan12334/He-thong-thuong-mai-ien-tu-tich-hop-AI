@@ -1,7 +1,7 @@
 'use client';
 import '@/styles/inventory.css';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { inventoryService } from '@/services/inventory.service';
 import { aiService } from '@/services/ai.service';
 import { productService } from '@/services/product.service';
@@ -96,6 +96,7 @@ export default function InventoryPage() {
   // State cho Thêm Sản Phẩm Mới (Item 40 - Consolidated Form State)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const pendingDescription = useRef<AbortController | null>(null);
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('Áo Khoác & Outerwear');
   const [formBrand, setFormBrand] = useState('Aethelgard Boutique');
@@ -146,6 +147,14 @@ export default function InventoryPage() {
     }
   }, [isAuthorized]);
 
+  useEffect(() => {
+    setIsGeneratingAI(false);
+    return () => {
+      pendingDescription.current?.abort();
+      pendingDescription.current = null;
+    };
+  }, [isAddModalOpen]);
+
   // Xử lý AI Gemini sinh mô tả sản phẩm
   const handleGenerateAIDescription = async () => {
     if (!formName.trim()) {
@@ -153,26 +162,35 @@ export default function InventoryPage() {
       return;
     }
 
+    pendingDescription.current?.abort();
+    const controller = new AbortController();
+    pendingDescription.current = controller;
     setIsGeneratingAI(true);
     try {
       const res = await aiService.generateProductDescription({
         productName: formName.trim(),
         categoryName: formCategory,
         brand: formBrand,
-        keywords: formKeyFeatures.trim() || 'Thời trang cao cấp, đường may tỉ mỉ, phom dáng thanh lịch tôn dáng',
-      });
+        keywords: formKeyFeatures.trim(),
+        material: formMaterial,
+        careInstructions: formCare,
+      }, controller.signal);
 
+      if (pendingDescription.current !== controller || controller.signal.aborted) return;
       if (res) {
-        if (res.description) setFormDescription(res.description);
-        if (res.material) setFormMaterial(res.material);
-        if (res.careInstructions) setFormCare(res.careInstructions);
-        if (res.seoTitle) setFormSeoTitle(res.seoTitle);
-        showToast('✨ Google Gemini đã hoàn thiện mô tả và gợi ý chất liệu chuẩn SEO!');
+        if (res.description) setFormDescription((current) => current === formDescription ? res.description : current);
+        if (res.material) setFormMaterial((current) => current === formMaterial ? res.material : current);
+        if (res.careInstructions) setFormCare((current) => current === formCare ? res.careInstructions : current);
+        if (res.seoTitle) setFormSeoTitle((current) => current === formSeoTitle ? res.seoTitle : current);
+        showToast(res.isFallback ? 'Đang dùng mẫu mô tả dự phòng.' : 'Đã nhận gợi ý mô tả sản phẩm.');
       }
     } catch {
-      showToast('Không thể kết nối AI Gemini, vui lòng thử lại sau.');
+      if (!controller.signal.aborted) showToast('Không thể kết nối AI Gemini, vui lòng thử lại sau.');
     } finally {
-      setIsGeneratingAI(false);
+      if (pendingDescription.current === controller) {
+        pendingDescription.current = null;
+        setIsGeneratingAI(false);
+      }
     }
   };
 

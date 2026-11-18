@@ -64,21 +64,35 @@ public class AIController : ControllerBase
     }
 
     [HttpGet("recommend")]
-    public async Task<IActionResult> GetRecommendation([FromQuery] string query, [FromQuery] int? productId)
+    public async Task<IActionResult> GetRecommendation([FromQuery] string? query, [FromQuery] int? productId, CancellationToken cancellationToken)
     {
-        var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query, productId);
-        return Ok(new { recommendation });
+        if (query?.Length > 1000 || productId <= 0)
+        {
+            return BadRequest(new { message = "Câu hỏi tối đa 1000 ký tự và mã sản phẩm phải lớn hơn 0." });
+        }
+
+        var recommendation = await _aiService.GenerateOutfitRecommendationAsync(query ?? string.Empty, productId, cancellationToken);
+        return recommendation == null
+            ? NotFound(new { message = "Không tìm thấy sản phẩm để tư vấn." })
+            : Ok(recommendation);
     }
 
     [HttpPost("generate-description")]
-    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request)
+    public async Task<IActionResult> GenerateDescription([FromBody] GenerateProductDescriptionRequestDto request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.ProductName))
         {
             return BadRequest(new { message = "Tên sản phẩm không được để trống." });
         }
 
-        var result = await _aiService.GenerateProductDescriptionAsync(request);
+        if (request.ProductName.Length > 200 || request.CategoryName?.Length > 200 ||
+            request.Brand?.Length > 200 || request.Keywords?.Length > 1000 ||
+            request.Material?.Length > 500 || request.CareInstructions?.Length > 1000)
+        {
+            return BadRequest(new { message = "Tên, danh mục và thương hiệu tối đa 200 ký tự. Chất liệu tối đa 500 ký tự, từ khóa và hướng dẫn bảo quản tối đa 1000 ký tự." });
+        }
+
+        var result = await _aiService.GenerateProductDescriptionAsync(request, cancellationToken);
         return Ok(result);
     }
 }

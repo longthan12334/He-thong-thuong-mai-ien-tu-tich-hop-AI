@@ -83,7 +83,9 @@ public class ServiceUnitTests
         var result = await aiService.GenerateOutfitRecommendationAsync("phối đồ thế nào", 101);
 
         // Assert
-        Assert.Contains("AI Fashion Stylist", result);
-        Assert.Contains("Adidas Samba OG", result);
+        Assert.NotNull(result);
+        Assert.True(result.IsFallback);
+        Assert.Contains("AI Fashion Stylist", result.Recommendation);
+        Assert.Contains("Adidas Samba OG", result.Recommendation);
     }
 }

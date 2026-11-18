@@ -16,9 +16,14 @@ services:
       - ConnectionStrings__DefaultConnection=Data Source=/app/data/fashion_mall.db
       - Gemini__ApiKey=${GEMINI_API_KEY:-}
       - Gemini__Model=gemini-3-flash-preview
-      - Jwt__Key=AethelgardSuperSecretKey2026NguyenDucManh9999!
-      - Jwt__Issuer=AethelgardMall
-      - Jwt__Audience=AethelgardMallClients
+      - Jwt__Key=${Jwt__Key:-AethelgardSuperSecretKey2026NguyenDucManh9999!}
+      - Jwt__Issuer=${Jwt__Issuer:-AethelgardMall}
+      - Jwt__Audience=${Jwt__Audience:-AethelgardMallClients}
+      - PasswordResetSmtp__Host=${PASSWORD_RESET_SMTP_HOST:-}
+      - PasswordResetSmtp__Port=${PASSWORD_RESET_SMTP_PORT:-587}
+      - PasswordResetSmtp__From=${PASSWORD_RESET_SMTP_FROM:-}
+      - PasswordResetSmtp__Username=${PASSWORD_RESET_SMTP_USERNAME:-}
+      - PasswordResetSmtp__Password=${PASSWORD_RESET_SMTP_PASSWORD:-}
     volumes:
       # Lưu trữ CSDL SQLite bền vững không bị mất dữ liệu khi restart container
       - sqlite_data:/app/data
@@ -48,9 +53,15 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5000/api}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/login').then(r => process.exit(r.status === 200 ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     depends_on:
       backend:
-        condition: service_started
+        condition: service_healthy
     networks:
       - aethelgard-network
 

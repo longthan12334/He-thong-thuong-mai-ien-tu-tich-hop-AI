@@ -34,6 +34,8 @@ export function ProductEditorModal({
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const pendingDescription = useRef<AbortController | null>(null);
+  const [aiNotice, setAiNotice] = useState('');
   const [uploadingMain, setUploadingMain] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [error, setError] = useState('');
@@ -123,34 +125,57 @@ export function ProductEditorModal({
     setError('');
   }, [initialProduct, categories, isOpen]);
 
+  useEffect(() => {
+    setAiNotice('');
+    setIsGeneratingAI(false);
+    return () => {
+      pendingDescription.current?.abort();
+      pendingDescription.current = null;
+    };
+  }, [isOpen, initialProduct]);
+
   // AI Copilot tích hợp API Gemini (Item 14: Hiệu ứng Shimmer Gradient Pulse)
   const handleGenerateAIDescription = async () => {
+    if (!formData.name.trim()) {
+      setAiNotice('Vui lòng nhập tên sản phẩm trước khi tạo gợi ý.');
+      return;
+    }
+    pendingDescription.current?.abort();
+    const controller = new AbortController();
+    pendingDescription.current = controller;
     setIsGeneratingAI(true);
+    setAiNotice('');
     setError('');
     try {
-      const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name || 'Thời Trang Cao Cấp';
-      const promptName = formData.name.trim() || 'Sản phẩm Haute Couture';
+      const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name;
+      const promptName = formData.name.trim();
       const res = await aiService.generateProductDescription({
         productName: promptName,
         categoryName: selectedCategory,
-        brand: formData.collectionName || 'Aethelgard Signature',
-        keywords: `${formData.material} ${formData.careInstructions}`.trim(),
-      });
+        brand: formData.collectionName,
+        material: formData.material,
+        careInstructions: formData.careInstructions,
+      }, controller.signal);
 
-      if (res?.description) {
-        updateField('description', res.description);
-      }
-      if (res?.material && (!formData.material || formData.material.length < 5)) {
-        updateField('material', res.material);
-      }
-      if (res?.careInstructions && (!formData.careInstructions || formData.careInstructions.length < 5)) {
-        updateField('careInstructions', res.careInstructions);
-      }
+      if (pendingDescription.current !== controller || controller.signal.aborted) return;
+      setAiNotice(res.isFallback ? 'Đang dùng mẫu mô tả dự phòng.' : 'Đã nhận gợi ý mô tả sản phẩm.');
+      setFormData((current) => ({
+        ...current,
+        description: current.description === formData.description && res.description
+          ? res.description : current.description,
+        material: current.material === formData.material && current.material.length < 5 && res.material
+          ? res.material : current.material,
+        careInstructions: current.careInstructions === formData.careInstructions &&
+          current.careInstructions.length < 5 && res.careInstructions
+          ? res.careInstructions : current.careInstructions,
+      }));
     } catch {
-      const selectedCategory = categories.find((c) => c.id === Number(formData.categoryId))?.name || 'Thời Trang';
-      updateField('description', `[Aethelgard AI Stylist]: Tuyệt tác ${formData.name || 'sản phẩm'} thuộc phân khúc ${selectedCategory} trong BST ${formData.collectionName}. Được chế tác tỉ mỉ từ chất liệu ${formData.material || 'thượng hạng'}, tôn vinh gu thẩm mỹ sang trọng và đẳng cấp của chủ nhân.`);
+      if (!controller.signal.aborted) setAiNotice('Không thể nhận gợi ý mô tả. Vui lòng thử lại.');
     } finally {
-      setIsGeneratingAI(false);
+      if (pendingDescription.current === controller) {
+        pendingDescription.current = null;
+        setIsGeneratingAI(false);
+      }
     }
   };
 
@@ -700,8 +725,9 @@ export function ProductEditorModal({
                     }`}
                   >
                     <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAI ? 'animate-spin' : 'text-sky-600 animate-pulse'}`} />
-                    <span>{isGeneratingAI ? 'Gemini AI đang sáng tạo...' : '✨ AI Copilot Viết Mô Tả'}</span>
+                    <span>{isGeneratingAI ? 'AI đang soạn...' : '✨ AI Copilot Viết Mô Tả'}</span>
                   </button>
+                  {aiNotice && <span role="status">{aiNotice}</span>}
                 </div>
                 <textarea
                   rows={3}

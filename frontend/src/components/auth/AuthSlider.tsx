@@ -18,42 +18,55 @@ export const AuthSlider: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % DUAL_IMAGE_PAIRS.length);
+      if (!preference.matches && !document.hidden) {
+        setCurrentSlide((prev) => (prev + 1) % DUAL_IMAGE_PAIRS.length);
+      }
     }, 15000);
     return () => clearInterval(timer);
   }, []);
 
+  const previous = (currentSlide - 1 + DUAL_IMAGE_PAIRS.length) % DUAL_IMAGE_PAIRS.length;
+  const next = (currentSlide + 1) % DUAL_IMAGE_PAIRS.length;
+
   return (
-    <div className="login-right-panel">
+    <div className="login-right-panel" aria-hidden="true">
       <div className="dual-slider-wrapper relative w-full h-full min-h-screen">
-        {DUAL_IMAGE_PAIRS.map((pair, idx) => (
-          <div
-            key={idx}
-            className={`dual-slide-item ${idx === currentSlide ? 'active' : ''}`}
-          >
-            <div className="dual-col">
-              <img
-                src={pair.left}
-                alt={`Slide ${idx * 2 + 1}`}
-                className="dual-col-img"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/img/login/1.jpg';
-                }}
-              />
+        {DUAL_IMAGE_PAIRS.map((pair, idx) => {
+          if (idx !== currentSlide && idx !== previous && idx !== next) return null;
+          return (
+            <div
+              key={idx}
+              className={`dual-slide-item ${idx === currentSlide ? 'active' : ''}`}
+            >
+              <div className="dual-col">
+                <img
+                  src={pair.left}
+                  loading="eager"
+                  decoding="async"
+                  alt=""
+                  className="dual-col-img"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/img/login/1.jpg';
+                  }}
+                />
+              </div>
+              <div className="dual-col">
+                <img
+                  src={pair.right}
+                  loading="eager"
+                  decoding="async"
+                  alt=""
+                  className="dual-col-img"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/img/login/2.jpg';
+                  }}
+                />
+              </div>
             </div>
-            <div className="dual-col">
-              <img
-                src={pair.right}
-                alt={`Slide ${idx * 2 + 2}`}
-                className="dual-col-img"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/img/login/2.jpg';
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
