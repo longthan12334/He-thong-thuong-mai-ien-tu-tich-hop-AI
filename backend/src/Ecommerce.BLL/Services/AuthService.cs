@@ -52,6 +52,9 @@ public class AuthService : IAuthService
         if (user.PasswordHash != hash)
             throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
 
+        if (!user.IsActive)
+            throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
+
         var token = GenerateJwtToken(user);
 
         return new LoginResponseDto
