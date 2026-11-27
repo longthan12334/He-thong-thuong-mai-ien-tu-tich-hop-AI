@@ -24,6 +24,7 @@ public class ProductService : IProductService
     public async Task<PagedResultDto<ProductDto>> GetProductsAsync(ProductFilterDto filter)
     {
         var query = _unitOfWork.Products.Query()
+            .AsNoTracking()
             .Include(p => p.Category)
             .Include(p => p.Variants)
             .Where(p => p.IsActive);
