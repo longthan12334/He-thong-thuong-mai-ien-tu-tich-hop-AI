@@ -130,6 +130,28 @@ function ShopPageContent() {
             : b.id - a.id;
       }
     });
+    if (
+      !['price_asc', 'price_desc', 'popular', 'rating'].includes(sortKey) &&
+      filters.quick !== 'discount'
+    ) {
+      // Xen kẽ đa dạng danh mục theo vòng tròn (round-robin) ở chế độ mặc định
+      const buckets = new Map<string, typeof list>();
+      for (const item of list) {
+        const key = item.categoryName || 'Khác';
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key)!.push(item);
+      }
+      const groups = Array.from(buckets.values());
+      const maxLen = Math.max(...groups.map((g) => g.length), 0);
+      const interleaved: typeof list = [];
+      for (let i = 0; i < maxLen; i++) {
+        for (const g of groups) {
+          if (i < g.length) interleaved.push(g[i]);
+        }
+      }
+      return interleaved;
+    }
+
     return list;
   }, [products, filters, searchTerm, isSeller, onlyMyProducts, sellerId]);
 
