@@ -156,7 +156,11 @@ export const AIStylistPanel: React.FC<AIStylistPanelProps> = ({ product, catalog
                 <span>✨ Gợi ý thời trang tạo bởi Google Gemini</span>
               </div>
             )}
-            {isFallback && <p className="customer-ai-note">Đang hiển thị mẫu tư vấn dự phòng.</p>}
+            {isFallback && (
+              <p className="customer-ai-note">
+                Đang hiển thị gợi ý phối đồ mẫu (chưa cấu hình Gemini API Key hoặc kết nối AI tạm gián đoạn).
+              </p>
+            )}
           </>
         )}
       </div>
