@@ -27,7 +27,7 @@ public class StatisticsService : IStatisticsService
         var ordersQuery = _unitOfWork.Orders.Query()
             .Include(o => o.Items)
                 .ThenInclude(item => item.Product)
-                    .ThenInclude(p => p.Category)
+                    .ThenInclude(p => p!.Category)
             .AsQueryable();
 
         List<int>? sellerProductIds = null;

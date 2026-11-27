@@ -4,9 +4,11 @@ using System.Net.Mail;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Ecommerce.BLL.Interfaces;
 using Ecommerce.Common.DTOs;
 using Ecommerce.Common.Entities;
+using Ecommerce.Common.Enums;
 using Ecommerce.Common.Exceptions;
 using Ecommerce.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +19,10 @@ namespace Ecommerce.BLL.Services;
 
 public class AuthService : IAuthService
 {
+    private static readonly HttpClient GoogleHttpClient = new();
+    private const string AdminGoogleEmail = "nguyenducmanh.ovaltine@gmail.com";
+    private const string GucciSellerGoogleEmail = "nguyenducmanh.ducmanhjr@gmail.com";
+
     private readonly IUnitOfWork _unitOfWork;
     private readonly IConfiguration _configuration;
 
@@ -51,6 +57,9 @@ public class AuthService : IAuthService
 
         if (user.PasswordHash != hash)
             throw new UnauthorizedException("Email hoặc mật khẩu không chính xác.");
+
+        if (!user.IsActive)
+            throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
 
         var token = GenerateJwtToken(user);
 
@@ -187,6 +196,121 @@ public class AuthService : IAuthService
                 .SetProperty(u => u.UpdatedAt, DateTime.UtcNow));
         if (updated == 0)
             throw new BadRequestException("Mật khẩu hiện tại không chính xác.");
+    }
+
+    public async Task<LoginResponseDto> GoogleLoginAsync(GoogleLoginRequestDto request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Credential))
+            throw new BadRequestException("Thiếu mã xác thực Google.");
+
+        var tokenInfoUrl = $"https://oauth2.googleapis.com/tokeninfo?id_token={Uri.EscapeDataString(request.Credential)}";
+        using var response = await GoogleHttpClient.GetAsync(tokenInfoUrl);
+        if (!response.IsSuccessStatusCode)
+            throw new UnauthorizedException("Phiên đăng nhập Google không hợp lệ hoặc đã hết hạn.");
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        var configuredClientId = _configuration["Google:ClientId"];
+        if (!string.IsNullOrWhiteSpace(configuredClientId))
+        {
+            var aud = root.TryGetProperty("aud", out var audProp) ? audProp.GetString() : null;
+            if (!string.Equals(aud, configuredClientId, StringComparison.Ordinal))
+                throw new UnauthorizedException("Google Client ID không khớp với hệ thống.");
+        }
+
+        var emailVerified = root.TryGetProperty("email_verified", out var verifiedProp) &&
+                            (verifiedProp.ValueKind == JsonValueKind.True ||
+                             string.Equals(verifiedProp.GetString(), "true", StringComparison.OrdinalIgnoreCase));
+        if (!emailVerified)
+            throw new UnauthorizedException("Tài khoản Google chưa xác minh email.");
+
+        var googleEmail = root.TryGetProperty("email", out var emailProp) ? emailProp.GetString() : null;
+        if (string.IsNullOrWhiteSpace(googleEmail))
+            throw new UnauthorizedException("Không lấy được email từ tài khoản Google.");
+
+        var email = googleEmail.Trim().ToLowerInvariant();
+        var googleName = root.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
+        var googlePicture = root.TryGetProperty("picture", out var picProp) ? picProp.GetString() : null;
+
+        User? user;
+        if (email == AdminGoogleEmail)
+        {
+            user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == email)).FirstOrDefault();
+            if (user == null)
+            {
+                user = new User
+                {
+                    FullName = string.IsNullOrWhiteSpace(googleName) ? "Admin Aethelgard" : googleName.Trim(),
+                    Email = email,
+                    PasswordHash = HashPassword(Guid.NewGuid().ToString("N")),
+                    Role = UserRole.Admin,
+                    AvatarUrl = googlePicture,
+                    IsEmailVerified = true,
+                    IsActive = true,
+                };
+                await _unitOfWork.Users.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            else if (user.Role != UserRole.Admin)
+            {
+                user.Role = UserRole.Admin;
+                _unitOfWork.Users.Update(user);
+                await _unitOfWork.SaveChangesAsync();
+            }
+        }
+        else if (email == GucciSellerGoogleEmail)
+        {
+            // Gắn trực tiếp với gian hàng Gucci Official (sellerId = 4 / gucci@gmail.com)
+            user = (await _unitOfWork.Users.FindAsync(u =>
+                u.Email.ToLower() == "gucci@gmail.com" || u.Email.ToLower() == email)).FirstOrDefault()
+                ?? await _unitOfWork.Users.GetByIdAsync(4);
+
+            if (user == null)
+                throw new NotFoundException("Không tìm thấy tài khoản gian hàng Gucci trong hệ thống.");
+        }
+        else
+        {
+            user = (await _unitOfWork.Users.FindAsync(u => u.Email.ToLower() == email)).FirstOrDefault();
+            if (user == null)
+            {
+                user = new User
+                {
+                    FullName = string.IsNullOrWhiteSpace(googleName) ? email.Split('@')[0] : googleName.Trim(),
+                    Email = email,
+                    PasswordHash = HashPassword(Guid.NewGuid().ToString("N")),
+                    Role = UserRole.Customer,
+                    AvatarUrl = googlePicture,
+                    IsEmailVerified = true,
+                    IsActive = true,
+                };
+                await _unitOfWork.Users.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
+            }
+            else if (!user.IsActive)
+            {
+                throw new UnauthorizedException("Tài khoản của bạn đã bị khóa.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ExpectedRole))
+        {
+            if (request.ExpectedRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) && user.Role != UserRole.Admin)
+                throw new UnauthorizedException("Tài khoản Google này không có quyền Quản trị viên (Admin).");
+            if (request.ExpectedRole.Equals("Seller", StringComparison.OrdinalIgnoreCase) && user.Role != UserRole.Seller)
+                throw new UnauthorizedException("Tài khoản Google này chưa được liên kết với gian hàng Người bán.");
+        }
+
+        var token = GenerateJwtToken(user);
+        return new LoginResponseDto
+        {
+            Token = token,
+            UserId = user.Id,
+            FullName = user.FullName,
+            Email = user.Email,
+            Role = user.Role.ToString(),
+            AvatarUrl = user.AvatarUrl
+        };
     }
 
     private IQueryable<User> QueryValidResetCode(string address, string code)

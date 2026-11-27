@@ -6,8 +6,6 @@ using Ecommerce.Common.Entities;
 using Ecommerce.DAL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-using Microsoft.EntityFrameworkCore;
-
 namespace Ecommerce.BLL.Services;
 
 public class InventoryService : IInventoryService

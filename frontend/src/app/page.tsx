@@ -29,7 +29,7 @@ function classifyProductType(name: string): string {
   return 'accessories';
 }
 
-/** Sắp xếp xen kẽ (round-robin) các danh mục sản phẩm: Quần áo → Giày dép → Túi ví → Kính mắt → Phụ kiện */
+/** Sắp xếp xen kẽ (round-robin) đa dạng danh mục và kiểu dáng sản phẩm */
 function interleaveShowroomProducts(items: Product[]): Product[] {
   if (!items || items.length <= 1) return items;
 
@@ -44,6 +44,40 @@ function interleaveShowroomProducts(items: Product[]): Product[] {
   for (const item of items) {
     const type = classifyProductType(item.name);
     groups[type].push(item);
+  }
+
+  const nonEmptyGroups = Object.values(groups).filter((g) => g.length > 0);
+
+  // Nếu toàn bộ sản phẩm thuộc cùng 1 nhóm (vd: shop chỉ bán kính mắt),
+  // tự động chia nhỏ theo kiểu dáng/dòng sản phẩm để hiển thị xen kẽ đa dạng.
+  if (nonEmptyGroups.length === 1) {
+    const styleBuckets = new Map<string, Product[]>();
+    for (const item of items) {
+      const lower = item.name.toLowerCase();
+      let bucket = 'other';
+      if (lower.includes('cat eye') || lower.includes('cat-eye')) bucket = 'cat-eye';
+      else if (lower.includes('rectangular')) bucket = 'rectangular';
+      else if (lower.includes('square')) bucket = 'square';
+      else if (lower.includes('oval')) bucket = 'oval';
+      else if (lower.includes('geometric')) bucket = 'geometric';
+      else if (lower.includes('pilot') || lower.includes('aviator')) bucket = 'pilot';
+      else if (lower.includes('mask') || lower.includes('directional')) bucket = 'directional';
+      else if (item.categoryName) bucket = item.categoryName;
+
+      if (!styleBuckets.has(bucket)) styleBuckets.set(bucket, []);
+      styleBuckets.get(bucket)!.push(item);
+    }
+
+    const bucketList = Array.from(styleBuckets.values());
+    bucketList.forEach((b) => b.sort((a, bItem) => bItem.id - a.id));
+    const maxBucketLen = Math.max(...bucketList.map((b) => b.length), 0);
+    const mixed: Product[] = [];
+    for (let i = 0; i < maxBucketLen; i++) {
+      for (const b of bucketList) {
+        if (i < b.length) mixed.push(b[i]);
+      }
+    }
+    return mixed;
   }
 
   for (const key of Object.keys(groups)) {

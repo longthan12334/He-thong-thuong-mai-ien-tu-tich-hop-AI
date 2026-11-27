@@ -728,8 +728,16 @@ function ShopProfileContent() {
               </button>
             </div>
 
-            {/* Sắp xếp nhanh */}
-            <div className="flex items-center gap-2 shrink-0 text-xs">
+            {/* Tìm kiếm & Sắp xếp nhanh */}
+            <div className="flex flex-wrap items-center gap-2 shrink-0 text-xs">
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm trong gian hàng..."
+                aria-label="Tìm sản phẩm trong gian hàng"
+                className="px-3 py-1 rounded-full text-[11px] border border-neutral-300 bg-white text-neutral-800 placeholder:text-neutral-400 focus:outline-none focus:border-black w-44 sm:w-52"
+              />
               <button
                 className={`px-3 py-1 rounded-full text-[10.5px] font-bold tracking-wider uppercase border transition-all ${
                   sortBy === 'popular'

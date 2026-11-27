@@ -5,7 +5,9 @@ using Ecommerce.BLL.Services;
 using Ecommerce.Common.DTOs;
 using Ecommerce.Common.Entities;
 using Ecommerce.Common.Enums;
+using Ecommerce.Common.Exceptions;
 using Ecommerce.DAL.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
 
@@ -87,5 +89,45 @@ public class ServiceUnitTests
         Assert.True(result.IsFallback);
         Assert.Contains("AI Fashion Stylist", result.Recommendation);
         Assert.Contains("Adidas Samba OG", result.Recommendation);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ThrowsUnauthorized_WhenAccountIsLocked()
+    {
+        // Arrange
+        var mockUow = new Mock<IUnitOfWork>();
+        var lockedUser = new User
+        {
+            Id = 99,
+            Email = "locked@aethelgard.com",
+            PasswordHash = AuthService.HashPassword("Password123!"),
+            Role = UserRole.Customer,
+            IsActive = false,
+        };
+        var mockUserRepo = new Mock<IGenericRepository<User>>();
+        mockUserRepo
+            .Setup(r => r.FindAsync(It.IsAny<System.Linq.Expressions.Expression<Func<User, bool>>>()))
+            .ReturnsAsync(new List<User> { lockedUser });
+        mockUow.Setup(u => u.Users).Returns(mockUserRepo.Object);
+
+        var config = new Mock<IConfiguration>().Object;
+
+        var authService = new AuthService(mockUow.Object, config);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<UnauthorizedException>(() =>
+            authService.LoginAsync(new LoginRequestDto { Email = "locked@aethelgard.com", Password = "Password123!" }));
+        Assert.Contains("khóa", ex.Message);
+    }
+
+    [Fact]
+    public async Task GoogleLoginAsync_ThrowsBadRequest_WhenCredentialEmpty()
+    {
+        var mockUow = new Mock<IUnitOfWork>();
+        var config = new Mock<IConfiguration>().Object;
+        var authService = new AuthService(mockUow.Object, config);
+
+        await Assert.ThrowsAsync<BadRequestException>(() =>
+            authService.GoogleLoginAsync(new GoogleLoginRequestDto { Credential = "" }));
     }
 }

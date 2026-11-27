@@ -60,3 +60,10 @@ public class ChangePasswordDto
     [Required, StringLength(128, MinimumLength = 8)]
     public string NewPassword { get; set; } = string.Empty;
 }
+
+public class GoogleLoginRequestDto
+{
+    [Required]
+    public string Credential { get; set; } = string.Empty;
+    public string? ExpectedRole { get; set; }
+}
