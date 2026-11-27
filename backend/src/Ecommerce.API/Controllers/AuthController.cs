@@ -33,6 +33,14 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [EnableRateLimiting("AuthGoogle")]
+    [HttpPost("google-login")]
+    public async Task<ActionResult<LoginResponseDto>> GoogleLogin([FromBody] GoogleLoginRequestDto request)
+    {
+        var result = await _authService.GoogleLoginAsync(request);
+        return Ok(result);
+    }
+
     [Authorize]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)

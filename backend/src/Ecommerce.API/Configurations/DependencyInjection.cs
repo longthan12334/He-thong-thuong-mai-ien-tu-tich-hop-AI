@@ -143,6 +143,13 @@ public static class DependencyInjection
                     PermitLimit = 25,
                     Window = TimeSpan.FromMinutes(5)
                 }));
+            options.AddPolicy("AuthGoogle", context => RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = 20,
+                    Window = TimeSpan.FromMinutes(1)
+                }));
             options.AddFixedWindowLimiter("AiLimiter", opt =>
             {
                 opt.PermitLimit = 15;
