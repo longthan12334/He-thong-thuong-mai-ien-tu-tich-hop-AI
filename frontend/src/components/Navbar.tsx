@@ -114,7 +114,7 @@ export default function Navbar() {
               href="/shop"
               prefetch={false}
               className={`nav-link px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
-                pathname.startsWith('/shop')
+                pathname === '/shop' || pathname.startsWith('/shop/')
                   ? 'bg-sky-50 text-sky-700 font-bold'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
               }`}
