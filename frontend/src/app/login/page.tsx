@@ -83,7 +83,7 @@ export default function LoginPage() {
   const handleGoogleCredential = async (credential: string) => {
     try {
       showToast('Đang xác thực tài khoản Google.', 'info');
-      const res = await authService.googleLogin(credential);
+      const res = await authService.googleLogin(credential, selectedRole ?? undefined);
       if (res && res.token) {
         localStorage.setItem('aethelgard_token', res.token);
         localStorage.setItem('aethelgard_user', JSON.stringify(res));
@@ -95,7 +95,7 @@ export default function LoginPage() {
         }, 500);
       }
     } catch (err: any) {
-      showToast(err.response?.data?.message || err.message || 'Đăng nhập Google thất bại');
+      showToast(err.response?.data?.message || err.message || 'Đăng nhập Google thất bại', 'error');
     }
   };
 

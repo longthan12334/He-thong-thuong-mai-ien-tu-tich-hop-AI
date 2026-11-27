@@ -75,10 +75,11 @@ export function GoogleButton({
   disabled?: boolean;
 }) {
   const activeClientId = clientId || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+  const isPlaceholderClientId = !activeClientId || activeClientId.includes('your_google_client_id_here');
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (!activeClientId || initializedRef.current) return;
+    if (isPlaceholderClientId || initializedRef.current) return;
     initializedRef.current = true;
 
     loadGisScript()
@@ -100,8 +101,8 @@ export function GoogleButton({
   }, [activeClientId, onCredential]);
 
   function handleClick() {
-    if (!activeClientId) {
-      alert('Chưa cấu hình Google Client ID trong biến môi trường (.env.local)');
+    if (isPlaceholderClientId) {
+      alert('Chưa cấu hình Google Client ID thật trong biến môi trường (.env.local)');
       return;
     }
     if (!window.google?.accounts?.id) {
